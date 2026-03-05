@@ -1,61 +1,99 @@
 ﻿# BassOS
 
-BassOS is a desktop app built with Flask + React + PyWebView.
+베이스 기타 연습을 "꾸준히 하게" 만드는 Windows 데스크톱 앱입니다.  
+연습 기록, 경험치(XP), 레벨, 퀘스트, 업적을 한 앱에서 관리할 수 있습니다.
 
-## Install For End Users (Recommended)
-Use a prebuilt release instead of building from source.
+## 어떤 앱인가요?
+BassOS는 베이스 연습을 게임처럼 기록하고 확인하는 개인용 앱입니다.
 
-1. Open GitHub `Releases`:
-   `https://github.com/jy1559/BassOS/releases`
-2. Download the latest Windows asset (zip).
-3. Unzip and run `BassOS.exe`.
+- 연습 시작/종료를 빠르게 기록
+- 연습 시간을 XP와 레벨로 시각화
+- 퀘스트/업적으로 작은 목표를 계속 달성
+- 곡/드릴/배킹트랙/기록장을 한곳에서 관리
+- 데이터는 내 PC 로컬 파일에 저장
 
-This is the simplest path for non-developers.
+## 이런 분께 추천합니다
+- 연습은 하는데 기록이 계속 끊기는 분
+- "오늘 뭘 연습할지" 매번 고민하는 분
+- 장기적으로 얼마나 늘었는지 눈에 보이는 지표가 필요한 분
+- 악기 연습을 게임처럼 재미있게 이어가고 싶은 분
 
-## Run From Source (Developers)
-From project root:
+## 핵심 기능
+1. 빠른 세션 기록
+- 대시보드에서 바로 세션 시작/종료
+- 곡 또는 드릴을 선택해 즉시 연습 시작
+
+2. 연습 스튜디오
+- 곡 연습/드릴 연습 모드 분리
+- 유튜브 참고 영상, 드릴 이미지, 배킹트랙을 함께 활용
+
+3. 라이브러리 관리
+- 곡 상태(시작 전/진행 중/완료), 목적, 장르, 즐겨찾기 관리
+- 드릴/배킹트랙도 검색과 필터로 정리
+
+4. 기록과 분석
+- 세션 수정/삭제 지원
+- 기간별(주/월/연/직접 선택) 연습 성과 확인
+- 활동별 시간/XP 분포와 Top 곡/드릴 확인
+
+5. 성장 시스템
+- XP/레벨/랭크/배지
+- 자동/수동 퀘스트
+- 티어형 업적 + 히든 업적
+
+6. 기록장(Journal)
+- 글 + 이미지/영상/오디오 첨부
+- 곡/드릴 연결과 태그 검색으로 연습 기록 보관
+
+## 화면 사용 순서(처음 사용자 기준)
+1. `대시보드`에서 세션 시작
+2. `연습 스튜디오`에서 곡 또는 드릴 선택
+3. `세션 기록`에서 로그 확인/수정
+4. `돌아보기`, `마이 XP`에서 변화 확인
+5. `퀘스트`, `업적`에서 다음 목표 확인
+6. `기록장`에 연습 결과(글/미디어) 남기기
+
+## 데이터와 백업
+- 앱 데이터는 로컬 파일(CSV/JSON)로 저장됩니다.
+- 종료 시 백업 트리거가 동작하도록 설계되어 있습니다.
+- 설정에서 진행도 리셋/전체 리셋 같은 관리자 기능을 사용할 수 있습니다.
+
+## 지원 환경
+- Windows 데스크톱 전용
+- 최소 창 크기: 1000x700
+- 단일 사용자(개인 연습용) 기준
+
+## 다운로드(Release)
+정식 Release 다운로드 안내는 준비 중입니다.  
+빌드 산출물 업로드 후 이 섹션을 업데이트할 예정입니다.
+
+## 직접 실행(개발/테스트용)
+프로젝트 루트에서:
 
 ```powershell
 ./run_dev.ps1
 ```
 
-`run_dev.ps1` does:
-- install Python dependencies
-- install/build frontend
-- launch desktop app (`desktop.py`)
-
-If you only want API server:
+API만 실행:
 
 ```powershell
 ./run_dev.ps1 -ApiOnly
 ```
 
-## Manual Dev Commands (Fallback)
-
-```powershell
-python -m pip install -r requirements.txt
-cd frontend
-npm.cmd ci
-npm.cmd run build
-cd ..
-python desktop.py
-```
-
-## Build EXE
-
+## EXE 빌드(개발/배포 준비용)
 ```powershell
 ./build_exe.ps1
 ```
 
-Build output:
-- `dist/BassOS/BassOS.exe`
+기본 결과물 경로:
+- `dist/BASSOS/bassos/BassOS.exe`
 
-## Publishing EXE On GitHub
-Possible and common. Recommended method:
-- do not commit `.exe` into repository history
-- upload zip/exe as a Release asset
+## FAQ
+Q. 인터넷이 꼭 필요한가요?  
+A. 기본적으로 로컬 중심으로 동작합니다. 다만 유튜브 링크 재생 같은 기능은 인터넷 연결이 필요합니다.
 
-Reason:
-- cleaner git history
-- large binaries are hard to version in git
-- GitHub file size limits apply (100MB per file in normal git push)
+Q. 데이터는 어디에 저장되나요?  
+A. 실행 데이터는 `app/data`, 미디어는 `app/media`, 백업은 `app/backups`에 저장됩니다.
+
+Q. 초보자도 바로 쓸 수 있나요?  
+A. 네. 대시보드에서 시작 버튼으로 연습을 기록하고, 이후 탭에서 정리/분석하는 흐름으로 사용하면 됩니다.
