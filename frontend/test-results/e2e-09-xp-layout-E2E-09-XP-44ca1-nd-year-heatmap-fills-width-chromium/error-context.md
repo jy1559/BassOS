@@ -1,0 +1,570 @@
+# Page snapshot
+
+```yaml
+- generic [ref=e3]:
+  - complementary [ref=e4]:
+    - generic [ref=e5]:
+      - heading "BassOS" [level=1] [ref=e6]
+      - paragraph [ref=e7]: Practice Game OS
+    - navigation [ref=e8]:
+      - generic [ref=e9]:
+        - generic [ref=e10]: 핵심
+        - button "대시보드" [ref=e11] [cursor=pointer]
+        - button "연습 스튜디오" [ref=e12] [cursor=pointer]
+        - button "기록장" [ref=e13] [cursor=pointer]
+      - button "도전 +" [ref=e15] [cursor=pointer]:
+        - generic [ref=e16]: 도전
+        - generic [ref=e17]: +
+      - generic [ref=e18]:
+        - button "라이브러리 −" [ref=e19] [cursor=pointer]:
+          - generic [ref=e20]: 라이브러리
+          - generic [ref=e21]: −
+        - button "곡" [ref=e22] [cursor=pointer]
+        - button "드릴/배킹트랙" [ref=e23] [cursor=pointer]
+        - button "추천곡" [ref=e24] [cursor=pointer]
+      - button "연습 도구 +" [ref=e26] [cursor=pointer]:
+        - generic [ref=e27]: 연습 도구
+        - generic [ref=e28]: +
+      - generic [ref=e29]:
+        - button "기록 −" [ref=e30] [cursor=pointer]:
+          - generic [ref=e31]: 기록
+          - generic [ref=e32]: −
+        - button "돌아보기" [ref=e33] [cursor=pointer]
+        - button "XP기록" [ref=e34] [cursor=pointer]
+        - button "세션 기록" [ref=e35] [cursor=pointer]
+    - generic [ref=e36]:
+      - button "⚙ 설정" [ref=e37] [cursor=pointer]
+      - button "? 가이드" [ref=e38] [cursor=pointer]
+  - main [ref=e39]:
+    - generic [ref=e40]:
+      - generic [ref=e41]:
+        - strong [ref=e42]: E2E Player
+        - generic [ref=e43]: Lv.1 Bronze · 베이스 입국 심사대
+      - generic [ref=e44]:
+        - button "메트로놈 OFF" [ref=e46] [cursor=pointer]:
+          - generic [ref=e47]: 메트로놈
+          - strong [ref=e48]: "OFF"
+        - button "EN" [ref=e49] [cursor=pointer]
+    - generic [ref=e50]:
+      - generic [ref=e52]:
+        - generic [ref=e53]:
+          - heading "XP 기록" [level=2] [ref=e54]
+          - paragraph [ref=e55]: 규모, 레벨업 근접도, 다음 보상을 한 화면에서 확인하세요.
+        - generic [ref=e59]:
+          - button "전체" [ref=e60] [cursor=pointer]
+          - button "기간" [ref=e61] [cursor=pointer]
+          - button "최근" [ref=e62] [cursor=pointer]
+      - generic [ref=e63]:
+        - heading "현재 레벨 진행" [level=2] [ref=e64]
+        - generic [ref=e65]:
+          - generic [ref=e67]:
+            - strong [ref=e68]: Lv.1
+            - generic [ref=e69]: 0.0%
+          - generic [ref=e70]:
+            - generic [ref=e71]:
+              - generic [ref=e72]: Total XP
+              - strong [ref=e73]: "0"
+            - generic [ref=e74]:
+              - generic [ref=e75]: 다음 레벨까지
+              - strong [ref=e76]: 2,500 XP
+            - generic [ref=e77]:
+              - generic [ref=e78]: 이번 기간 획득
+              - strong [ref=e79]: 0 XP
+            - generic [ref=e80]:
+              - generic [ref=e81]: 연속 연습
+              - strong [ref=e82]: 0일
+      - generic [ref=e83]:
+        - generic [ref=e84]:
+          - heading "이번 기간 성과" [level=2] [ref=e85]
+          - generic [ref=e86]: 직전 구간 대비 0%
+        - generic [ref=e87]: 0 XP
+        - generic [ref=e88]:
+          - generic [ref=e89]:
+            - generic [ref=e90]: 주간 XP
+            - strong [ref=e91]: 0 XP
+            - generic [ref=e92]: 직전 주 대비 0%
+          - generic [ref=e93]:
+            - generic [ref=e94]: 월간 XP
+            - strong [ref=e95]: 0 XP
+            - generic [ref=e96]: 직전 월 대비 0%
+        - generic [ref=e97]:
+          - generic [ref=e98]:
+            - generic [ref=e99]:
+              - text: 주간 목표
+              - generic [ref=e100]: 26/03/02 ~ 26/03/08
+            - strong [ref=e101]: 0 / 800 XP
+          - generic [ref=e104]: 직전 0 XP (0.0%) · 0%
+        - generic [ref=e105]:
+          - generic [ref=e106]:
+            - generic [ref=e107]:
+              - text: 월간 목표
+              - generic [ref=e108]: 26/03/01 ~ 26/03/31
+            - strong [ref=e109]: 0 / 3,440 XP
+          - generic [ref=e112]: 직전 0 XP (0.0%) · 0%
+        - generic [ref=e113]:
+          - generic [ref=e114]: 최고 XP/일 0
+          - generic [ref=e115]: 평균/일 0
+          - button "목표 수정" [ref=e116] [cursor=pointer]
+      - generic [ref=e117]:
+        - heading "다음 해금" [level=2] [ref=e118]
+        - generic [ref=e119]:
+          - strong [ref=e120]: Lv.2 · 다크 모드
+          - generic [ref=e121]: 어두운 테마 해금
+        - generic [ref=e124]:
+          - generic [ref=e126]:
+            - strong [ref=e127]: Lv.2 · 다크 모드
+            - generic [ref=e128]: Theme
+          - generic [ref=e132]:
+            - strong [ref=e133]: Lv.3 · 포켓 탐색자
+            - generic [ref=e134]: Title
+      - generic [ref=e137]:
+        - generic [ref=e138]:
+          - heading "XP 그래프" [level=2] [ref=e139]
+          - generic [ref=e140]:
+            - button "일간" [ref=e141] [cursor=pointer]
+            - button "주간" [ref=e142] [cursor=pointer]
+            - button "월간" [ref=e143] [cursor=pointer]
+        - generic [ref=e144]:
+          - generic [ref=e145]:
+            - generic [ref=e146]: "100"
+            - generic [ref=e147]: "75"
+            - generic [ref=e148]: "50"
+            - generic [ref=e149]: "25"
+            - generic [ref=e150]: "0"
+          - generic "2026-03-05 · 0 XP" [ref=e158]:
+            - generic [ref=e159]:
+              - generic: 2026-03-05 · 0 XP
+              - generic [ref=e160]: TODAY
+            - generic [ref=e161]: 03-05
+      - generic [ref=e162]:
+        - heading "레벨 진행" [level=2] [ref=e163]
+        - img [ref=e165]
+        - generic [ref=e169]: 03-05
+      - generic [ref=e170]:
+        - generic [ref=e171]:
+          - heading "연습 잔디" [level=2] [ref=e172]
+          - generic [ref=e173]:
+            - button "전체" [ref=e174] [cursor=pointer]
+            - button "6주" [ref=e175] [cursor=pointer]
+            - button "1년" [active] [ref=e176] [cursor=pointer]
+        - generic [ref=e178]:
+          - button "이전" [disabled] [ref=e179]
+          - generic [ref=e180]: "2026"
+          - button "다음" [disabled] [ref=e181]
+        - generic [ref=e183]:
+          - generic "2025-12-29 · 0 XP" [ref=e184]
+          - generic "2025-12-30 · 0 XP" [ref=e185]
+          - generic "2025-12-31 · 0 XP" [ref=e186]
+          - generic "2026-01-01 · 0 XP" [ref=e187]
+          - generic "2026-01-02 · 0 XP" [ref=e188]
+          - generic "2026-01-03 · 0 XP" [ref=e189]
+          - generic "2026-01-04 · 0 XP" [ref=e190]
+          - generic "2026-01-05 · 0 XP" [ref=e191]
+          - generic "2026-01-06 · 0 XP" [ref=e192]
+          - generic "2026-01-07 · 0 XP" [ref=e193]
+          - generic "2026-01-08 · 0 XP" [ref=e194]
+          - generic "2026-01-09 · 0 XP" [ref=e195]
+          - generic "2026-01-10 · 0 XP" [ref=e196]
+          - generic "2026-01-11 · 0 XP" [ref=e197]
+          - generic "2026-01-12 · 0 XP" [ref=e198]
+          - generic "2026-01-13 · 0 XP" [ref=e199]
+          - generic "2026-01-14 · 0 XP" [ref=e200]
+          - generic "2026-01-15 · 0 XP" [ref=e201]
+          - generic "2026-01-16 · 0 XP" [ref=e202]
+          - generic "2026-01-17 · 0 XP" [ref=e203]
+          - generic "2026-01-18 · 0 XP" [ref=e204]
+          - generic "2026-01-19 · 0 XP" [ref=e205]
+          - generic "2026-01-20 · 0 XP" [ref=e206]
+          - generic "2026-01-21 · 0 XP" [ref=e207]
+          - generic "2026-01-22 · 0 XP" [ref=e208]
+          - generic "2026-01-23 · 0 XP" [ref=e209]
+          - generic "2026-01-24 · 0 XP" [ref=e210]
+          - generic "2026-01-25 · 0 XP" [ref=e211]
+          - generic "2026-01-26 · 0 XP" [ref=e212]
+          - generic "2026-01-27 · 0 XP" [ref=e213]
+          - generic "2026-01-28 · 0 XP" [ref=e214]
+          - generic "2026-01-29 · 0 XP" [ref=e215]
+          - generic "2026-01-30 · 0 XP" [ref=e216]
+          - generic "2026-01-31 · 0 XP" [ref=e217]
+          - generic "2026-02-01 · 0 XP" [ref=e218]
+          - generic "2026-02-02 · 0 XP" [ref=e219]
+          - generic "2026-02-03 · 0 XP" [ref=e220]
+          - generic "2026-02-04 · 0 XP" [ref=e221]
+          - generic "2026-02-05 · 0 XP" [ref=e222]
+          - generic "2026-02-06 · 0 XP" [ref=e223]
+          - generic "2026-02-07 · 0 XP" [ref=e224]
+          - generic "2026-02-08 · 0 XP" [ref=e225]
+          - generic "2026-02-09 · 0 XP" [ref=e226]
+          - generic "2026-02-10 · 0 XP" [ref=e227]
+          - generic "2026-02-11 · 0 XP" [ref=e228]
+          - generic "2026-02-12 · 0 XP" [ref=e229]
+          - generic "2026-02-13 · 0 XP" [ref=e230]
+          - generic "2026-02-14 · 0 XP" [ref=e231]
+          - generic "2026-02-15 · 0 XP" [ref=e232]
+          - generic "2026-02-16 · 0 XP" [ref=e233]
+          - generic "2026-02-17 · 0 XP" [ref=e234]
+          - generic "2026-02-18 · 0 XP" [ref=e235]
+          - generic "2026-02-19 · 0 XP" [ref=e236]
+          - generic "2026-02-20 · 0 XP" [ref=e237]
+          - generic "2026-02-21 · 0 XP" [ref=e238]
+          - generic "2026-02-22 · 0 XP" [ref=e239]
+          - generic "2026-02-23 · 0 XP" [ref=e240]
+          - generic "2026-02-24 · 0 XP" [ref=e241]
+          - generic "2026-02-25 · 0 XP" [ref=e242]
+          - generic "2026-02-26 · 0 XP" [ref=e243]
+          - generic "2026-02-27 · 0 XP" [ref=e244]
+          - generic "2026-02-28 · 0 XP" [ref=e245]
+          - generic "2026-03-01 · 0 XP" [ref=e246]
+          - generic "2026-03-02 · 0 XP" [ref=e247]
+          - generic "2026-03-03 · 0 XP" [ref=e248]
+          - generic "2026-03-04 · 0 XP" [ref=e249]
+          - generic "2026-03-05 · 0 XP" [ref=e250]
+          - generic "2026-03-06 · 0 XP" [ref=e251]
+          - generic "2026-03-07 · 0 XP" [ref=e252]
+          - generic "2026-03-08 · 0 XP" [ref=e253]
+          - generic "2026-03-09 · 0 XP" [ref=e254]
+          - generic "2026-03-10 · 0 XP" [ref=e255]
+          - generic "2026-03-11 · 0 XP" [ref=e256]
+          - generic "2026-03-12 · 0 XP" [ref=e257]
+          - generic "2026-03-13 · 0 XP" [ref=e258]
+          - generic "2026-03-14 · 0 XP" [ref=e259]
+          - generic "2026-03-15 · 0 XP" [ref=e260]
+          - generic "2026-03-16 · 0 XP" [ref=e261]
+          - generic "2026-03-17 · 0 XP" [ref=e262]
+          - generic "2026-03-18 · 0 XP" [ref=e263]
+          - generic "2026-03-19 · 0 XP" [ref=e264]
+          - generic "2026-03-20 · 0 XP" [ref=e265]
+          - generic "2026-03-21 · 0 XP" [ref=e266]
+          - generic "2026-03-22 · 0 XP" [ref=e267]
+          - generic "2026-03-23 · 0 XP" [ref=e268]
+          - generic "2026-03-24 · 0 XP" [ref=e269]
+          - generic "2026-03-25 · 0 XP" [ref=e270]
+          - generic "2026-03-26 · 0 XP" [ref=e271]
+          - generic "2026-03-27 · 0 XP" [ref=e272]
+          - generic "2026-03-28 · 0 XP" [ref=e273]
+          - generic "2026-03-29 · 0 XP" [ref=e274]
+          - generic "2026-03-30 · 0 XP" [ref=e275]
+          - generic "2026-03-31 · 0 XP" [ref=e276]
+          - generic "2026-04-01 · 0 XP" [ref=e277]
+          - generic "2026-04-02 · 0 XP" [ref=e278]
+          - generic "2026-04-03 · 0 XP" [ref=e279]
+          - generic "2026-04-04 · 0 XP" [ref=e280]
+          - generic "2026-04-05 · 0 XP" [ref=e281]
+          - generic "2026-04-06 · 0 XP" [ref=e282]
+          - generic "2026-04-07 · 0 XP" [ref=e283]
+          - generic "2026-04-08 · 0 XP" [ref=e284]
+          - generic "2026-04-09 · 0 XP" [ref=e285]
+          - generic "2026-04-10 · 0 XP" [ref=e286]
+          - generic "2026-04-11 · 0 XP" [ref=e287]
+          - generic "2026-04-12 · 0 XP" [ref=e288]
+          - generic "2026-04-13 · 0 XP" [ref=e289]
+          - generic "2026-04-14 · 0 XP" [ref=e290]
+          - generic "2026-04-15 · 0 XP" [ref=e291]
+          - generic "2026-04-16 · 0 XP" [ref=e292]
+          - generic "2026-04-17 · 0 XP" [ref=e293]
+          - generic "2026-04-18 · 0 XP" [ref=e294]
+          - generic "2026-04-19 · 0 XP" [ref=e295]
+          - generic "2026-04-20 · 0 XP" [ref=e296]
+          - generic "2026-04-21 · 0 XP" [ref=e297]
+          - generic "2026-04-22 · 0 XP" [ref=e298]
+          - generic "2026-04-23 · 0 XP" [ref=e299]
+          - generic "2026-04-24 · 0 XP" [ref=e300]
+          - generic "2026-04-25 · 0 XP" [ref=e301]
+          - generic "2026-04-26 · 0 XP" [ref=e302]
+          - generic "2026-04-27 · 0 XP" [ref=e303]
+          - generic "2026-04-28 · 0 XP" [ref=e304]
+          - generic "2026-04-29 · 0 XP" [ref=e305]
+          - generic "2026-04-30 · 0 XP" [ref=e306]
+          - generic "2026-05-01 · 0 XP" [ref=e307]
+          - generic "2026-05-02 · 0 XP" [ref=e308]
+          - generic "2026-05-03 · 0 XP" [ref=e309]
+          - generic "2026-05-04 · 0 XP" [ref=e310]
+          - generic "2026-05-05 · 0 XP" [ref=e311]
+          - generic "2026-05-06 · 0 XP" [ref=e312]
+          - generic "2026-05-07 · 0 XP" [ref=e313]
+          - generic "2026-05-08 · 0 XP" [ref=e314]
+          - generic "2026-05-09 · 0 XP" [ref=e315]
+          - generic "2026-05-10 · 0 XP" [ref=e316]
+          - generic "2026-05-11 · 0 XP" [ref=e317]
+          - generic "2026-05-12 · 0 XP" [ref=e318]
+          - generic "2026-05-13 · 0 XP" [ref=e319]
+          - generic "2026-05-14 · 0 XP" [ref=e320]
+          - generic "2026-05-15 · 0 XP" [ref=e321]
+          - generic "2026-05-16 · 0 XP" [ref=e322]
+          - generic "2026-05-17 · 0 XP" [ref=e323]
+          - generic "2026-05-18 · 0 XP" [ref=e324]
+          - generic "2026-05-19 · 0 XP" [ref=e325]
+          - generic "2026-05-20 · 0 XP" [ref=e326]
+          - generic "2026-05-21 · 0 XP" [ref=e327]
+          - generic "2026-05-22 · 0 XP" [ref=e328]
+          - generic "2026-05-23 · 0 XP" [ref=e329]
+          - generic "2026-05-24 · 0 XP" [ref=e330]
+          - generic "2026-05-25 · 0 XP" [ref=e331]
+          - generic "2026-05-26 · 0 XP" [ref=e332]
+          - generic "2026-05-27 · 0 XP" [ref=e333]
+          - generic "2026-05-28 · 0 XP" [ref=e334]
+          - generic "2026-05-29 · 0 XP" [ref=e335]
+          - generic "2026-05-30 · 0 XP" [ref=e336]
+          - generic "2026-05-31 · 0 XP" [ref=e337]
+          - generic "2026-06-01 · 0 XP" [ref=e338]
+          - generic "2026-06-02 · 0 XP" [ref=e339]
+          - generic "2026-06-03 · 0 XP" [ref=e340]
+          - generic "2026-06-04 · 0 XP" [ref=e341]
+          - generic "2026-06-05 · 0 XP" [ref=e342]
+          - generic "2026-06-06 · 0 XP" [ref=e343]
+          - generic "2026-06-07 · 0 XP" [ref=e344]
+          - generic "2026-06-08 · 0 XP" [ref=e345]
+          - generic "2026-06-09 · 0 XP" [ref=e346]
+          - generic "2026-06-10 · 0 XP" [ref=e347]
+          - generic "2026-06-11 · 0 XP" [ref=e348]
+          - generic "2026-06-12 · 0 XP" [ref=e349]
+          - generic "2026-06-13 · 0 XP" [ref=e350]
+          - generic "2026-06-14 · 0 XP" [ref=e351]
+          - generic "2026-06-15 · 0 XP" [ref=e352]
+          - generic "2026-06-16 · 0 XP" [ref=e353]
+          - generic "2026-06-17 · 0 XP" [ref=e354]
+          - generic "2026-06-18 · 0 XP" [ref=e355]
+          - generic "2026-06-19 · 0 XP" [ref=e356]
+          - generic "2026-06-20 · 0 XP" [ref=e357]
+          - generic "2026-06-21 · 0 XP" [ref=e358]
+          - generic "2026-06-22 · 0 XP" [ref=e359]
+          - generic "2026-06-23 · 0 XP" [ref=e360]
+          - generic "2026-06-24 · 0 XP" [ref=e361]
+          - generic "2026-06-25 · 0 XP" [ref=e362]
+          - generic "2026-06-26 · 0 XP" [ref=e363]
+          - generic "2026-06-27 · 0 XP" [ref=e364]
+          - generic "2026-06-28 · 0 XP" [ref=e365]
+          - generic "2026-06-29 · 0 XP" [ref=e366]
+          - generic "2026-06-30 · 0 XP" [ref=e367]
+          - generic "2026-07-01 · 0 XP" [ref=e368]
+          - generic "2026-07-02 · 0 XP" [ref=e369]
+          - generic "2026-07-03 · 0 XP" [ref=e370]
+          - generic "2026-07-04 · 0 XP" [ref=e371]
+          - generic "2026-07-05 · 0 XP" [ref=e372]
+          - generic "2026-07-06 · 0 XP" [ref=e373]
+          - generic "2026-07-07 · 0 XP" [ref=e374]
+          - generic "2026-07-08 · 0 XP" [ref=e375]
+          - generic "2026-07-09 · 0 XP" [ref=e376]
+          - generic "2026-07-10 · 0 XP" [ref=e377]
+          - generic "2026-07-11 · 0 XP" [ref=e378]
+          - generic "2026-07-12 · 0 XP" [ref=e379]
+          - generic "2026-07-13 · 0 XP" [ref=e380]
+          - generic "2026-07-14 · 0 XP" [ref=e381]
+          - generic "2026-07-15 · 0 XP" [ref=e382]
+          - generic "2026-07-16 · 0 XP" [ref=e383]
+          - generic "2026-07-17 · 0 XP" [ref=e384]
+          - generic "2026-07-18 · 0 XP" [ref=e385]
+          - generic "2026-07-19 · 0 XP" [ref=e386]
+          - generic "2026-07-20 · 0 XP" [ref=e387]
+          - generic "2026-07-21 · 0 XP" [ref=e388]
+          - generic "2026-07-22 · 0 XP" [ref=e389]
+          - generic "2026-07-23 · 0 XP" [ref=e390]
+          - generic "2026-07-24 · 0 XP" [ref=e391]
+          - generic "2026-07-25 · 0 XP" [ref=e392]
+          - generic "2026-07-26 · 0 XP" [ref=e393]
+          - generic "2026-07-27 · 0 XP" [ref=e394]
+          - generic "2026-07-28 · 0 XP" [ref=e395]
+          - generic "2026-07-29 · 0 XP" [ref=e396]
+          - generic "2026-07-30 · 0 XP" [ref=e397]
+          - generic "2026-07-31 · 0 XP" [ref=e398]
+          - generic "2026-08-01 · 0 XP" [ref=e399]
+          - generic "2026-08-02 · 0 XP" [ref=e400]
+          - generic "2026-08-03 · 0 XP" [ref=e401]
+          - generic "2026-08-04 · 0 XP" [ref=e402]
+          - generic "2026-08-05 · 0 XP" [ref=e403]
+          - generic "2026-08-06 · 0 XP" [ref=e404]
+          - generic "2026-08-07 · 0 XP" [ref=e405]
+          - generic "2026-08-08 · 0 XP" [ref=e406]
+          - generic "2026-08-09 · 0 XP" [ref=e407]
+          - generic "2026-08-10 · 0 XP" [ref=e408]
+          - generic "2026-08-11 · 0 XP" [ref=e409]
+          - generic "2026-08-12 · 0 XP" [ref=e410]
+          - generic "2026-08-13 · 0 XP" [ref=e411]
+          - generic "2026-08-14 · 0 XP" [ref=e412]
+          - generic "2026-08-15 · 0 XP" [ref=e413]
+          - generic "2026-08-16 · 0 XP" [ref=e414]
+          - generic "2026-08-17 · 0 XP" [ref=e415]
+          - generic "2026-08-18 · 0 XP" [ref=e416]
+          - generic "2026-08-19 · 0 XP" [ref=e417]
+          - generic "2026-08-20 · 0 XP" [ref=e418]
+          - generic "2026-08-21 · 0 XP" [ref=e419]
+          - generic "2026-08-22 · 0 XP" [ref=e420]
+          - generic "2026-08-23 · 0 XP" [ref=e421]
+          - generic "2026-08-24 · 0 XP" [ref=e422]
+          - generic "2026-08-25 · 0 XP" [ref=e423]
+          - generic "2026-08-26 · 0 XP" [ref=e424]
+          - generic "2026-08-27 · 0 XP" [ref=e425]
+          - generic "2026-08-28 · 0 XP" [ref=e426]
+          - generic "2026-08-29 · 0 XP" [ref=e427]
+          - generic "2026-08-30 · 0 XP" [ref=e428]
+          - generic "2026-08-31 · 0 XP" [ref=e429]
+          - generic "2026-09-01 · 0 XP" [ref=e430]
+          - generic "2026-09-02 · 0 XP" [ref=e431]
+          - generic "2026-09-03 · 0 XP" [ref=e432]
+          - generic "2026-09-04 · 0 XP" [ref=e433]
+          - generic "2026-09-05 · 0 XP" [ref=e434]
+          - generic "2026-09-06 · 0 XP" [ref=e435]
+          - generic "2026-09-07 · 0 XP" [ref=e436]
+          - generic "2026-09-08 · 0 XP" [ref=e437]
+          - generic "2026-09-09 · 0 XP" [ref=e438]
+          - generic "2026-09-10 · 0 XP" [ref=e439]
+          - generic "2026-09-11 · 0 XP" [ref=e440]
+          - generic "2026-09-12 · 0 XP" [ref=e441]
+          - generic "2026-09-13 · 0 XP" [ref=e442]
+          - generic "2026-09-14 · 0 XP" [ref=e443]
+          - generic "2026-09-15 · 0 XP" [ref=e444]
+          - generic "2026-09-16 · 0 XP" [ref=e445]
+          - generic "2026-09-17 · 0 XP" [ref=e446]
+          - generic "2026-09-18 · 0 XP" [ref=e447]
+          - generic "2026-09-19 · 0 XP" [ref=e448]
+          - generic "2026-09-20 · 0 XP" [ref=e449]
+          - generic "2026-09-21 · 0 XP" [ref=e450]
+          - generic "2026-09-22 · 0 XP" [ref=e451]
+          - generic "2026-09-23 · 0 XP" [ref=e452]
+          - generic "2026-09-24 · 0 XP" [ref=e453]
+          - generic "2026-09-25 · 0 XP" [ref=e454]
+          - generic "2026-09-26 · 0 XP" [ref=e455]
+          - generic "2026-09-27 · 0 XP" [ref=e456]
+          - generic "2026-09-28 · 0 XP" [ref=e457]
+          - generic "2026-09-29 · 0 XP" [ref=e458]
+          - generic "2026-09-30 · 0 XP" [ref=e459]
+          - generic "2026-10-01 · 0 XP" [ref=e460]
+          - generic "2026-10-02 · 0 XP" [ref=e461]
+          - generic "2026-10-03 · 0 XP" [ref=e462]
+          - generic "2026-10-04 · 0 XP" [ref=e463]
+          - generic "2026-10-05 · 0 XP" [ref=e464]
+          - generic "2026-10-06 · 0 XP" [ref=e465]
+          - generic "2026-10-07 · 0 XP" [ref=e466]
+          - generic "2026-10-08 · 0 XP" [ref=e467]
+          - generic "2026-10-09 · 0 XP" [ref=e468]
+          - generic "2026-10-10 · 0 XP" [ref=e469]
+          - generic "2026-10-11 · 0 XP" [ref=e470]
+          - generic "2026-10-12 · 0 XP" [ref=e471]
+          - generic "2026-10-13 · 0 XP" [ref=e472]
+          - generic "2026-10-14 · 0 XP" [ref=e473]
+          - generic "2026-10-15 · 0 XP" [ref=e474]
+          - generic "2026-10-16 · 0 XP" [ref=e475]
+          - generic "2026-10-17 · 0 XP" [ref=e476]
+          - generic "2026-10-18 · 0 XP" [ref=e477]
+          - generic "2026-10-19 · 0 XP" [ref=e478]
+          - generic "2026-10-20 · 0 XP" [ref=e479]
+          - generic "2026-10-21 · 0 XP" [ref=e480]
+          - generic "2026-10-22 · 0 XP" [ref=e481]
+          - generic "2026-10-23 · 0 XP" [ref=e482]
+          - generic "2026-10-24 · 0 XP" [ref=e483]
+          - generic "2026-10-25 · 0 XP" [ref=e484]
+          - generic "2026-10-26 · 0 XP" [ref=e485]
+          - generic "2026-10-27 · 0 XP" [ref=e486]
+          - generic "2026-10-28 · 0 XP" [ref=e487]
+          - generic "2026-10-29 · 0 XP" [ref=e488]
+          - generic "2026-10-30 · 0 XP" [ref=e489]
+          - generic "2026-10-31 · 0 XP" [ref=e490]
+          - generic "2026-11-01 · 0 XP" [ref=e491]
+          - generic "2026-11-02 · 0 XP" [ref=e492]
+          - generic "2026-11-03 · 0 XP" [ref=e493]
+          - generic "2026-11-04 · 0 XP" [ref=e494]
+          - generic "2026-11-05 · 0 XP" [ref=e495]
+          - generic "2026-11-06 · 0 XP" [ref=e496]
+          - generic "2026-11-07 · 0 XP" [ref=e497]
+          - generic "2026-11-08 · 0 XP" [ref=e498]
+          - generic "2026-11-09 · 0 XP" [ref=e499]
+          - generic "2026-11-10 · 0 XP" [ref=e500]
+          - generic "2026-11-11 · 0 XP" [ref=e501]
+          - generic "2026-11-12 · 0 XP" [ref=e502]
+          - generic "2026-11-13 · 0 XP" [ref=e503]
+          - generic "2026-11-14 · 0 XP" [ref=e504]
+          - generic "2026-11-15 · 0 XP" [ref=e505]
+          - generic "2026-11-16 · 0 XP" [ref=e506]
+          - generic "2026-11-17 · 0 XP" [ref=e507]
+          - generic "2026-11-18 · 0 XP" [ref=e508]
+          - generic "2026-11-19 · 0 XP" [ref=e509]
+          - generic "2026-11-20 · 0 XP" [ref=e510]
+          - generic "2026-11-21 · 0 XP" [ref=e511]
+          - generic "2026-11-22 · 0 XP" [ref=e512]
+          - generic "2026-11-23 · 0 XP" [ref=e513]
+          - generic "2026-11-24 · 0 XP" [ref=e514]
+          - generic "2026-11-25 · 0 XP" [ref=e515]
+          - generic "2026-11-26 · 0 XP" [ref=e516]
+          - generic "2026-11-27 · 0 XP" [ref=e517]
+          - generic "2026-11-28 · 0 XP" [ref=e518]
+          - generic "2026-11-29 · 0 XP" [ref=e519]
+          - generic "2026-11-30 · 0 XP" [ref=e520]
+          - generic "2026-12-01 · 0 XP" [ref=e521]
+          - generic "2026-12-02 · 0 XP" [ref=e522]
+          - generic "2026-12-03 · 0 XP" [ref=e523]
+          - generic "2026-12-04 · 0 XP" [ref=e524]
+          - generic "2026-12-05 · 0 XP" [ref=e525]
+          - generic "2026-12-06 · 0 XP" [ref=e526]
+          - generic "2026-12-07 · 0 XP" [ref=e527]
+          - generic "2026-12-08 · 0 XP" [ref=e528]
+          - generic "2026-12-09 · 0 XP" [ref=e529]
+          - generic "2026-12-10 · 0 XP" [ref=e530]
+          - generic "2026-12-11 · 0 XP" [ref=e531]
+          - generic "2026-12-12 · 0 XP" [ref=e532]
+          - generic "2026-12-13 · 0 XP" [ref=e533]
+          - generic "2026-12-14 · 0 XP" [ref=e534]
+          - generic "2026-12-15 · 0 XP" [ref=e535]
+          - generic "2026-12-16 · 0 XP" [ref=e536]
+          - generic "2026-12-17 · 0 XP" [ref=e537]
+          - generic "2026-12-18 · 0 XP" [ref=e538]
+          - generic "2026-12-19 · 0 XP" [ref=e539]
+          - generic "2026-12-20 · 0 XP" [ref=e540]
+          - generic "2026-12-21 · 0 XP" [ref=e541]
+          - generic "2026-12-22 · 0 XP" [ref=e542]
+          - generic "2026-12-23 · 0 XP" [ref=e543]
+          - generic "2026-12-24 · 0 XP" [ref=e544]
+          - generic "2026-12-25 · 0 XP" [ref=e545]
+          - generic "2026-12-26 · 0 XP" [ref=e546]
+          - generic "2026-12-27 · 0 XP" [ref=e547]
+          - generic "2026-12-28 · 0 XP" [ref=e548]
+          - generic "2026-12-29 · 0 XP" [ref=e549]
+          - generic "2026-12-30 · 0 XP" [ref=e550]
+          - generic "2026-12-31 · 0 XP" [ref=e551]
+          - generic "2027-01-01 · 0 XP" [ref=e552]
+          - generic "2027-01-02 · 0 XP" [ref=e553]
+          - generic "2027-01-03 · 0 XP" [ref=e554]
+          - generic: 1월
+          - generic: 2월
+          - generic: 3월
+          - generic: 4월
+          - generic: 5월
+          - generic: 6월
+          - generic: 7월
+          - generic: 8월
+          - generic: 9월
+          - generic: 10월
+          - generic: 11월
+          - generic: 12월
+        - generic [ref=e555]:
+          - generic [ref=e556]: 연속 0일
+          - generic [ref=e557]: 최장 연속 0일
+          - generic [ref=e558]: 최장 연속 주 0
+      - generic [ref=e559]:
+        - generic [ref=e560]:
+          - heading "활동별 XP" [level=2] [ref=e561]
+          - generic [ref=e562]:
+            - combobox [ref=e563]:
+              - option "전체 활동" [selected]
+              - option "곡연습 · 곡별"
+              - option "곡연습 · 장르별"
+              - option "드릴연습 · 유형별"
+            - generic [ref=e564]:
+              - button "막대" [ref=e565] [cursor=pointer]
+              - button "파이" [ref=e566] [cursor=pointer]
+        - generic [ref=e567]:
+          - generic "곡연습 · 0 XP" [ref=e568]:
+            - generic [ref=e569]: 곡연습
+            - strong [ref=e572]: "0"
+          - generic "드릴연습 · 0 XP" [ref=e573]:
+            - generic [ref=e574]: 드릴연습
+            - strong [ref=e577]: "0"
+          - generic "기타세션 · 0 XP" [ref=e578]:
+            - generic [ref=e579]: 기타세션
+            - strong [ref=e582]: "0"
+          - generic "퀘스트 · 0 XP" [ref=e583]:
+            - generic [ref=e584]: 퀘스트
+            - strong [ref=e587]: "0"
+          - generic "업적 · 0 XP" [ref=e588]:
+            - generic [ref=e589]: 업적
+            - strong [ref=e592]: "0"
+```

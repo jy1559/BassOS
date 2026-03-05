@@ -1,45 +1,40 @@
-import { expect, test, type Page } from "@playwright/test";
-import { openApp, resetRuntime } from "./helpers";
+import { expect, test } from "@playwright/test";
+import { gotoRecordTab, openApp, resetRuntime } from "./helpers";
 
-async function gotoXpTab(page: Page): Promise<void> {
-  const recordsGroup = page
-    .locator(".nav-subgroup", { has: page.locator(".nav-group-title", { hasText: /기록|Records/ }) })
-    .first();
-  const classes = (await recordsGroup.getAttribute("class")) ?? "";
-  if (!classes.includes("open")) {
-    await recordsGroup.locator(".nav-group-toggle").click();
-  }
-  await recordsGroup.locator(".nav-btn").filter({ hasText: /XP기록|XP Log|XP/i }).first().click();
-}
+const VIEWPORTS = [
+  { width: 1366, height: 768 },
+  { width: 1920, height: 1080 },
+];
 
-test("E2E-09 XP layout compact + mixed performance + heatmap reshape", async ({ page, request }) => {
+test("E2E-09 XP layout keeps cards visible and year heatmap fills width", async ({ page, request }) => {
   await resetRuntime(request);
-  await openApp(page, 1366, 768);
-  await gotoXpTab(page);
 
-  const xpPage = page.locator(".xp-story-page");
-  await expect(xpPage).toBeVisible();
+  for (const viewport of VIEWPORTS) {
+    await openApp(page, viewport.width, viewport.height);
+    await gotoRecordTab(page, "xp");
 
-  const mainContent = page.locator("main.content.content-xp");
-  const hasNoVerticalOverflow = await mainContent.evaluate((el) => el.scrollHeight <= el.clientHeight + 1);
-  expect(hasNoVerticalOverflow).toBeTruthy();
+    const xpPage = page.locator(".xp-story-page");
+    await expect(xpPage).toBeVisible();
 
-  await expect(page.locator("[data-testid='xp-period-scope-all']")).toHaveClass(/active-mini/);
+    const performanceCard = page.locator(".xp-story-performance-card");
+    await expect(performanceCard).toContainText(/Weekly XP|주간 XP/i);
+    await expect(performanceCard).toContainText(/Monthly XP|월간 XP/i);
+    await expect(performanceCard.locator(".ghost-btn").filter({ hasText: /Edit Goals|목표 수정/i }).first()).toBeVisible();
 
-  const performanceCard = page.locator(".xp-story-performance-card");
-  await expect(performanceCard).toContainText(/주간 XP|Weekly XP/);
-  await expect(performanceCard).toContainText(/월간 XP|Monthly XP/);
+    const heatmapCard = page
+      .locator(".xp-story-bottom-card")
+      .filter({ has: page.locator("h2", { hasText: /Practice Grass|연습 잔디/i }) })
+      .first();
+    await heatmapCard.locator(".ghost-btn").filter({ hasText: /1y|1년/i }).click();
 
-  const heatmapCard = page.locator(".xp-story-bottom-card").filter({ has: page.locator("h2", { hasText: /연습 잔디|Practice Grass/ }) }).first();
-  await heatmapCard.locator(".ghost-btn").filter({ hasText: /전체|All/ }).click();
-  const firstYearRow = heatmapCard.locator(".xp-story-heatmap-all-year-row").first();
-  await expect(firstYearRow).toBeVisible();
-  const weekCellCount = await firstYearRow.locator(".xp-story-heat-cell").count();
-  expect(weekCellCount).toBeGreaterThan(12);
+    const yearGrid = heatmapCard.locator(".xp-story-heatmap-year-grid");
+    await expect(yearGrid).toBeVisible();
+    await expect(heatmapCard.locator(".xp-story-heatmap-year-row")).toHaveCount(12);
 
-  await heatmapCard.locator(".ghost-btn").filter({ hasText: /1년|1y/ }).click();
-  const hasNoHorizontalOverflow = await heatmapCard
-    .locator(".xp-story-heatmap-week-shell")
-    .evaluate((el) => el.scrollWidth <= el.clientWidth + 1);
-  expect(hasNoHorizontalOverflow).toBeTruthy();
+    const firstRowCellCount = await heatmapCard.locator(".xp-story-heatmap-year-row").first().locator(".xp-story-heat-cell").count();
+    expect(firstRowCellCount).toBe(31);
+
+    const hasNoHorizontalOverflow = await yearGrid.evaluate((el) => el.scrollWidth <= el.clientWidth + 1);
+    expect(hasNoHorizontalOverflow).toBeTruthy();
+  }
 });

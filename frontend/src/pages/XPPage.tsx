@@ -21,14 +21,6 @@ type HeatPoint = {
   xp: number;
 };
 
-type YearBiWeekCell = HeatPoint & {
-  col: number;
-  row: number;
-  week: number;
-  outside: boolean;
-  intensity: 0 | 1 | 2 | 3 | 4;
-};
-
 type AllYearWeekCell = {
   key: string;
   weekStartKey: string;
@@ -43,22 +35,23 @@ type AllYearWeekRow = {
   cells: AllYearWeekCell[];
 };
 
-type YearMonthMarker = {
-  col: number;
-  label: string;
-};
-
-type YearBiWeekGrid = {
-  cols: number;
-  cells: YearBiWeekCell[];
-  monthMarkers: YearMonthMarker[];
-};
-
-type RawYearBiWeekCell = HeatPoint & {
-  col: number;
-  row: number;
-  week: number;
+type YearMonthDayCell = HeatPoint & {
+  month: number;
+  day: number;
   outside: boolean;
+  intensity: 0 | 1 | 2 | 3 | 4;
+};
+
+type YearMonthRow = {
+  month: number;
+  label: string;
+  cells: YearMonthDayCell[];
+};
+
+type YearMonthGrid = {
+  year: number;
+  dayHeaders: number[];
+  rows: YearMonthRow[];
 };
 
 type CompactHeatCell = HeatPoint & {
@@ -74,6 +67,11 @@ type ActivityRow = {
   label: string;
   xp: number;
   color: string;
+};
+
+type BarLabelParts = {
+  top: string;
+  bottom: string;
 };
 
 function toYmdLocal(input: Date): string {
@@ -115,11 +113,95 @@ function formatMinutes(total: number, lang: Lang): string {
   return `${h}h ${m}m`;
 }
 
-function formatShortDate(key: string, granularity: XPGranularityKey): string {
-  if (!key) return "";
-  if (granularity === "day") return key.slice(5);
-  if (granularity === "month") return key.slice(2);
-  return key.slice(2);
+function shortMonthEn(date: Date): string {
+  return date.toLocaleString("en-US", { month: "short" });
+}
+
+function parseIsoWeekKey(key: string): { year: number; week: number } | null {
+  const match = String(key || "").match(/^(\d{4})-W(\d{2})$/);
+  if (!match) return null;
+  const year = Number(match[1]);
+  const week = Number(match[2]);
+  if (!Number.isFinite(year) || !Number.isFinite(week) || week < 1 || week > 53) return null;
+  return { year, week };
+}
+
+function isoWeekStartDate(year: number, week: number): Date {
+  const jan4 = new Date(year, 0, 4);
+  const week1Monday = addDays(jan4, -mondayIndex(jan4));
+  return addDays(week1Monday, (week - 1) * 7);
+}
+
+function formatBarLabelParts(key: string, granularity: XPGranularityKey): BarLabelParts | null {
+  if (!key) return null;
+  if (granularity === "day") {
+    const day = parseYmd(key);
+    if (!day) return null;
+    return {
+      top: shortMonthEn(day),
+      bottom: String(day.getDate()).padStart(2, "0"),
+    };
+  }
+  if (granularity === "week") {
+    const parsed = parseIsoWeekKey(key);
+    if (!parsed) return { top: key.slice(0, 4), bottom: key.slice(5) };
+    const start = isoWeekStartDate(parsed.year, parsed.week);
+    return {
+      top: shortMonthEn(start),
+      bottom: `W${String(parsed.week).padStart(2, "0")}`,
+    };
+  }
+  if (key.length >= 7) return { top: key.slice(0, 4), bottom: key.slice(5, 7) };
+  return { top: key, bottom: "" };
+}
+
+function formatBarPointKey(key: string, granularity: XPGranularityKey): string {
+  if (!key) return "-";
+  if (granularity === "day") {
+    const day = parseYmd(key);
+    return day ? `${shortMonthEn(day)} ${String(day.getDate()).padStart(2, "0")}` : key;
+  }
+  if (granularity === "week") {
+    const parsed = parseIsoWeekKey(key);
+    if (!parsed) return key;
+    const start = isoWeekStartDate(parsed.year, parsed.week);
+    const end = addDays(start, 6);
+    return `${toYmdLocal(start)} ~ ${toYmdLocal(end)}`;
+  }
+  return key;
+}
+
+function markerLabelForBar(key: string, granularity: XPGranularityKey): string | null {
+  if (!key) return null;
+  if (granularity === "day") {
+    const day = parseYmd(key);
+    if (!day || day.getDate() !== 1) return null;
+    return shortMonthEn(day);
+  }
+  if (granularity === "week") {
+    const parsed = parseIsoWeekKey(key);
+    if (!parsed) return null;
+    const start = isoWeekStartDate(parsed.year, parsed.week);
+    for (let offset = 0; offset < 7; offset += 1) {
+      const day = addDays(start, offset);
+      if (day.getDate() === 1) return shortMonthEn(day);
+    }
+    return null;
+  }
+  const monthToken = String(key || "").slice(5, 7);
+  if (monthToken === "01") return key.slice(0, 4);
+  return null;
+}
+
+function buildSampleIndices(length: number, targetCount = 5): number[] {
+  if (length <= 0) return [];
+  if (length === 1) return [0];
+  const set = new Set<number>([0, length - 1]);
+  const safeCount = Math.max(2, targetCount);
+  for (let idx = 1; idx < safeCount - 1; idx += 1) {
+    set.add(Math.round((idx / (safeCount - 1)) * (length - 1)));
+  }
+  return Array.from(set).sort((a, b) => a - b);
 }
 
 function formatSignedPct(value: number): string {
@@ -284,55 +366,53 @@ function buildAllYearWeekRows(
   };
 }
 
-function buildYearBiWeekGrid(year: number, minuteMap: Map<string, number>, xpMap: Map<string, number>, lang: Lang): YearBiWeekGrid {
-  const yearStart = new Date(year, 0, 1);
-  const yearEnd = new Date(year, 11, 31);
-  const gridStart = addDays(yearStart, -mondayIndex(yearStart));
-  const gridEnd = addDays(yearEnd, 6 - mondayIndex(yearEnd));
-  const totalDays = Math.max(0, diffDays(gridStart, gridEnd)) + 1;
-  const totalWeeks = Math.max(1, Math.ceil(totalDays / 7));
-  const cols = Math.max(1, Math.ceil(totalWeeks / 2));
+function buildYearMonthGrid(year: number, minuteMap: Map<string, number>, xpMap: Map<string, number>, lang: Lang): YearMonthGrid {
+  const dayHeaders = Array.from({ length: 31 }, (_, idx) => idx + 1);
+  let maxYearMinutes = 0;
+  const baseRows: Array<{ month: number; label: string; cells: Omit<YearMonthDayCell, "intensity">[] }> = [];
 
-  const rawCells: RawYearBiWeekCell[] = [];
-  for (let offset = 0; offset < totalDays; offset += 1) {
-    const day = addDays(gridStart, offset);
-    const key = toYmdLocal(day);
-    const week = Math.floor(offset / 7);
-    const dow = mondayIndex(day);
-    const col = Math.floor(week / 2);
-    const row = dow + (week % 2) * 7;
-    rawCells.push({
-      key,
-      minutes: Math.max(0, Number(minuteMap.get(key) ?? 0)),
-      xp: Math.max(0, Number(xpMap.get(key) ?? 0)),
-      col,
-      row,
-      week,
-      outside: day.getFullYear() !== year,
+  for (let monthIdx = 0; monthIdx < 12; monthIdx += 1) {
+    const month = monthIdx + 1;
+    const daysInMonth = new Date(year, month, 0).getDate();
+    const monthDate = new Date(year, monthIdx, 1);
+    const label = lang === "ko" ? `${month}월` : shortMonthEn(monthDate);
+    const cells: Omit<YearMonthDayCell, "intensity">[] = [];
+
+    for (let day = 1; day <= 31; day += 1) {
+      const key = `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+      const outside = day > daysInMonth;
+      const minutes = outside ? 0 : Math.max(0, Number(minuteMap.get(key) ?? 0));
+      const xp = outside ? 0 : Math.max(0, Number(xpMap.get(key) ?? 0));
+      if (!outside) maxYearMinutes = Math.max(maxYearMinutes, minutes);
+      cells.push({
+        key,
+        minutes,
+        xp,
+        month,
+        day,
+        outside,
+      });
+    }
+
+    baseRows.push({
+      month,
+      label,
+      cells,
     });
   }
 
-  const maxYearMinutes = Math.max(0, ...rawCells.filter((item) => !item.outside).map((item) => item.minutes));
-  const cells: YearBiWeekCell[] = rawCells.map((cell) => ({
-    ...cell,
-    intensity: intensityByMinutes(cell.minutes, maxYearMinutes),
-  }));
-
-  const monthMarkers: YearMonthMarker[] = [];
-  const seenCols = new Set<number>();
-  for (let idx = 0; idx < 12; idx += 1) {
-    const firstDay = new Date(year, idx, 1);
-    const week = Math.floor(diffDays(gridStart, firstDay) / 7);
-    const col = Math.max(0, Math.min(cols - 1, Math.floor(week / 2)));
-    if (seenCols.has(col)) continue;
-    seenCols.add(col);
-    monthMarkers.push({
-      col,
-      label: lang === "ko" ? `${idx + 1}월` : firstDay.toLocaleString("en-US", { month: "short" }),
-    });
-  }
-
-  return { cols, cells, monthMarkers };
+  return {
+    year,
+    dayHeaders,
+    rows: baseRows.map((row) => ({
+      month: row.month,
+      label: row.label,
+      cells: row.cells.map((cell) => ({
+        ...cell,
+        intensity: intensityByMinutes(cell.minutes, maxYearMinutes),
+      })),
+    })),
+  };
 }
 
 function buildCompactGrid(start: Date, minuteMap: Map<string, number>, xpMap: Map<string, number>) {
@@ -420,10 +500,7 @@ export function XPPage({ lang, refreshToken, settings, onSettingsChange }: Props
   const monthlyGoal = player.story.goals.monthly;
   const rangeStartKey = windowData.window.start_key ?? undefined;
   const rangeEndKey = windowData.window.end_key ?? undefined;
-  const xpRows = (windowData.charts[granularity] ?? []).map((row) => ({
-    ...row,
-    is_today: Boolean((row as { is_today?: boolean }).is_today),
-  }));
+  const xpRows = windowData.charts[granularity] ?? [];
   const levelRows = windowData.level_progress ?? [];
   const sessionActivityRows = windowData.xp_by_activity ?? [];
   const sourceRows = windowData.xp_sources ?? [];
@@ -513,15 +590,23 @@ export function XPPage({ lang, refreshToken, settings, onSettingsChange }: Props
   const rawMaxXp = Math.max(0, ...xpRows.map((row) => row.xp));
   const chartMaxXp = hasXp ? Math.max(10, Math.ceil(rawMaxXp / 10) * 10) : 100;
   const yTicks = [0, 1, 2, 3, 4].map((idx) => Math.round((chartMaxXp / 4) * idx));
-  const barLabelStep = Math.max(1, Math.ceil(Math.max(1, xpRows.length) / 8));
+  const barLabelStep = Math.max(1, Math.ceil(Math.max(1, xpRows.length) / 10));
+  const barMarkerMap = new Map<number, string>();
+  xpRows.forEach((row, idx) => {
+    const marker = markerLabelForBar(row.key, granularity);
+    if (marker) barMarkerMap.set(idx, marker);
+  });
+  const windowStart = parseYmd(windowData.window.start_key);
+  const windowEnd = parseYmd(windowData.window.end_key);
+  const windowDaySpan = windowStart && windowEnd ? Math.max(1, diffDays(windowStart, windowEnd) + 1) : Math.max(1, xpRows.length);
 
   const levelMin = Math.floor(Math.min(...(levelRows.length ? levelRows.map((row) => row.value) : [player.hud.level])));
   const rawLevelMax = Math.ceil(Math.max(...(levelRows.length ? levelRows.map((row) => row.value) : [player.hud.level + 1])));
   const levelMax = rawLevelMax <= levelMin ? levelMin + 1 : rawLevelMax;
   const levelSpan = Math.max(1, levelMax - levelMin);
   const pointAt = (row: { value: number }, idx: number, length: number) => {
-    const x = length <= 1 ? 50 : 2 + (idx / (length - 1)) * 96;
-    const y = 95 - ((row.value - levelMin) / levelSpan) * 90;
+    const x = length <= 1 ? 50 : 4 + (idx / (length - 1)) * 92;
+    const y = 94 - ((row.value - levelMin) / levelSpan) * 86;
     return { x, y };
   };
   const polyline = levelRows
@@ -534,9 +619,7 @@ export function XPPage({ lang, refreshToken, settings, onSettingsChange }: Props
 
   const lineXLabels = (() => {
     if (!levelRows.length) return [];
-    const indexSet = new Set<number>([0, levelRows.length - 1]);
-    return Array.from(indexSet)
-      .sort((a, b) => a - b)
+    return buildSampleIndices(levelRows.length, 5)
       .map((idx) => {
         const point = pointAt(levelRows[idx], idx, levelRows.length);
         return { key: levelRows[idx].key, leftPct: point.x };
@@ -548,6 +631,7 @@ export function XPPage({ lang, refreshToken, settings, onSettingsChange }: Props
     for (let lv = levelMin; lv <= levelMax; lv += 1) out.push(lv);
     return out;
   })();
+  const reverseLevelTicks = [...levelTicks].reverse();
 
   const weeklyRangeLabel = formatDateRange(weeklyGoal.period_start_key, weeklyGoal.period_end_key, lang);
   const monthlyRangeLabel = formatDateRange(monthlyGoal.period_start_key, monthlyGoal.period_end_key, lang);
@@ -590,7 +674,7 @@ export function XPPage({ lang, refreshToken, settings, onSettingsChange }: Props
 
   const minHistoryYear = historyStartDate.getFullYear();
   const maxHistoryYear = historyEndDate.getFullYear();
-  const yearBiWeekGrid = buildYearBiWeekGrid(heatmapYear, minuteMap, xpMap, lang);
+  const yearMonthGrid = buildYearMonthGrid(heatmapYear, minuteMap, xpMap, lang);
   const { rows: allWeekRows, maxWeeks: allWeekMaxWeeks } = buildAllYearWeekRows(minHistoryYear, maxHistoryYear, minuteMap, xpMap);
   const canOlderYear = heatmapYear > minHistoryYear;
   const canNewerYear = heatmapYear < maxHistoryYear;
@@ -787,15 +871,34 @@ export function XPPage({ lang, refreshToken, settings, onSettingsChange }: Props
             <div className="xp-story-bars">
               {xpRows.map((row, idx) => {
                 const height = Math.max(0, Math.round((row.xp / chartMaxXp) * 100));
-                const showLabel = idx === 0 || idx === xpRows.length - 1 || idx % barLabelStep === 0 || Boolean(row.is_today);
+                const markerLabel = barMarkerMap.get(idx);
+                const showLabel = idx === 0 || idx === xpRows.length - 1 || idx % barLabelStep === 0 || Boolean(markerLabel);
+                const labelParts = showLabel ? formatBarLabelParts(row.key, granularity) : null;
+                const pointLabel = granularity === "day" ? (lang === "ko" ? "해당 일자 XP" : "XP on date") : (lang === "ko" ? "해당 구간 XP" : "XP in period");
                 return (
-                  <div key={`${row.key}_${idx}`} className={`xp-story-bar-item ${row.is_today ? "today" : ""}`} title={`${row.key} · ${row.xp.toLocaleString()} XP`}>
+                  <div key={`${row.key}_${idx}`} className="xp-story-bar-item">
                     <div className="xp-story-bar-column">
-                      <span className="xp-story-bar-tip">{row.key} · {row.xp.toLocaleString()} XP</span>
-                      {row.is_today ? <span className="xp-story-today-label">TODAY</span> : null}
+                      <span className="xp-story-bar-tip">
+                        <span>{lang === "ko" ? `${windowDaySpan}일 데이터` : `${windowDaySpan} days in range`}</span>
+                        <span>{lang === "ko" ? `구간 총 XP ${summary.xp_total.toLocaleString()}` : `Range total ${summary.xp_total.toLocaleString()} XP`}</span>
+                        <span>{`${formatBarPointKey(row.key, granularity)} · ${pointLabel} ${row.xp.toLocaleString()}`}</span>
+                      </span>
+                      {markerLabel ? (
+                        <>
+                          <span className="xp-story-bar-marker-line" />
+                          <span className="xp-story-bar-marker-label">{markerLabel}</span>
+                        </>
+                      ) : null}
                       <div className="xp-story-bar" style={{ height: `${height}%` }} />
                     </div>
-                    <small>{showLabel ? formatShortDate(row.key, granularity) : ""}</small>
+                    <small>
+                      {labelParts ? (
+                        <>
+                          <span>{labelParts.top}</span>
+                          <span>{labelParts.bottom}</span>
+                        </>
+                      ) : null}
+                    </small>
                   </div>
                 );
               })}
@@ -806,28 +909,35 @@ export function XPPage({ lang, refreshToken, settings, onSettingsChange }: Props
 
       <section className="card xp-story-chart-side">
         <h2>{lang === "ko" ? "레벨 진행" : "Level Progress"}</h2>
-        <div className="xp-story-line-shell">
-          <svg viewBox="0 0 100 100" preserveAspectRatio="none">
-            {levelTicks.map((lv) => {
-              const y = 95 - ((lv - levelMin) / levelSpan) * 90;
-              return (
-                <g key={`lv_${lv}`}>
-                  <line x1="0" y1={y} x2="100" y2={y} className="xp-story-line-grid" />
+        <div className="xp-story-line-wrap">
+          <div className="xp-story-line-yaxis">
+            {reverseLevelTicks.map((lv) => (
+              <span key={`ylv_${lv}`}>{lv}</span>
+            ))}
+          </div>
+          <div className="xp-story-line-shell">
+            <svg viewBox="0 0 100 100" preserveAspectRatio="none">
+              {levelTicks.map((lv) => {
+                const y = 94 - ((lv - levelMin) / levelSpan) * 86;
+                return (
+                  <g key={`lv_${lv}`}>
+                    <line x1="0" y1={y} x2="100" y2={y} className="xp-story-line-grid" />
+                  </g>
+                );
+              })}
+              {polyline ? <polyline points={polyline} className="xp-story-line-path" /> : null}
+              {latestLevelPoint ? (
+                <g>
+                  <circle cx={latestLevelPoint.x} cy={latestLevelPoint.y} r="1.6" className="xp-story-line-dot" />
                 </g>
-              );
-            })}
-            {polyline ? <polyline points={polyline} className="xp-story-line-path" /> : null}
-            {latestLevelPoint ? (
-              <g>
-                <circle cx={latestLevelPoint.x} cy={latestLevelPoint.y} r="1.6" className="xp-story-line-dot" />
-              </g>
-            ) : null}
-          </svg>
+              ) : null}
+            </svg>
+          </div>
         </div>
         <div className="xp-story-line-xlabels">
           {lineXLabels.map((item) => (
             <small key={`x_${item.key}`} style={{ left: `${item.leftPct}%` }}>
-              {item.key.slice(5)}
+              {formatBarPointKey(item.key, "day")}
             </small>
           ))}
         </div>
@@ -889,31 +999,25 @@ export function XPPage({ lang, refreshToken, settings, onSettingsChange }: Props
             ))}
           </div>
         ) : (
-          <div className="xp-story-heatmap-week-shell">
-            <div
-              className={`xp-story-heatmap-week-grid ${heatmapMode === "1y" ? "year" : "short"}`}
-              style={{ ["--heat-cols" as string]: String(yearBiWeekGrid.cols) }}
-            >
-              {yearBiWeekGrid.cells.map((cell) => (
-                <i
-                  key={`heat_${cell.key}_${cell.col}_${cell.row}`}
-                  className={`xp-story-heat-cell heat-i-${cell.intensity} ${cell.outside ? "outside" : ""}`}
-                  style={{ gridColumn: cell.col + 1, gridRow: cell.row + 1 }}
-                  title={`${cell.key} · ${cell.xp.toLocaleString()} XP`}
-                />
+          <div className="xp-story-heatmap-year-grid">
+            <div className="xp-story-heat-day-header" style={{ gridTemplateColumns: `44px repeat(${yearMonthGrid.dayHeaders.length}, minmax(0, 1fr))` }}>
+              <strong>{heatmapYear}</strong>
+              {yearMonthGrid.dayHeaders.map((day) => (
+                <small key={`dh_${heatmapYear}_${day}`}>{day}</small>
               ))}
-              {heatmapMode === "1y"
-                ? yearBiWeekGrid.monthMarkers.map((marker) => (
-                    <span
-                      key={`mk_${marker.col}_${marker.label}`}
-                      className="xp-story-heat-month-marker"
-                      style={{ left: `${((marker.col + 0.5) / Math.max(1, yearBiWeekGrid.cols)) * 100}%` }}
-                    >
-                      {marker.label}
-                    </span>
-                  ))
-                : null}
             </div>
+            {yearMonthGrid.rows.map((row) => (
+              <div key={`ym_${yearMonthGrid.year}_${row.month}`} className="xp-story-heatmap-year-row" style={{ gridTemplateColumns: `44px repeat(${row.cells.length}, minmax(0, 1fr))` }}>
+                <strong>{row.label}</strong>
+                {row.cells.map((cell) => (
+                  <i
+                    key={`heat_${cell.key}_${cell.month}_${cell.day}`}
+                    className={`xp-story-heat-cell heat-i-${cell.intensity} ${cell.outside ? "outside placeholder" : ""}`}
+                    title={cell.outside ? `${row.label}` : `${cell.key} · ${cell.xp.toLocaleString()} XP`}
+                  />
+                ))}
+              </div>
+            ))}
           </div>
         )}
 
