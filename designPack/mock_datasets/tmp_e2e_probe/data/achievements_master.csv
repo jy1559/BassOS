@@ -1,0 +1,93 @@
+﻿achievement_id,group_id,name,tier,tier_name,category,rarity,rule_type,rule_filter,target,xp_reward,description,evidence_hint,is_hidden,hint,auto_grant,ui_badge_style
+ACH_AB_T1,ACH_AB,A/B 스위치 입문,1,동,루틴,common,count_events,"{""event_type"": ""SESSION"", ""tags_any"": [""AB_COMPARE""]}",3,120,"A/B 비교 체크 세션 3회 달성 시 해금됩니다.
+팁: 세션 저장에서 'A/B 비교'를 체크하고, 비교 포인트를 노트에 한 줄 남기세요.","세션 저장에서 'A/B 비교'를 체크하고, 비교 포인트를 노트에 한 줄 남기세요.",false,,true,bronze
+ACH_AB_T2,ACH_AB,A/B 실험실 고정석,2,은,루틴,rare,count_events,"{""event_type"": ""SESSION"", ""tags_any"": [""AB_COMPARE""]}",12,220,"A/B 비교 체크 세션 12회 달성 시 해금됩니다.
+팁: 세션 저장에서 'A/B 비교'를 체크하고, 비교 포인트를 노트에 한 줄 남기세요.","세션 저장에서 'A/B 비교'를 체크하고, 비교 포인트를 노트에 한 줄 남기세요.",false,,true,silver
+ACH_CLEAN_T1,ACH_CLEAN,무소음 챌린지 입문,1,동,루틴,common,count_events,"{""event_type"": ""SESSION"", ""tags_any"": [""CLEAN_MUTE""]}",8,120,"클린 뮤트 체크 세션 8회 달성 시 해금됩니다.
+팁: 왼손/오른손 뮤트를 먼저 안정시킨 뒤 템포를 올리면 달성 속도가 빨라집니다.",왼손/오른손 뮤트를 먼저 안정시킨 뒤 템포를 올리면 달성 속도가 빨라집니다.,false,,true,bronze
+ACH_CLEAN_T2,ACH_CLEAN,무소음 루틴 장인,2,은,루틴,rare,count_events,"{""event_type"": ""SESSION"", ""tags_any"": [""CLEAN_MUTE""]}",30,220,"클린 뮤트 체크 세션 30회 달성 시 해금됩니다.
+팁: 왼손/오른손 뮤트를 먼저 안정시킨 뒤 템포를 올리면 달성 속도가 빨라집니다.",왼손/오른손 뮤트를 먼저 안정시킨 뒤 템포를 올리면 달성 속도가 빨라집니다.,false,,true,silver
+ACH_CORE_T1,ACH_CORE,코어 출석 체크,1,동,루틴,common,count_events,"{""event_type"": ""SESSION"", ""tags_any"": [""CORE""]}",10,110,"Core 드릴 세션 10회 달성 시 해금됩니다.
+팁: 10분 단위 코어 루틴을 끊기지 않게 누적해 주세요.",10분 단위 코어 루틴을 끊기지 않게 누적해 주세요.,false,,true,bronze
+ACH_CORE_T2,ACH_CORE,코어 루틴 성실러,2,은,루틴,rare,count_events,"{""event_type"": ""SESSION"", ""tags_any"": [""CORE""]}",40,210,"Core 드릴 세션 40회 달성 시 해금됩니다.
+팁: 10분 단위 코어 루틴을 끊기지 않게 누적해 주세요.",10분 단위 코어 루틴을 끊기지 않게 누적해 주세요.,false,,true,silver
+ACH_CORE_T3,ACH_CORE,코어 루틴 설계자,3,금,루틴,epic,count_events,"{""event_type"": ""SESSION"", ""tags_any"": [""CORE""]}",120,340,"Core 드릴 세션 120회 달성 시 해금됩니다.
+팁: 10분 단위 코어 루틴을 끊기지 않게 누적해 주세요.",10분 단위 코어 루틴을 끊기지 않게 누적해 주세요.,false,,true,gold
+ACH_DCOLLECT_T1,ACH_DCOLLECT,드릴 탐험가,1,동,드릴,common,distinct_count,"{""event_type"": ""SESSION"", ""field"": ""drill_id""}",5,140,"서로 다른 드릴 5개 달성 시 해금됩니다.
+팁: 같은 드릴만 반복하지 말고 주간마다 새로운 드릴을 하나씩 추가해 보세요.",같은 드릴만 반복하지 말고 주간마다 새로운 드릴을 하나씩 추가해 보세요.,false,,true,bronze
+ACH_DCOLLECT_T2,ACH_DCOLLECT,드릴 큐레이터,2,은,드릴,rare,distinct_count,"{""event_type"": ""SESSION"", ""field"": ""drill_id""}",15,260,"서로 다른 드릴 15개 달성 시 해금됩니다.
+팁: 같은 드릴만 반복하지 말고 주간마다 새로운 드릴을 하나씩 추가해 보세요.",같은 드릴만 반복하지 말고 주간마다 새로운 드릴을 하나씩 추가해 보세요.,false,,true,silver
+ACH_DURATION_T1,ACH_DURATION,베이스 시동 걸기,1,동,성장,common,sum_duration,"{""event_type"": ""SESSION""}",600,150,"총 연습 시간 600분 달성 시 해금됩니다.
+팁: 짧게라도 매일 이어가는 누적이 가장 강력합니다.",짧게라도 매일 이어가는 누적이 가장 강력합니다.,false,,true,bronze
+ACH_DURATION_T2,ACH_DURATION,베이스 생활화,2,은,성장,rare,sum_duration,"{""event_type"": ""SESSION""}",2400,260,"총 연습 시간 2400분 달성 시 해금됩니다.
+팁: 짧게라도 매일 이어가는 누적이 가장 강력합니다.",짧게라도 매일 이어가는 누적이 가장 강력합니다.,false,,true,silver
+ACH_DURATION_T3,ACH_DURATION,현악 근육 완성형,3,금,성장,epic,sum_duration,"{""event_type"": ""SESSION""}",7200,420,"총 연습 시간 7200분 달성 시 해금됩니다.
+팁: 짧게라도 매일 이어가는 누적이 가장 강력합니다.",짧게라도 매일 이어가는 누적이 가장 강력합니다.,false,,true,gold
+ACH_FUNK_T1,ACH_FUNK,그루브 첫 진입,1,동,드릴,common,count_events,"{""event_type"": ""SESSION"", ""tags_any"": [""FUNK"", ""FUNKJAZZ""]}",8,120,"펑크/재즈 계열 세션 8회 달성 시 해금됩니다.
+팁: 펑크/재즈 드릴은 메트로놈 2&4와 함께하면 체감이 빨리 옵니다.",펑크/재즈 드릴은 메트로놈 2&4와 함께하면 체감이 빨리 옵니다.,false,,true,bronze
+ACH_FUNK_T2,ACH_FUNK,그루브 체질,2,은,드릴,rare,count_events,"{""event_type"": ""SESSION"", ""tags_any"": [""FUNK"", ""FUNKJAZZ""]}",30,220,"펑크/재즈 계열 세션 30회 달성 시 해금됩니다.
+팁: 펑크/재즈 드릴은 메트로놈 2&4와 함께하면 체감이 빨리 옵니다.",펑크/재즈 드릴은 메트로놈 2&4와 함께하면 체감이 빨리 옵니다.,false,,true,silver
+ACH_HIDDEN_001,ACH_HIDDEN_001,무음 암살자,1,히든,히든,legendary,count_events,"{""event_type"": ""SESSION"", ""tags_all"": [""METRO_24"", ""CLEAN_MUTE""]}",1,300,"한 세션에서 '메트로놈 2&4'와 '클린 뮤트'를 동시에 체크해 달성하세요.
+소음이 줄어들수록 그루브는 더 선명해집니다.",세션 저장 태그에서 두 항목을 동시에 체크하세요.,true,힌트: 조용한 세션이 답입니다.,true,hidden
+ACH_HIDDEN_002,ACH_HIDDEN_002,테이크 수집가,1,히든,히든,legendary,count_events,"{""event_type"": ""SESSION"", ""tags_all"": [""AB_COMPARE"", ""RECORDING_AUDIO""]}",1,320,"한 세션에서 'A/B 비교'와 '오디오 녹음'을 동시에 체크해 달성하세요.
+비교 + 기록 조합은 성장 체감의 지름길입니다.",세션 저장 태그에서 A/B 비교 + 오디오 녹음을 같이 체크하세요.,true,"힌트: 듣고, 다시 듣고, 또 남기기.",true,hidden
+ACH_HIDDEN_003,ACH_HIDDEN_003,뇌-손 동기화,1,히든,히든,legendary,count_events,"{""event_type"": ""SESSION"", ""tags_all"": [""THEORY"", ""SLAP""]}",1,340,"한 세션에서 '이론'과 '슬랩' 태그를 동시에 체크해 달성하세요.
+지식과 손맛을 같은 날 연결하면 기억이 오래 갑니다.",세션 저장 태그에서 이론 + 슬랩을 동시에 체크하세요.,true,힌트: 머리와 손을 같은 날 쓰기.,true,hidden
+ACH_HIDDEN_004,ACH_HIDDEN_004,잠수 훈련병,1,히든,히든,legendary,count_events,"{""event_type"": ""SESSION"", ""tags_all"": [""DRILL""], ""min_duration"": 60}",1,360,"60분 이상 드릴 세션 1회를 달성하면 해금됩니다.
+길게 파고드는 집중 세션은 한 번만 해도 큰 전환점이 됩니다.",드릴 세션을 60분 이상으로 기록하세요.,true,힌트: 한 번 길게 몰입해 보세요.,true,hidden
+ACH_LEVEL_T1,ACH_LEVEL,레벨 5 돌파,1,동,성장,common,level_reach,{},5,200,"플레이어 레벨 Lv.5 달성 시 해금됩니다.
+팁: 세션·퀘스트·업적 XP를 균형 있게 가져가면 안정적으로 레벨이 오릅니다.",세션·퀘스트·업적 XP를 균형 있게 가져가면 안정적으로 레벨이 오릅니다.,false,,true,bronze
+ACH_LEVEL_T2,ACH_LEVEL,레벨 15 정착,2,은,성장,rare,level_reach,{},15,360,"플레이어 레벨 Lv.15 달성 시 해금됩니다.
+팁: 세션·퀘스트·업적 XP를 균형 있게 가져가면 안정적으로 레벨이 오릅니다.",세션·퀘스트·업적 XP를 균형 있게 가져가면 안정적으로 레벨이 오릅니다.,false,,true,silver
+ACH_LEVEL_T3,ACH_LEVEL,레벨 30 상주,3,금,성장,epic,level_reach,{},30,560,"플레이어 레벨 Lv.30 달성 시 해금됩니다.
+팁: 세션·퀘스트·업적 XP를 균형 있게 가져가면 안정적으로 레벨이 오릅니다.",세션·퀘스트·업적 XP를 균형 있게 가져가면 안정적으로 레벨이 오릅니다.,false,,true,gold
+ACH_MANUAL_001,ACH_MANUAL_001,오늘도 베이스 잡음,1,단발,단발,rare,manual,{},1,240,"연습 시작 자체가 승리였던 날에 수동 수령하는 업적입니다.
+짧아도 좋으니 오늘 베이스를 잡았다는 기록을 남겨주세요.",수동 업적입니다. 오늘 연습했다면 바로 수령하세요.,false,작은 시작이 루틴을 만듭니다.,false,manual
+ACH_MANUAL_002,ACH_MANUAL_002,합주 다녀옴,1,단발,단발,epic,manual,{},1,260,"합주/밴드 세션을 실제로 진행한 날 수동 수령하세요.
+현장 경험은 연습 효율을 크게 끌어올립니다.",수동 업적입니다. 합주 노트나 간단한 기록을 남기고 수령하세요.,false,합주 1회는 연습 10회의 힌트를 줍니다.,false,manual
+ACH_MANUAL_003,ACH_MANUAL_003,공연/촬영 완료,1,단발,단발,legendary,manual,{},1,280,"공연, 촬영, 공개 업로드처럼 결과물을 남긴 날 수동 수령하세요.
+완주 경험은 다음 루틴의 강력한 연료가 됩니다.",수동 업적입니다. 기록장에 링크/사진을 남기면 나중에 돌아보기 좋습니다.,false,결과물을 남긴 날은 크게 칭찬받아야 합니다.,false,manual
+ACH_MSTREAK_T1,ACH_MSTREAK,월간 루틴 2연타,1,동,루틴,common,streak_monthly,"{""min_sessions_per_month"": 10}",2,260,"월간 연속 달성 2회 달성 시 해금됩니다.
+팁: 월말 몰아치기보다 주 3회 루틴을 고정하는 편이 훨씬 유리합니다.",월말 몰아치기보다 주 3회 루틴을 고정하는 편이 훨씬 유리합니다.,false,,true,bronze
+ACH_MSTREAK_T2,ACH_MSTREAK,월간 루틴 6연타,2,은,루틴,rare,streak_monthly,"{""min_sessions_per_month"": 10}",6,480,"월간 연속 달성 6회 달성 시 해금됩니다.
+팁: 월말 몰아치기보다 주 3회 루틴을 고정하는 편이 훨씬 유리합니다.",월말 몰아치기보다 주 3회 루틴을 고정하는 편이 훨씬 유리합니다.,false,,true,silver
+ACH_REC_T1,ACH_REC,기록 시작,1,동,기록,common,count_events,"{""event_type"": ""SESSION"", ""tags_any"": [""RECORDING_AUDIO"", ""RECORDING_VIDEO""]}",5,130,"녹음/영상 기록 세션 5회 달성 시 해금됩니다.
+팁: 짧은 오디오라도 자주 남기면 성장 체감이 크게 올라갑니다.",짧은 오디오라도 자주 남기면 성장 체감이 크게 올라갑니다.,false,,true,bronze
+ACH_REC_T2,ACH_REC,기록 아카이브,2,은,기록,rare,count_events,"{""event_type"": ""SESSION"", ""tags_any"": [""RECORDING_AUDIO"", ""RECORDING_VIDEO""]}",20,240,"녹음/영상 기록 세션 20회 달성 시 해금됩니다.
+팁: 짧은 오디오라도 자주 남기면 성장 체감이 크게 올라갑니다.",짧은 오디오라도 자주 남기면 성장 체감이 크게 올라갑니다.,false,,true,silver
+ACH_SCOLLECT_T1,ACH_SCOLLECT,곡 수집 입문,1,동,곡,common,distinct_count,"{""event_type"": ""SESSION"", ""field"": ""song_library_id""}",5,140,"연습한 곡 종류 5개 달성 시 해금됩니다.
+팁: 장르를 바꿔가며 곡을 늘리면 손/귀 모두 빠르게 확장됩니다.",장르를 바꿔가며 곡을 늘리면 손/귀 모두 빠르게 확장됩니다.,false,,true,bronze
+ACH_SCOLLECT_T2,ACH_SCOLLECT,곡 디깅 매니아,2,은,곡,rare,distinct_count,"{""event_type"": ""SESSION"", ""field"": ""song_library_id""}",15,260,"연습한 곡 종류 15개 달성 시 해금됩니다.
+팁: 장르를 바꿔가며 곡을 늘리면 손/귀 모두 빠르게 확장됩니다.",장르를 바꿔가며 곡을 늘리면 손/귀 모두 빠르게 확장됩니다.,false,,true,silver
+ACH_SESSION_T1,ACH_SESSION,10분 루틴 착수,1,동,루틴,common,count_events,"{""event_type"": ""SESSION"", ""min_duration"": 10}",20,120,"10분 이상 세션 20회 달성 시 해금됩니다.
+팁: 한 번 길게보다 짧고 자주가 누적 속도가 빠릅니다.",한 번 길게보다 짧고 자주가 누적 속도가 빠릅니다.,false,,true,bronze
+ACH_SESSION_T2,ACH_SESSION,루틴 중수,2,은,루틴,rare,count_events,"{""event_type"": ""SESSION"", ""min_duration"": 10}",80,220,"10분 이상 세션 80회 달성 시 해금됩니다.
+팁: 한 번 길게보다 짧고 자주가 누적 속도가 빠릅니다.",한 번 길게보다 짧고 자주가 누적 속도가 빠릅니다.,false,,true,silver
+ACH_SESSION_T3,ACH_SESSION,루틴 상수,3,금,루틴,epic,count_events,"{""event_type"": ""SESSION"", ""min_duration"": 10}",220,360,"10분 이상 세션 220회 달성 시 해금됩니다.
+팁: 한 번 길게보다 짧고 자주가 누적 속도가 빠릅니다.",한 번 길게보다 짧고 자주가 누적 속도가 빠릅니다.,false,,true,gold
+ACH_SESSION_T4,ACH_SESSION,루틴 장기집권,4,플래티넘,루틴,legendary,count_events,"{""event_type"": ""SESSION"", ""min_duration"": 10}",500,520,"10분 이상 세션 500회 달성 시 해금됩니다.
+팁: 한 번 길게보다 짧고 자주가 누적 속도가 빠릅니다.",한 번 길게보다 짧고 자주가 누적 속도가 빠릅니다.,false,,true,platinum
+ACH_SLAP_T1,ACH_SLAP,슬랩 첫 손맛,1,동,드릴,common,count_events,"{""event_type"": ""SESSION"", ""tags_any"": [""SLAP""]}",8,120,"슬랩 태그 세션 8회 달성 시 해금됩니다.
+팁: 슬랩은 톤보다 타이밍 우선. 느린 BPM에서 정확도 먼저 잡으세요.",슬랩은 톤보다 타이밍 우선. 느린 BPM에서 정확도 먼저 잡으세요.,false,,true,bronze
+ACH_SLAP_T2,ACH_SLAP,슬랩 파형 안정,2,은,드릴,rare,count_events,"{""event_type"": ""SESSION"", ""tags_any"": [""SLAP""]}",30,220,"슬랩 태그 세션 30회 달성 시 해금됩니다.
+팁: 슬랩은 톤보다 타이밍 우선. 느린 BPM에서 정확도 먼저 잡으세요.",슬랩은 톤보다 타이밍 우선. 느린 BPM에서 정확도 먼저 잡으세요.,false,,true,silver
+ACH_SONG_T1,ACH_SONG,곡 연습 첫 페달,1,동,곡,common,count_events,"{""event_type"": ""SESSION"", ""tags_all"": [""SONG_PRACTICE""]}",10,120,"SongPractice 세션 10회 달성 시 해금됩니다.
+팁: 곡 연습 세션은 구간 목표(예: 후렴 8마디)를 함께 적으면 효율이 올라갑니다.",곡 연습 세션은 구간 목표(예: 후렴 8마디)를 함께 적으면 효율이 올라갑니다.,false,,true,bronze
+ACH_SONG_T2,ACH_SONG,곡 연습 항속 모드,2,은,곡,rare,count_events,"{""event_type"": ""SESSION"", ""tags_all"": [""SONG_PRACTICE""]}",40,220,"SongPractice 세션 40회 달성 시 해금됩니다.
+팁: 곡 연습 세션은 구간 목표(예: 후렴 8마디)를 함께 적으면 효율이 올라갑니다.",곡 연습 세션은 구간 목표(예: 후렴 8마디)를 함께 적으면 효율이 올라갑니다.,false,,true,silver
+ACH_SONG_T3,ACH_SONG,곡 연습 내공형,3,금,곡,epic,count_events,"{""event_type"": ""SESSION"", ""tags_all"": [""SONG_PRACTICE""]}",120,360,"SongPractice 세션 120회 달성 시 해금됩니다.
+팁: 곡 연습 세션은 구간 목표(예: 후렴 8마디)를 함께 적으면 효율이 올라갑니다.",곡 연습 세션은 구간 목표(예: 후렴 8마디)를 함께 적으면 효율이 올라갑니다.,false,,true,gold
+ACH_THEORY_T1,ACH_THEORY,이론 연결 시작,1,동,이론,common,count_events,"{""event_type"": ""SESSION"", ""tags_any"": [""THEORY""]}",8,120,"이론 태그 세션 8회 달성 시 해금됩니다.
+팁: 이론은 드릴/곡 적용과 함께 갈 때 오래 남습니다.",이론은 드릴/곡 적용과 함께 갈 때 오래 남습니다.,false,,true,bronze
+ACH_THEORY_T2,ACH_THEORY,이론 적용 루틴,2,은,이론,rare,count_events,"{""event_type"": ""SESSION"", ""tags_any"": [""THEORY""]}",30,220,"이론 태그 세션 30회 달성 시 해금됩니다.
+팁: 이론은 드릴/곡 적용과 함께 갈 때 오래 남습니다.",이론은 드릴/곡 적용과 함께 갈 때 오래 남습니다.,false,,true,silver
+ACH_TOTALXP_T1,ACH_TOTALXP,XP 예금 시작,1,동,성장,common,sum_xp,"{""all_events"": true}",2500,180,"누적 XP 2,500 XP 달성 시 해금됩니다.
+팁: 퀘스트를 같이 챙기면 같은 시간 대비 XP 효율이 크게 좋아집니다.",퀘스트를 같이 챙기면 같은 시간 대비 XP 효율이 크게 좋아집니다.,false,,true,bronze
+ACH_TOTALXP_T2,ACH_TOTALXP,XP 투자자,2,은,성장,rare,sum_xp,"{""all_events"": true}",15000,340,"누적 XP 15,000 XP 달성 시 해금됩니다.
+팁: 퀘스트를 같이 챙기면 같은 시간 대비 XP 효율이 크게 좋아집니다.",퀘스트를 같이 챙기면 같은 시간 대비 XP 효율이 크게 좋아집니다.,false,,true,silver
+ACH_TOTALXP_T3,ACH_TOTALXP,XP 장기 복리,3,금,성장,epic,sum_xp,"{""all_events"": true}",70000,620,"누적 XP 70,000 XP 달성 시 해금됩니다.
+팁: 퀘스트를 같이 챙기면 같은 시간 대비 XP 효율이 크게 좋아집니다.",퀘스트를 같이 챙기면 같은 시간 대비 XP 효율이 크게 좋아집니다.,false,,true,gold
+ACH_WSTREAK_T1,ACH_WSTREAK,주간 페이스 2연속,1,동,루틴,common,streak_weekly,"{""min_sessions"": 3, ""min_duration"": 10}",2,180,"주간 연속 달성 2회 달성 시 해금됩니다.
+팁: 주간 목표를 초반에 먼저 채우면 연속 기록이 끊기지 않습니다.",주간 목표를 초반에 먼저 채우면 연속 기록이 끊기지 않습니다.,false,,true,bronze
+ACH_WSTREAK_T2,ACH_WSTREAK,주간 페이스 6연속,2,은,루틴,rare,streak_weekly,"{""min_sessions"": 3, ""min_duration"": 10}",6,320,"주간 연속 달성 6회 달성 시 해금됩니다.
+팁: 주간 목표를 초반에 먼저 채우면 연속 기록이 끊기지 않습니다.",주간 목표를 초반에 먼저 채우면 연속 기록이 끊기지 않습니다.,false,,true,silver

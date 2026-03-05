@@ -1,0 +1,4 @@
+﻿post_id,created_at,updated_at,title,body,post_type,tags,linked_song_ids,linked_drill_ids,free_targets,source_context,legacy_event_id,source
+POST_ee94b0f6543f,2026-01-12T21:40:00,2026-01-12T21:40:00,Session - Song/SongPractice,합주 대비 템포 업,연습녹음,SONG;RECORDING_AUDIO,L9004,,,Song,EVT_MOCK_0006,migration
+POST_5742b1d3af3a,2026-02-05T21:40:00,2026-02-05T21:40:00,Session - Song/SongPractice,공연 셋리스트 집중,연습영상,SONG;RECORDING_VIDEO,L9004,,,Song,EVT_MOCK_0011,migration
+POST_641a3edb9849,2026-02-14T22:30:00,2026-02-14T22:30:00,Session - Song/SongPractice,공연 리허설 풀테이크,연습녹음,SONG;PERFORMANCE;RECORDING_AUDIO,L9006,,,Song,EVT_MOCK_0013,migration

@@ -1,0 +1,3 @@
+﻿backing_id,title,description,genre,favorite,chords,bpm,youtube_url,drill_id,tags,notes,created_at,last_used_at
+BACK_DEMO_001,Funk Loop A,16비트 고스트노트 연습용,Funk,true,Em7-A7,96,https://www.youtube.com/watch?v=dQw4w9WgXcQ,DRILL_DEMO_001,funk;groove,왼손 뮤트 연습과 병행,2026-02-01T18:30:00,2026-02-24T20:05:00
+BACK_DEMO_002,Rock Loop B,기본 8비트 락 리프 정리용,Rock,false,G5-C5-D5,112,https://www.youtube.com/watch?v=dQw4w9WgXcQ,DRILL_DEMO_002,rock;riff,리프 타이밍 체크,2026-02-03T19:20:00,2026-02-18T21:14:00

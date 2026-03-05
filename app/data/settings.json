@@ -1,0 +1,331 @@
+{
+  "policy_version": 10,
+  "app": {
+    "name": "Bass Practice Game",
+    "version": "1.0",
+    "timezone": "local",
+    "currency": "XP"
+  },
+  "xp": {
+    "session": {
+      "start_bonus": 20,
+      "per_10min": 14,
+      "max_base_xp": 100
+    },
+    "bonus": {
+      "core_warmup": 8,
+      "metronome_24": 6,
+      "metronome_onebar": 12,
+      "recording_audio": 14,
+      "recording_video": 16,
+      "earcopy": 14,
+      "theory": 10,
+      "slap": 10,
+      "clean_mute": 8,
+      "ab_compare": 12
+    },
+    "weekly_chest": {
+      "xp": 180
+    },
+    "monthly_long_goal": {
+      "song_fulltake": 650,
+      "earcopy_full": 900
+    },
+    "rehearsal_bonus": 16,
+    "performance_bonus": 48,
+    "backfill_multiplier": 0.5
+  },
+  "level_curve": {
+    "type": "quadratic",
+    "a": 230,
+    "b": 13,
+    "c": 1.1,
+    "max_level": 50,
+    "rank_thresholds": [
+      {
+        "rank": "Bronze",
+        "min_level": 1
+      },
+      {
+        "rank": "Silver",
+        "min_level": 10
+      },
+      {
+        "rank": "Gold",
+        "min_level": 20
+      },
+      {
+        "rank": "Platinum",
+        "min_level": 30
+      },
+      {
+        "rank": "Diamond",
+        "min_level": 40
+      },
+      {
+        "rank": "Challenger",
+        "min_level": 50
+      }
+    ]
+  },
+  "ui": {
+    "default_theme": "studio",
+    "levelup_sound": "media/sfx_levelup.mp3",
+    "enable_confetti": true,
+    "animation_intensity": "adaptive",
+    "language": "ko",
+    "dashboard_bg_mode": "auto",
+    "dashboard_glass_cards": true,
+    "dashboard_live_motion": true,
+    "song_genres": [
+      "Rock",
+      "Punk Rock",
+      "Alt Rock",
+      "Hard Rock",
+      "Metal",
+      "Funk",
+      "Jazz",
+      "Fusion",
+      "R&B",
+      "Soul",
+      "Hip-hop",
+      "Pop",
+      "City Pop",
+      "Ballad",
+      "Disco",
+      "Blues",
+      "Latin",
+      "World"
+    ],
+    "dashboard_layout": {
+      "hud": {
+        "y": 1,
+        "w": 1,
+        "h": 1,
+        "visible": true,
+        "x": 1
+      },
+      "timer": {
+        "y": 1,
+        "w": 1,
+        "h": 1,
+        "visible": true,
+        "x": 2
+      },
+      "photo": {
+        "y": 1,
+        "w": 1,
+        "h": 2,
+        "visible": true,
+        "x": 3
+      },
+      "progress": {
+        "y": 2,
+        "w": 2,
+        "h": 1,
+        "visible": true,
+        "x": 1
+      },
+      "todo": {
+        "y": 3,
+        "w": 1,
+        "h": 1,
+        "visible": true,
+        "x": 1
+      },
+      "songShortcut": {
+        "y": 3,
+        "w": 2,
+        "h": 1,
+        "visible": true,
+        "x": 2
+      },
+      "quests": {
+        "y": 3,
+        "w": 1,
+        "h": 1,
+        "visible": false,
+        "x": 3
+      },
+      "achievements": {
+        "y": 4,
+        "w": 1,
+        "h": 1,
+        "visible": false,
+        "x": 1
+      },
+      "inProgress": {
+        "y": 4,
+        "w": 2,
+        "h": 1,
+        "visible": false,
+        "x": 2
+      }
+    },
+    "achievement_card_styles": {
+      "tier_bronze": {
+        "border": "#b88746",
+        "fill": "#f8f1e7"
+      },
+      "tier_silver": {
+        "border": "#8ca0ad",
+        "fill": "#eff4f7"
+      },
+      "tier_gold": {
+        "border": "#d6aa2d",
+        "fill": "#fcf6e7"
+      },
+      "tier_platinum": {
+        "border": "#58a4be",
+        "fill": "#e8f7fa"
+      },
+      "tier_diamond": {
+        "border": "#6f72ff",
+        "fill": "#f0f0ff"
+      },
+      "tier_master": {
+        "border": "#ff9640",
+        "fill": "#fff1e2"
+      },
+      "single_event": {
+        "border": "#4f8b92",
+        "fill": "#ebf6f8"
+      },
+      "single_hidden": {
+        "border": "#59606a",
+        "fill": "#f0f2f5"
+      }
+    }
+  },
+  "audio": {
+    "enabled": false,
+    "master_volume": 0.6,
+    "levelup_sound": "media/sfx_levelup.mp3"
+  },
+  "critical": {
+    "backfill_multiplier_default": 0.5,
+    "max_backup_files": 3,
+    "backup_min_hours": 12,
+    "achievement_xp_multiplier": 0.15,
+    "quest_xp_multiplier": 0.06,
+    "session_xp_multiplier": 1.0,
+    "daily_session_xp_cap": 200
+  },
+  "admin": {
+    "gate_enabled": false,
+    "pin_hash": ""
+  },
+  "backup": {
+    "enabled": true,
+    "max_files": 3,
+    "min_hours_between": 12
+  },
+  "performance": {
+    "target_dashboard_ms": 1000
+  },
+  "profile": {
+    "nickname": "E2E Player",
+    "weekly_goal_sessions": 3,
+    "onboarded": true,
+    "dashboard_photo_fit": "contain",
+    "dashboard_photo_anchor": "center",
+    "guide_finisher_unlocked": true,
+    "tutorial_state": {
+      "campaign_id": "core_v1",
+      "banner_seen_campaigns": [
+        "core_v1"
+      ],
+      "completed_campaigns": [
+        "core_v1"
+      ],
+      "reward_claimed_campaigns": [
+        "core_v1"
+      ],
+      "resume_campaign_id": "",
+      "resume_step_index": 0,
+      "last_started_at": "2026-03-01T19:20:34",
+      "last_completed_at": "2026-03-01T19:20:35"
+    },
+    "dashboard_photo_items": [],
+    "dashboard_featured_photo_id": "",
+    "quest_settings": {
+      "period_days": {
+        "short": 7,
+        "mid": 30,
+        "long": 90
+      },
+      "auto_enabled_by_period": {
+        "short": true,
+        "mid": true,
+        "long": true
+      },
+      "auto_target_minutes_by_period": {
+        "short": 120,
+        "mid": 360,
+        "long": 900
+      },
+      "auto_priority_by_period": {
+        "short": "normal",
+        "mid": "normal",
+        "long": "urgent"
+      },
+      "auto_difficulty_by_period": {
+        "short": "low",
+        "mid": "mid",
+        "long": "high"
+      },
+      "ui_style": {
+        "period_border": {
+          "short": "#44728a",
+          "mid": "#5e6f8f",
+          "long": "#6e5f8d"
+        },
+        "period_fill": {
+          "short": "#e7f5ff",
+          "mid": "#eef2ff",
+          "long": "#f4efff"
+        },
+        "priority_border": {
+          "urgent": "#d8664a",
+          "normal": "#4f8bc4",
+          "low": "#6b8892"
+        },
+        "difficulty_fill": {
+          "low": "#eef8f5",
+          "mid": "#eef2ff",
+          "high": "#fff0f1"
+        }
+      }
+    },
+    "journal_tag_catalog": [
+      {
+        "active": true,
+        "category": "E2E",
+        "id": "tag_1772556422092_g2clsy",
+        "label": "e2e_tag_1772556421839",
+        "order": 0
+      },
+      {
+        "active": true,
+        "category": "E2E",
+        "id": "tag_1772556537282_jiu32n",
+        "label": "e2e_tag_1772556537225",
+        "order": 1
+      },
+      {
+        "active": true,
+        "category": "E2E",
+        "id": "tag_1772556662046_9ntupy",
+        "label": "e2e_tag_1772556661787",
+        "order": 2
+      },
+      {
+        "active": true,
+        "category": "E2E",
+        "id": "tag_1772556723893_cmo7j5",
+        "label": "e2e_tag_1772556723634",
+        "order": 3
+      }
+    ]
+  }
+}

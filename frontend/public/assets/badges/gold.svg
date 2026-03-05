@@ -1,0 +1,11 @@
+﻿<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" role="img" aria-label="Gold badge">
+  <defs>
+    <linearGradient id="g" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0%" stop-color="#9f740c"/>
+      <stop offset="100%" stop-color="#f0c451"/>
+    </linearGradient>
+  </defs>
+  <circle cx="60" cy="60" r="52" fill="url(#g)" stroke="#fff5" stroke-width="4"/>
+  <circle cx="60" cy="60" r="35" fill="#00000022"/>
+  <path d="M60 22l11 22 24 4-17 17 4 24-22-11-22 11 4-24-17-17 24-4z" fill="#fff5c5"/>
+</svg>

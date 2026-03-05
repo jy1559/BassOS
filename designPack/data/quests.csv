@@ -1,0 +1,4 @@
+﻿quest_id,title,emoji,description,status,xp_reward,start_date,due_date,period_class,difficulty,priority,auto_generated,resolved_at,genre_tags,linked_song_ids,linked_drill_ids,rule_type,rule_filter,target,source
+QX_SHORT_SESSION_COUNT,단기 세션 횟수,🎵,이번 기간에 세션 3회를 완료하세요.,Active,80,2026-03-02,2026-03-09,short,low,normal,false,,"[]","[]","[]",count_events,"{""event_type"": ""SESSION""}",3,seed
+QX_MID_SESSION_MINUTES,중기 세션 시간,⏱️,세션 시간 240분을 누적하세요.,Active,210,2026-03-02,2026-04-01,mid,mid,normal,false,,"[]","[]","[]",sum_duration,"{""event_type"": ""SESSION""}",240,seed
+QX_LONG_MANUAL_GOAL,장기 수동 목표,🏆,장기 목표 하나를 직접 설정하고 완료 체크하세요.,Active,52,2026-03-02,2026-05-31,long,mid,urgent,false,,"[]","[]","[]",manual,{},1,seed

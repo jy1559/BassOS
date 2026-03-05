@@ -1,0 +1,4 @@
+﻿attachment_id,post_id,created_at,media_type,path,url,title,notes,sort_order
+ATT_451afae0ac22,POST_ee94b0f6543f,2026-01-12T21:40:00,audio,evidence/audio/mock_take_01.mp3,,Session - Song/SongPractice,합주 대비 템포 업,1
+ATT_d95e469118c3,POST_5742b1d3af3a,2026-02-05T21:40:00,video,evidence/video/mock_live_01.mp4,,Session - Song/SongPractice,공연 셋리스트 집중,1
+ATT_5e641d2fe3f8,POST_641a3edb9849,2026-02-14T22:30:00,audio,evidence/audio/mock_rehearsal_01.mp3,,Session - Song/SongPractice,공연 리허설 풀테이크,1

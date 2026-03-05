@@ -1,0 +1,7 @@
+﻿library_id,song_id,title,artist,genre,favorite,purpose,status,focus_section,goal_bpm,key,original_url,sub_urls,cover_path,cover_url,best_take_path,best_take_url,tags,notes,created_at,last_practiced_at
+L9001,S9001,Dean Town,Vulfpeck,Funk|Fusion,true,실력 향상,연습 중,verse riff,112,E,,,,,https://www.youtube.com/watch?v=le0BLAEO93g,,16비트|그루브,핵심 루틴 곡,2026-01-02T08:00:00,2026-02-25T21:10:00
+L9002,S9002,Hysteria,Muse,Alt Rock|Rock,false,카피 연습,루프 연습,intro line,98,A,,,,,https://www.youtube.com/watch?v=3dm_5qWWDV8,,뮤트|지구력,왼손 힘 배분 필요,2026-01-03T08:00:00,2026-02-14T22:10:00
+L9003,S9003,Good Times,Bernard Edwards,Disco|Funk,false,실력 향상,시작,whole song,116,E,,,,,,,타임|포켓,기본 포켓 교정용,2026-01-04T08:00:00,2026-02-20T20:40:00
+L9004,S9004,Superstition,Stevie Wonder,Funk|Soul,true,합주 및 공연,마무리,bridge,102,Eb,,,,,,,합주|공연,공연 셋리스트 후보,2026-01-05T08:00:00,2026-02-23T21:00:00
+L9005,S9005,YYZ,Rush,Prog Rock,false,카피 연습,예정,main theme,128,F#,,,,,,,테크닉|정확도,장기 목표용,2026-01-10T08:00:00,
+L9006,S9006,Treasure,Bruno Mars,Pop|Disco,true,좋아하는 노래,공연완료,full take,120,C,,,,,,,공연|완곡,리허설 완료,2026-01-12T08:00:00,2026-02-24T21:30:00

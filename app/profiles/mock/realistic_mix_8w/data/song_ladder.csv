@@ -1,0 +1,640 @@
+﻿song_id,title,artist,country,difficulty,energy,style_tags,skill_tags,bpm,key,youtube_url,notes
+S0001,Stand By Me,Ben E. King,,Lv0,,Pop;Soul,,,,,"루트 중심, 롱톤/8비트"
+S0002,Seven Nation Army,The White Stripes,,Lv0,,Rock,,,,,"리프 반복, 톤/타임"
+S0003,Come As You Are,Nirvana,,Lv0,,Rock,,,,,"훅 리프, 노트 길이"
+S0004,Clint Eastwood,Gorillaz,,Lv2,,Alt;Hip-hop,,,,,"디테일 / 리프 반복, 쉼표 / 스코프별 난이도: Lv0, Lv2"
+S0005,Feel Good Inc.,Gorillaz,,Lv3,,Alt;Hip-hop,,,,,"디테일 / 베이스/리프, 타이트 / 스코프별 난이도: Lv0, Lv3"
+S0006,Another One Bites the Dust,Queen,,Lv1,,Funk Rock,,,,,"(재도전) 디테일 / 8비트 펑키 기본 / 스코프별 난이도: Lv0, Lv1"
+S0007,Billie Jean,Michael Jackson,,Lv0,,Funk;Pop,,,,,"그루브 기본, 노트 길이"
+S0008,Under Pressure,Queen & David Bowie,,Lv0,,Rock,,,,,"리프 반복, 정확도"
+S0009,Psycho Killer,Talking Heads,,Lv0,,New Wave,,,,,"리프 반복, 박 고정"
+S0010,Bad Guy,Billie Eilish,,Lv0,,Pop,,,,,"심플 리프, 서브톤"
+S0011,Blinding Lights,The Weeknd,,Lv0,,Pop;Synthwave,,,,,"8비트, 신스베이스 카피"
+S0012,Dreams,Fleetwood Mac,,Lv0,,Pop;Rock,,,,,"반복 패턴, 타임"
+S0013,With or Without You,U2,,Lv0,,Rock,,,,,"루트 펄스, 템포"
+S0014,Do I Wanna Know?,Arctic Monkeys,,Lv0,,Rock,,,,,리프/리듬
+S0015,Walking on the Moon,The Police,,Lv0,,Reggae Rock,,,,,"공간감, 롱톤"
+S0016,Roxanne,The Police,,Lv0,,Reggae Rock,,,,,루트/리듬
+S0017,London Calling,The Clash,,Lv0,,Punk Rock,,,,,피킹/8비트
+S0018,Come Together,The Beatles,,Lv0,,Rock,,,,,"리프, 고스트 맛보기"
+S0019,Zombie,The Cranberries,,Lv0,,Rock,,,,,루트/8비트
+S0020,Creep,Radiohead,,Lv0,,Alt Rock,,,,,루트 진행
+S0021,Yellow,Coldplay,,Lv0,,Rock,,,,,루트/옥타브
+S0022,Three Little Birds,Bob Marley & The Wailers,,Lv0,,Reggae,,,,,"원드랍, 길이"
+S0023,My Girl,The Temptations,,Lv0,,Soul,,,,,워킹 맛보기
+S0024,Should I Stay or Should I Go,The Clash,,Lv0,,Punk Rock,,,,,8비트 드라이브
+S0025,Enter Sandman,Metallica,,Lv0,,Metal,,,,,리프 정확도
+S0026,Rebel Rebel,David Bowie,,Lv0,,Rock,,,,,리프 반복
+S0027,Maneater,Daryl Hall & John Oates,,Lv0,,Funk;Pop,,,,,그루브 단순
+S0028,Kids,MGMT,,Lv1,,Indie Pop,,,,,"(재도전) / 리프, 신스 / 스코프별 난이도: Lv0, Lv1"
+S0029,Take Me Out,Franz Ferdinand,,Lv2,,Indie Rock,,,,,"디테일 / 리프, 강세 / 스코프별 난이도: Lv0, Lv2"
+S0030,Riptide,Vance Joy,,Lv0,,Pop,,,,,루트
+S0031,Hysteria,Muse,,Lv4,,Alt Rock,,,,,"리프 도전(부분) / 리프/체력 / 스코프별 난이도: Lv0, Lv4"
+S0032,Le Freak,Chic,,Lv1,,Disco;Funk,,,,,디스코 기본
+S0033,Good Times,Chic,,Lv1,,Disco;Funk,,,,,디스코 베이스 교과서
+S0034,Stayin' Alive,Bee Gees,,Lv1,,Disco,,,,,펄스/옥타브
+S0035,Super Freak,Rick James,,Lv1,,Funk,,,,,"리프, 뮤트"
+S0036,Get Down On It,Kool & The Gang,,Lv1,,Disco;Funk,,,,,그루브 기본
+S0037,Celebration,Kool & The Gang,,Lv1,,Funk;Pop,,,,,코러스 펄스
+S0038,September,"Earth, Wind & Fire",,Lv3,,Disco;Funk,,,,,"댄서블 / 디테일 / 스코프별 난이도: Lv1, Lv3"
+S0039,Boogie Wonderland,"Earth, Wind & Fire",,Lv1,,Disco;Funk,,,,,옥타브/리듬
+S0040,Kiss,Prince,,Lv1,,Funk;Pop,,,,,공간감/리듬
+S0041,1999,Prince,,Lv1,,Funk;Pop,,,,,신스/펄스
+S0042,I Want You Back,Jackson 5,,Lv4,,Funk;Pop,,,,,"그루브, 음정 / 디테일 / 스코프별 난이도: Lv1, Lv3, Lv4"
+S0043,ABC,Jackson 5,,Lv1,,Funk;Pop,,,,,댄서블
+S0044,Rock With You,Michael Jackson,,Lv4,,Disco;Pop,,,,,"그루브 / 디테일 / 스코프별 난이도: Lv1, Lv4"
+S0045,Off the Wall,Michael Jackson,,Lv1,,Disco;Funk,,,,,그루브
+S0046,Miss You,The Rolling Stones,,Lv1,,Disco Rock,,,,,디스코 록
+S0047,Message in a Bottle,The Police,,Lv1,,Rock,,,,,"8비트, 포지션"
+S0048,Every Breath You Take,The Police,,Lv1,,Pop Rock,,,,,심플
+S0049,Just Like Heaven,The Cure,,Lv1,,New Wave,,,,,루트/멜로디
+S0050,Love Will Tear Us Apart,Joy Division,,Lv1,,Post-punk,,,,,"멜로딕, 타임"
+S0051,Mr. Brightside,The Killers,,Lv1,,Rock,,,,,8비트 드라이브
+S0052,Somebody Told Me,The Killers,,Lv1,,Rock,,,,,8비트
+S0053,Starlight,Muse,,Lv2,,Alt Rock,,,,,"디테일 / 스코프별 난이도: Lv1, Lv2 / 옥타브 펄스"
+S0054,Time Is Running Out,Muse,,Lv3,,Alt Rock,,,,,"디테일 / 리프, 싱코페이션 / 스코프별 난이도: Lv1, Lv3"
+S0055,Longview,Green Day,,Lv1,,Punk Rock,,,,,펑키한 루프
+S0056,When I Come Around,Green Day,,Lv1,,Punk Rock,,,,,8비트
+S0057,Day Tripper,The Beatles,,Lv1,,Rock,,,,,리프
+S0058,Taxman,The Beatles,,Lv1,,Rock,,,,,"리프, 고스트 맛"
+S0059,Hey Bulldog,The Beatles,,Lv1,,Rock,,,,,리프
+S0060,Paperback Writer,The Beatles,,Lv1,,Rock,,,,,멜로딕
+S0061,Sunshine of Your Love,Cream,,Lv1,,Rock,,,,,리프
+S0062,Baba O'Riley,The Who,,Lv1,,Rock,,,,,펄스
+S0063,"Paint It, Black",The Rolling Stones,,Lv1,,Rock,,,,,리프
+S0064,Is This Love,Bob Marley & The Wailers,,Lv1,,Reggae,,,,,레게 그루브
+S0065,Stir It Up,Bob Marley & The Wailers,,Lv1,,Reggae,,,,,레게 워킹
+S0066,Let's Get It On,Marvin Gaye,,Lv1,,Soul,,,,,느린 그루브
+S0067,What's Going On,Marvin Gaye,,Lv1,,Soul,,,,,베이스 멜로디
+S0068,Smooth Operator,Sade,,Lv1,,Pop;Soul,,,,,멜로딕
+S0069,Come On Eileen,Dexys Midnight Runners,,Lv1,,Pop,,,,,펄스
+S0070,Sweet Dreams,Eurythmics,,Lv1,,Synth Pop,,,,,신스베이스
+S0071,Take On Me,a-ha,,Lv1,,Synth Pop,,,,,신스 카피
+S0072,Blue Monday,New Order,,Lv1,,Dance;New Wave,,,,,신스 카피
+S0073,Fireflies,Owl City,,Lv1,,Synth Pop,,,,,신스
+S0074,Around the World,Daft Punk,,Lv1,,Funk;House,,,,,"반복, 타이트"
+S0075,I Feel It Coming,The Weeknd,,Lv1,,Disco;Pop,,,,,댄서블
+S0076,Can't Feel My Face,The Weeknd,,Lv1,,Funk;Pop,,,,,그루브
+S0077,Treasure,Bruno Mars,,Lv3,,Funk;Pop,,,,,"댄스팝 / 디테일 / 스코프별 난이도: Lv1, Lv3"
+S0078,Uptown Funk,Mark Ronson ft. Bruno Mars,,Lv2,,Funk;Pop,,,,,"디테일 / 스코프별 난이도: Lv1, Lv2 / 옥타브/히트"
+S0079,Levitating,Dua Lipa,,Lv1,,Disco;Pop,,,,,댄서블
+S0080,Don't Start Now,Dua Lipa,,Lv3,,Disco;Pop,,,,,"그루브 / 디테일 / 스코프별 난이도: Lv1, Lv3"
+S0081,About Damn Time,Lizzo,,Lv1,,Funk;Pop,,,,,댄서블
+S0082,Locked Out of Heaven,Bruno Mars,,Lv1,,Pop;Rock,,,,,레게락
+S0083,Sugar,Maroon 5,,Lv1,,Pop,,,,,펄스
+S0084,Feel It Still,Portugal. The Man,,Lv2,,Pop,,,,,"디테일 / 리프 / 스코프별 난이도: Lv1, Lv2"
+S0085,Electric Feel,MGMT,,Lv1,,Indie Pop,,,,,신스베이스
+S0086,1901,Phoenix,,Lv1,,Indie Pop,,,,,펄스
+S0087,Get Lucky,Daft Punk,,Lv2,,Disco;Funk,,,,,"16분 그리드, 일정한 길이"
+S0088,Lose Yourself to Dance,Daft Punk,,Lv2,,Disco;Funk,,,,,그루브
+S0089,Canned Heat,Jamiroquai,,Lv2,,Disco;Funk,,,,,그루브/변주
+S0090,Cosmic Girl,Jamiroquai,,Lv2,,Disco;Funk,,,,,옥타브/라인
+S0091,You Give Me Something,Jamiroquai,,Lv2,,Funk;Pop,,,,,댄서블
+S0092,Little L,Jamiroquai,,Lv2,,Funk,,,,,16분
+S0093,Alright,Jamiroquai,,Lv2,,Funk,,,,,리듬 변주
+S0094,Love Foolosophy,Jamiroquai,,Lv2,,Funk,,,,,그루브
+S0095,Seven Days in Sunny June,Jamiroquai,,Lv2,,Funk;Pop,,,,,멜로딕
+S0096,Virtual Insanity,Jamiroquai,,Lv5,,Acid Jazz;Funk,,,,,"루프 2~4마디 / 보스전 / 스코프별 난이도: Lv2, Lv5"
+S0097,Let's Groove,"Earth, Wind & Fire",,Lv5,,Disco;Funk,,,,,"디테일 / 보스전 / 스코프별 난이도: Lv2, Lv3, Lv5 / 옥타브, 타이트"
+S0098,Shining Star,"Earth, Wind & Fire",,Lv2,,Funk,,,,,그루브
+S0099,Sing a Song,"Earth, Wind & Fire",,Lv2,,Funk,,,,,그루브
+S0100,Jungle Boogie,Kool & The Gang,,Lv2,,Funk,,,,,리프
+S0101,Funky Stuff,Kool & The Gang,,Lv2,,Funk,,,,,리프
+S0102,Ain't Nobody,Chaka Khan,,Lv4,,Funk;R&B,,,,,"디테일 / 스코프별 난이도: Lv2, Lv4 / 신스/그루브"
+S0103,I Wish,Stevie Wonder,,Lv4,,Funk,,,,,"16분 / 16분 타이트 / 디테일 / 스코프별 난이도: Lv2, Lv3, Lv4"
+S0104,Sir Duke,Stevie Wonder,,Lv4,,Funk,,,,,"디테일 / 리프 / 스코프별 난이도: Lv2, Lv3, Lv4 / 워킹 느낌"
+S0105,Superstition,Stevie Wonder,,Lv3,,Funk,,,,,"디테일 / 리프 / 스코프별 난이도: Lv2, Lv3"
+S0106,Master Blaster (Jammin'),Stevie Wonder,,Lv2,,Funk;Reggae,,,,,원드랍
+S0107,Boogie On Reggae Woman,Stevie Wonder,,Lv2,,Funk,,,,,그루브
+S0108,I Want You,Marvin Gaye,,Lv2,,Soul,,,,,그루브
+S0109,Ain't No Sunshine,Bill Withers,,Lv2,,Soul,,,,,심플
+S0110,Use Me,Bill Withers,,Lv2,,Funk;Soul,,,,,그루브
+S0111,Lovely Day,Bill Withers,,Lv2,,Soul,,,,,루트/타임
+S0112,Just the Two of Us,Grover Washington Jr. ft. Bill Withers,,Lv2,,Jazz;Pop,,,,,루프
+S0113,Pick Up the Pieces,Average White Band,,Lv2,,Funk,,,,,그루브
+S0114,Cut the Cake,Average White Band,,Lv2,,Funk,,,,,그루브
+S0115,Play That Funky Music,Wild Cherry,,Lv3,,Funk Rock,,,,,"고스트 / 리프 / 스코프별 난이도: Lv2, Lv3"
+S0116,Brick House,Commodores,,Lv2,,Funk,,,,,리프
+S0117,Easy,Commodores,,Lv2,,Soul,,,,,멜로딕
+S0118,Ain't Too Proud to Beg,The Temptations,,Lv2,,Soul,,,,,그루브
+S0119,I Got You (I Feel Good),James Brown,,Lv2,,Funk,,,,,리듬
+S0120,Papa's Got a Brand New Bag,James Brown,,Lv2,,Funk,,,,,리듬
+S0121,Sex Machine,James Brown,,Lv2,,Funk,,,,,그루브
+S0122,Give Up the Funk,Parliament,,Lv2,,Funk,,,,,리프
+S0123,Flash Light,Parliament,,Lv2,,Funk,,,,,신스베이스
+S0124,Cissy Strut,The Meters,,Lv4,,Funk,,,,,"그루브 / 디테일 / 스코프별 난이도: Lv2, Lv4"
+S0125,Look-Ka Py Py,The Meters,,Lv2,,Funk,,,,,그루브
+S0126,Just Kissed My Baby,The Meters,,Lv2,,Funk,,,,,그루브
+S0127,Thank You (Falettinme Be Mice Elf Agin),Sly & The Family Stone,,Lv2,,Funk,,,,,그루브
+S0128,Family Affair,Sly & The Family Stone,,Lv2,,Funk;Soul,,,,,루프
+S0129,Lady (Hear Me Tonight),Modjo,,Lv2,,Disco;French House,,,,,댄스
+S0130,Music Sounds Better With You,Stardust,,Lv2,,Disco;French House,,,,,반복
+S0131,One More Time,Daft Punk,,Lv2,,House,,,,,펄스
+S0132,Digital Love,Daft Punk,,Lv2,,Disco,,,,,멜로딕
+S0133,Instant Crush,Daft Punk,,Lv2,,Pop,,,,,라인
+S0134,Get Down Saturday Night,Oliver Cheatham,,Lv2,,Disco,,,,,그루브
+S0135,Don't Leave Me This Way,Thelma Houston,,Lv2,,Disco,,,,,그루브
+S0136,Hot Stuff,Donna Summer,,Lv2,,Disco,,,,,그루브
+S0137,I Will Survive,Gloria Gaynor,,Lv2,,Disco,,,,,라인
+S0138,Gimme! Gimme! Gimme!,ABBA,,Lv2,,Disco Pop,,,,,신스/그루브
+S0139,Take a Chance on Me,ABBA,,Lv2,,Pop,,,,,펄스
+S0140,Dancing Queen,ABBA,,Lv2,,Disco Pop,,,,,라인
+S0141,Don't Stop 'Til You Get Enough,Michael Jackson,,Lv2,,Disco;Funk,,,,,그루브
+S0142,Smooth Criminal,Michael Jackson,,Lv4,,Pop,,,,,"디테일 / 리프 / 스코프별 난이도: Lv2, Lv4"
+S0143,Billie Jean (full detail),Michael Jackson,,Lv2,,Funk;Pop,,,,,디테일
+S0144,24K Magic,Bruno Mars,,Lv2,,Funk;Pop,,,,,그루브
+S0145,That’s What I Like,Bruno Mars,,Lv2,,Pop;R&B,,,,,그루브
+S0146,Leave The Door Open,Silk Sonic,,Lv2,,Funk;Soul,,,,,느린 펑크
+S0147,Skate,Silk Sonic,,Lv2,,Funk,,,,,그루브
+S0148,Smokin Out The Window,Silk Sonic,,Lv2,,Soul,,,,,그루브
+S0149,Come Down,Anderson .Paak,,Lv4,,Funk;Hip-hop,,,,,"(재도전) / 그루브 / 스코프별 난이도: Lv2, Lv4"
+S0150,Tints,Anderson .Paak ft. Kendrick Lamar,,Lv2,,Funk;Hip-hop,,,,,그루브
+S0151,King Kunta,Kendrick Lamar,,Lv2,,Funk;Hip-hop,,,,,그루브
+S0152,Redbone,Childish Gambino,,Lv2,,Funk;Soul,,,,,그루브
+S0153,24/7/365,Surfaces,,Lv2,,Funk;Pop,,,,,느긋
+S0154,The Less I Know The Better,Tame Impala,,Lv2,,Disco;Indie,,,,,멜로딕
+S0155,Borderline,Tame Impala,,Lv2,,Disco,,,,,그루브
+S0156,Uptown Girl,Billy Joel,,Lv2,,Pop,,,,,워킹
+S0157,Rosanna,Toto,,Lv2,,Pop Rock,,,,,그루브
+S0158,Hold the Line,Toto,,Lv2,,Rock,,,,,그루브
+S0159,Peg,Steely Dan,,Lv5,,Jazz Rock,,,,,"그루브 / 디테일 / 스코프별 난이도: Lv2, Lv5"
+S0160,Josie,Steely Dan,,Lv5,,Jazz Rock,,,,,"그루브 / 디테일 / 스코프별 난이도: Lv2, Lv5"
+S0161,Black Cow,Steely Dan,,Lv2,,Jazz Rock,,,,,그루브
+S0162,Reelin' In the Years,Steely Dan,,Lv2,,Rock,,,,,그루브
+S0163,Deacon Blues,Steely Dan,,Lv2,,Jazz Rock,,,,,워킹
+S0164,Chameleon,Herbie Hancock,,Lv4,,Fusion;Jazz-Funk,,,,,"디테일 / 메인 뱀프 / 스코프별 난이도: Lv3, Lv4"
+S0165,Watermelon Man,Herbie Hancock,,Lv3,,Jazz-Funk,,,,,그루브
+S0166,Actual Proof,Herbie Hancock,,Lv5,,Fusion,,,,,"리프 / 보스전 / 스코프별 난이도: Lv3, Lv5"
+S0167,Cousin Dupree,Steely Dan,,Lv3,,Funk Rock,,,,,그루브
+S0168,What Is Hip,Tower of Power,,Lv5,,Funk,,,,,"그루브 / 디테일 / 보스전 / 스코프별 난이도: Lv3, Lv4, Lv5"
+S0169,Soul Vaccination,Tower of Power,,Lv5,,Funk,,,,,"그루브 / 디테일 / 보스전 / 스코프별 난이도: Lv3, Lv4, Lv5"
+S0170,Squib Cakes,Tower of Power,,Lv3,,Funk,,,,,브라스 펑크
+S0171,Sledgehammer,Peter Gabriel,,Lv4,,Funk;Pop,,,,,"그루브 / 디테일 / 스코프별 난이도: Lv3, Lv4"
+S0172,I Keep Forgettin',Michael McDonald,,Lv3,,Funk;Yacht,,,,,그루브
+S0173,Ain't No Stoppin' Us Now,McFadden & Whitehead,,Lv3,,Disco;Soul,,,,,그루브
+S0174,Never Too Much,Luther Vandross,,Lv3,,Funk;R&B,,,,,그루브
+S0175,Rock Steady,Aretha Franklin,,Lv3,,Funk,,,,,그루브
+S0176,Think (feat. The Blues Brothers),Aretha Franklin,,Lv3,,Soul,,,,,리프
+S0177,The Chicken,Jaco Pastorius,,Lv5,,Funk;Jazz,,,,,"보스전 / 스코프별 난이도: Lv3, Lv5 / 펑키 워킹"
+S0178,"Come On, Come Over",Jaco Pastorius,,Lv3,,Funk;Jazz,,,,,그루브
+S0179,The Way You Make Me Feel,Michael Jackson,,Lv3,,Funk;Pop,,,,,그루브
+S0180,PYT (Pretty Young Thing),Michael Jackson,,Lv3,,Funk;Pop,,,,,그루브
+S0181,Billie Jean (2&4 metronome),Michael Jackson,,Lv3,,Funk;Pop,,,,,타임
+S0182,Give It Away,Red Hot Chili Peppers,,Lv4,,Funk Rock,,,,,"고스트 / 디테일 / 스코프별 난이도: Lv3, Lv4"
+S0183,Soul to Squeeze,Red Hot Chili Peppers,,Lv3,,Alt Rock,,,,,멜로딕
+S0184,Suck My Kiss,Red Hot Chili Peppers,,Lv3,,Funk Rock,,,,,리프
+S0185,Around the World,Red Hot Chili Peppers,,Lv3,,Funk Rock,,,,,체력
+S0186,Higher Ground,Red Hot Chili Peppers,,Lv3,,Funk Rock,,,,,슬랩/고스트
+S0187,Aeroplane,Red Hot Chili Peppers,,Lv5,,Funk Rock,,,,,"리프/슬랩 / 보스전 / 스코프별 난이도: Lv3, Lv5"
+S0188,Can't Stop,Red Hot Chili Peppers,,Lv5,,Funk Rock,,,,,"리프 / 보스전 / 스코프별 난이도: Lv3, Lv5"
+S0189,DARE,Gorillaz,,Lv3,,Alt;Dance,,,,,디테일 / 신스/그루브
+S0190,Stylo,Gorillaz,,Lv3,,Alt;Dance,,,,,신스
+S0191,Dirty Harry,Gorillaz,,Lv3,,Alt;Hip-hop,,,,,그루브
+S0192,Do I Do,Stevie Wonder,,Lv3,,Funk,,,,,리프
+S0193,Tell Me Something Good,Rufus & Chaka Khan,,Lv3,,Funk,,,,,그루브
+S0194,Hollywood Swinging,Kool & The Gang,,Lv3,,Funk,,,,,그루브
+S0195,Ladies' Night,Kool & The Gang,,Lv3,,Disco;Funk,,,,,그루브
+S0196,Boogie Nights,Heatwave,,Lv3,,Disco;Funk,,,,,그루브
+S0197,Groove Is in the Heart,Deee-Lite,,Lv3,,Dance;Funk,,,,,그루브
+S0198,Return of the Mack,Mark Morrison,,Lv3,,R&B,,,,,그루브
+S0199,Lady,D'Angelo,,Lv3,,Neo-soul,,,,,그루브
+S0200,Brown Sugar,D'Angelo,,Lv3,,Neo-soul,,,,,그루브
+S0201,Spanish Joint,D'Angelo,,Lv3,,Neo-soul,,,,,그루브
+S0202,Untitled (How Does It Feel),D'Angelo,,Lv3,,Neo-soul,,,,,느린 그루브
+S0203,Come Over,The Internet,,Lv3,,Neo-soul,,,,,그루브
+S0204,Girl,The Internet,,Lv3,,Neo-soul,,,,,그루브
+S0205,Still Feel.,half•alive,,Lv3,,Funk;Pop,,,,,신나는
+S0206,Take Your Mama,Scissor Sisters,,Lv3,,Disco Rock,,,,,신나는
+S0207,Juice,Lizzo,,Lv3,,Funk;Pop,,,,,신나는
+S0208,Good as Hell,Lizzo,,Lv3,,Pop,,,,,신나는
+S0209,Move On Up,Curtis Mayfield,,Lv3,,Funk;Soul,,,,,그루브
+S0210,It's Your Thing,The Isley Brothers,,Lv3,,Funk,,,,,그루브
+S0211,Fight the Power,The Isley Brothers,,Lv3,,Funk,,,,,그루브
+S0212,For the Love of Money,The O'Jays,,Lv3,,Funk;Soul,,,,,리프
+S0213,Ain't No Mountain High Enough,Marvin Gaye & Tammi Terrell,,Lv3,,Soul,,,,,그루브
+S0214,Rio,Duran Duran,,Lv4,,Funk;New Wave,,,,,"리프 / 리프/체력 / 스코프별 난이도: Lv3, Lv4"
+S0215,Hungry Like the Wolf,Duran Duran,,Lv3,,New Wave,,,,,펄스
+S0216,Girls & Boys,Blur,,Lv3,,Dance Rock,,,,,그루브
+S0217,In the Meantime,Spacehog,,Lv3,,Alt Rock,,,,,멜로딕
+S0218,I Want You,Savage Garden,,Lv3,,Pop,,,,,펄스
+S0219,Dean Town,Vulfpeck,,Lv5,,Funk,,,,,"도전(상급 시작) / 보스전 / 스코프별 난이도: Lv4, Lv5"
+S0220,1612,Vulfpeck,,Lv4,,Funk,,,,,그루브
+S0221,Wait for the Moment,Vulfpeck,,Lv4,,Funk,,,,,그루브
+S0222,Back Pocket,Vulfpeck,,Lv4,,Funk,,,,,그루브
+S0223,Animal Spirits,Vulfpeck,,Lv4,,Funk,,,,,그루브
+S0224,Cory Wong,Vulfpeck,,Lv4,,Funk,,,,,리듬
+S0225,Beastly,Vulfpeck,,Lv5,,Funk,,,,,"그루브 / 보스전 / 스코프별 난이도: Lv4, Lv5"
+S0226,Lost My Treble Long Ago,Vulfpeck,,Lv4,,Funk,,,,,그루브
+S0227,Schism,Tool,,Lv4,,Prog Rock,,,,,리듬/변박 느낌
+S0228,46 & 2,Tool,,Lv4,,Prog Rock,,,,,그루브
+S0229,Tom Sawyer,Rush,,Lv4,,Prog Rock,,,,,리프
+S0230,Limelight,Rush,,Lv4,,Prog Rock,,,,,리프
+S0231,YYZ,Rush,,Lv5,,Prog Rock,,,,,"도전 / 보스전 / 스코프별 난이도: Lv4, Lv5 / 풀"
+S0232,Roundabout,Yes,,Lv4,,Prog Rock,,,,,리프
+S0233,Owner of a Lonely Heart,Yes,,Lv4,,Prog Rock,,,,,그루브
+S0234,The Lemon Song,Led Zeppelin,,Lv4,,Blues Rock,,,,,워킹/그루브
+S0235,Ramble On,Led Zeppelin,,Lv4,,Rock,,,,,멜로딕
+S0236,Good Times Bad Times,Led Zeppelin,,Lv4,,Rock,,,,,그루브
+S0237,The National Anthem,Radiohead,,Lv4,,Alt Rock,,,,,그루브
+S0238,Killing in the Name,Rage Against the Machine,,Lv4,,Rap Metal,,,,,리프
+S0239,Bombtrack,Rage Against the Machine,,Lv4,,Rap Metal,,,,,리프
+S0240,Bulls on Parade,Rage Against the Machine,,Lv4,,Rap Metal,,,,,리프
+S0241,Take the Power Back,Rage Against the Machine,,Lv4,,Rap Metal,,,,,리프
+S0242,Are You In,Incubus,,Lv4,,Funk Rock,,,,,그루브
+S0243,Stellar,Incubus,,Lv4,,Alt Rock,,,,,멜로딕
+S0244,Them Changes,Thundercat,,Lv4,,Funk;Fusion,,,,,그루브/톤
+S0245,Dragonball Durag,Thundercat,,Lv4,,Funk,,,,,그루브
+S0246,What’s the Use?,Mac Miller,,Lv4,,Funk;Hip-hop,,,,,그루브
+S0247,Time Won't Wait,Jamiroquai,,Lv4,,Funk,,,,,그루브
+S0248,Travelling Without Moving,Jamiroquai,,Lv4,,Funk,,,,,그루브
+S0249,Deeper Underground,Jamiroquai,,Lv4,,Funk Rock,,,,,그루브
+S0250,Space Cowboy,Jamiroquai,,Lv4,,Acid Jazz;Funk,,,,,그루브
+S0251,Runaway,Jamiroquai,,Lv5,,Funk,,,,,"그루브 / 디테일 / 스코프별 난이도: Lv4, Lv5"
+S0252,Emergency on Planet Earth,Jamiroquai,,Lv4,,Acid Jazz,,,,,그루브
+S0253,Too Young to Die,Jamiroquai,,Lv4,,Acid Jazz,,,,,그루브
+S0254,White Knuckle Ride,Jamiroquai,,Lv4,,Funk,,,,,그루브
+S0255,Forget Me Nots,Patrice Rushen,,Lv4,,Disco;Funk,,,,,그루브
+S0256,Havona,Weather Report,,Lv5,,Fusion,,,,,"도전 / 보스전 / 스코프별 난이도: Lv4, Lv5"
+S0257,Birdland,Weather Report,,Lv4,,Fusion,,,,,그루브
+S0258,Teen Town,Weather Report,,Lv5,,Fusion,,,,,"보스전 / 보스전 프리뷰 / 스코프별 난이도: Lv4, Lv5"
+S0259,Shofukan,Snarky Puppy,,Lv4,,Fusion,,,,,그루브
+S0260,What About Me?,Snarky Puppy,,Lv4,,Fusion,,,,,그루브
+S0261,Lingus,Snarky Puppy,,Lv4,,Fusion,,,,,도전
+S0262,Hit Me,Dirty Loops,,Lv5,,Fusion Pop,,,,,"도전 / 보스전 / 스코프별 난이도: Lv4, Lv5"
+S0263,The Real Me,The Who,,Lv4,,Rock,,,,,리프
+S0264,Orion,Metallica,,Lv4,,Metal,,,,,긴곡
+S0265,Interstate Love Song,Stone Temple Pilots,,Lv4,,Rock,,,,,멜로딕
+S0266,Sober,Tool,,Lv4,,Prog Rock,,,,,리프
+S0267,Portrait of Tracy,Jaco Pastorius,,Lv5,,Solo Bass,,,,,하모닉
+S0268,Continuum,Jaco Pastorius,,Lv5,,Fusion,,,,,멜로딕
+S0269,Power,Marcus Miller,,Lv5,,Funk,,,,,슬랩
+S0270,School Days,Stanley Clarke,,Lv5,,Fusion,,,,,슬랩/리프
+S0271,Vulcan Worlds,Return to Forever,,Lv5,,Fusion,,,,,도전
+S0272,Classical Thump,Victor Wooten,,Lv5,,Solo Bass,,,,,기교
+S0273,Me and My Bass Guitar,Victor Wooten,,Lv5,,Solo Bass,,,,,기교
+S0274,Tommy the Cat,Primus,,Lv5,,Alt;Funk,,,,,도전
+S0275,Jerry Was a Race Car Driver,Primus,,Lv5,,Alt;Funk,,,,,도전
+S0276,La Villa Strangiato,Rush,,Lv5,,Prog Rock,,,,,도전
+S0277,Heart of the Sunrise,Yes,,Lv5,,Prog Rock,,,,,도전
+S0278,Metropolis Pt. 1,Dream Theater,,Lv5,,Prog Metal,,,,,도전
+S0279,Panic Attack,Dream Theater,,Lv5,,Prog Metal,,,,,도전
+S0280,Addicted to That Rush,Mr. Big,,Lv5,,Hard Rock,,,,,도전
+S0281,Mr. Pink,Level 42,,Lv5,,Funk,,,,,슬랩
+S0282,Running in the Family,Level 42,,Lv5,,Funk Pop,,,,,슬랩
+S0283,Nakamarra,Hiatus Kaiyote,,Lv5,,Neo-soul,,,,,그루브/변박
+S0284,I Know You Know,Esperanza Spalding,,Lv5,,Jazz,,,,,그루브
+S0285,Dynamite,BTS,,Lv1,,Disco;K-Pop,,,,,"댄서블, 신스베이스"
+S0286,Butter,BTS,,Lv1,,K-Pop;Pop,,,,,그루브
+S0287,Permission to Dance,BTS,,Lv1,,K-Pop;Pop,,,,,그루브
+S0288,Standing Next to You,Jung Kook,,Lv2,,Funk;K-Pop,,,,,펑키 그루브
+S0289,3D,Jung Kook,,Lv2,,Hip-hop;K-Pop,,,,,그루브
+S0290,Like Crazy,Jimin,,Lv2,,K-Pop;Synth Pop,,,,,댄서블
+S0291,Super Shy,NewJeans,,Lv1,,Dance;K-Pop,,,,,(재도전) / 리듬/펄스
+S0292,Hype Boy,NewJeans,,Lv1,,Dance;K-Pop,,,,,(재도전) / 그루브
+S0293,Attention,NewJeans,,Lv1,,K-Pop;R&B,,,,,(재도전) / 그루브
+S0294,OMG,NewJeans,,Lv1,,Dance;K-Pop,,,,,(재도전) / 그루브
+S0295,ETA,NewJeans,,Lv2,,Dance;K-Pop,,,,,(재도전) / 리듬 변주
+S0296,Cool With You,NewJeans,,Lv1,,K-Pop;R&B,,,,,그루브
+S0297,Ditto,NewJeans,,Lv1,,K-Pop;Pop,,,,,(재도전) / 라인
+S0298,Perfect Night,LE SSERAFIM,,Lv1,,K-Pop;Pop,,,,,(재도전) / 댄스
+S0299,ANTIFRAGILE,LE SSERAFIM,,Lv2,,K-Pop;Latin,,,,,그루브
+S0300,"Eve, Psyche & The Bluebeard’s wife",LE SSERAFIM,,Lv2,,Dance;K-Pop,,,,,그루브
+S0301,After LIKE,IVE,,Lv2,,Disco;K-Pop,,,,,(재도전) / 디스코 감각
+S0302,I AM,IVE,,Lv1,,K-Pop;Pop,,,,,(재도전) / 펄스
+S0303,LOVE DIVE,IVE,,Lv1,,K-Pop;Pop,,,,,(재도전) / 펄스
+S0304,The Feels,TWICE,,Lv1,,Disco;K-Pop,,,,,(재도전) / 댄서블
+S0305,I CAN'T STOP ME,TWICE,,Lv2,,K-Pop;Synth Pop,,,,,(재도전) / 16분
+S0306,Talk that Talk,TWICE,,Lv1,,K-Pop;Pop,,,,,(재도전) / 펄스
+S0307,SET ME FREE,TWICE,,Lv1,,K-Pop;Pop,,,,,펄스
+S0308,_WORLD,SEVENTEEN,,Lv1,,K-Pop;Pop,,,,,신나는
+S0309,Left & Right,SEVENTEEN,,Lv1,,K-Pop;Pop,,,,,신나는
+S0310,HOME;RUN,SEVENTEEN,,Lv3,,K-Pop;Swing,,,,,스윙/브라스
+S0311,Very Nice,SEVENTEEN,,Lv2,,K-Pop;Pop,,,,,신나는
+S0312,Fighting,BSS,,Lv1,,K-Pop;Pop,,,,,신나는
+S0313,Super,SEVENTEEN,,Lv2,,K-Pop;Pop,,,,,그루브
+S0314,Don't Call Me,SHINee,,Lv2,,Dance;K-Pop,,,,,그루브
+S0315,View,SHINee,,Lv2,,House;K-Pop,,,,,그루브
+S0316,1 of 1,SHINee,,Lv2,,K-Pop;New Jack Swing,,,,,리듬
+S0317,MOVE,TAEMIN,,Lv2,,K-Pop;R&B,,,,,그루브
+S0318,Bad Love,KEY,,Lv2,,K-Pop;Synth Pop,,,,,신나는
+S0319,Killer,KEY,,Lv2,,K-Pop;Synth Pop,,,,,신나는
+S0320,Weekend,TAEYEON,,Lv1,,Disco;K-Pop,,,,,(재도전) / 댄서블
+S0321,INVU,TAEYEON,,Lv1,,K-Pop;Pop,,,,,펄스
+S0322,pporappippam,SUNMI,,Lv2,,K-Pop;Synth Pop,,,,,(재도전) / 신나는
+S0323,Gashina,SUNMI,,Lv1,,K-Pop;Pop,,,,,(재도전) / 리프
+S0324,TAIL,SUNMI,,Lv2,,Dance;K-Pop,,,,,그루브
+S0325,Coin,IU,,Lv2,,K-Pop;Pop,,,,,(재도전) / 그루브
+S0326,LILAC,IU,,Lv2,,Disco;K-Pop,,,,,(재도전) / 신나는
+S0327,Celebrity,IU,,Lv1,,K-Pop;Pop,,,,,펄스
+S0328,Roller Coaster,CHUNG HA,,Lv1,,K-Pop;Pop,,,,,(재도전) / 그루브
+S0329,Stay Tonight,CHUNG HA,,Lv2,,Dance;K-Pop,,,,,(재도전) / 그루브
+S0330,DUMB DUMB,JEON SOMI,,Lv1,,K-Pop;Pop,,,,,신나는
+S0331,When I Move,KARA,,Lv2,,Disco;K-Pop,,,,,(재도전) / 댄서블
+S0332,I Feel You,Wonder Girls,,Lv2,,K-Pop;Synth Pop,,,,,레트로
+S0333,Lady,Yubin,,Lv2,,City Pop;K-Pop,,,,,시티팝
+S0334,Any Song,ZICO,,Lv1,,K-Hip-hop;Pop,,,,,(재도전) / 그루브
+S0335,Rush Hour,Crush,,Lv2,,Funk;K-Hip-hop,,,,,(재도전) / 그루브
+S0336,No Make Up,Zion.T,,Lv1,,K-R&B,,,,,(재도전) / 그루브
+S0337,Hello Tutorial,Zion.T,,Lv2,,K-R&B,,,,,그루브
+S0338,D (Half Moon),DEAN,,Lv2,,K-R&B,,,,,(재도전) / 그루브
+S0339,I'm Not Sorry,DEAN,,Lv2,,K-R&B,,,,,그루브
+S0340,Jasmine,DPR LIVE,,Lv2,,K-Hip-hop,,,,,그루브
+S0341,Martini Blue,DPR LIVE,,Lv2,,K-Hip-hop,,,,,그루브
+S0342,Palette,IU ft. G-DRAGON,,Lv1,,K-Pop;R&B,,,,,그루브
+S0343,GANADARA,Jay Park ft. IU,,Lv1,,K-Pop;R&B,,,,,(재도전) / 그루브
+S0344,Love Lee,AKMU,,Lv1,,K-Pop;Pop,,,,,(재도전) / 신나는
+S0345,Nakka,AKMU ft. IU,,Lv2,,Alt;K-Pop,,,,,(재도전) / 그루브
+S0346,TOMBOY,(G)I-DLE,,Lv1,,K-Pop;Rock,,,,,리프
+S0347,Nxde,(G)I-DLE,,Lv2,,K-Pop;Swing,,,,,스윙 느낌
+S0348,Queencard,(G)I-DLE,,Lv1,,K-Pop;Pop,,,,,신나는
+S0349,Spicy,aespa,,Lv1,,Dance;K-Pop,,,,,(재도전) / 신나는
+S0350,Next Level,aespa,,Lv2,,Dance;K-Pop,,,,,파트별 변화
+S0351,Superhuman,NCT 127,,Lv2,,K-Pop;Synth Pop,,,,,(재도전) / 그루브
+S0352,Kick It,NCT 127,,Lv2,,Dance;K-Pop,,,,,(재도전) / 리프
+S0353,Candy,NCT DREAM,,Lv1,,K-Pop;Pop,,,,,신나는
+S0354,Beatbox,NCT DREAM,,Lv1,,K-Pop;Pop,,,,,신나는
+S0355,Feel My Rhythm,Red Velvet,,Lv2,,K-Pop;Pop,,,,,(재도전) / 리듬
+S0356,Queendom,Red Velvet,,Lv1,,K-Pop;Pop,,,,,신나는
+S0357,Russian Roulette,Red Velvet,,Lv1,,K-Pop;Pop,,,,,신나는
+S0358,DALLA DALLA,ITZY,,Lv1,,K-Pop;Pop,,,,,(재도전) / 신나는
+S0359,WANNABE,ITZY,,Lv1,,K-Pop;Pop,,,,,(재도전) / 신나는
+S0360,Blue Hour,TXT,,Lv2,,Disco;K-Pop,,,,,댄서블
+S0361,Sugar Rush Ride,TXT,,Lv1,,K-Pop;Pop,,,,,신나는
+S0362,Get A Guitar,RIIZE,,Lv1,,K-Pop;Pop,,,,,신나는
+S0363,Love 119,RIIZE,,Lv1,,K-Pop;Pop,,,,,신나는
+S0364,Boom Boom Bass,RIIZE,,Lv2,,Disco;K-Pop,,,,,그루브
+S0365,네온,유키카,,Lv2,,City Pop;K-Pop,,,,,시티팝
+S0366,SOUL LADY,유키카,,Lv2,,City Pop;K-Pop,,,,,시티팝
+S0367,서울여자,유키카,,Lv2,,City Pop;K-Pop,,,,,시티팝
+S0368,Orange Road,Bronze ft. 유키카,,Lv2,,City Pop;K-Indie,,,,,시티팝
+S0369,숙녀(淑女),유빈,,Lv2,,City Pop;K-Pop,,,,,시티팝
+S0370,Cloud,Primary ft. 초아,,Lv2,,K-R&B;Pop,,,,,그루브
+S0371,See Through,"Primary ft. 개코, Zion.T",,Lv2,,K-Hip-hop;R&B,,,,,그루브
+S0372,Hello Sunshine,Wetter,,Lv2,,K-Indie;Pop,,,,,신나는
+S0373,고양이,새소년,,Lv3,,K-Indie;Pop,,,,,그루브
+S0374,Wonder,ADOY,,Lv2,,K-Indie;Pop,,,,,그루브
+S0375,Grace,ADOY,,Lv2,,K-Indie;Pop,,,,,그루브
+S0376,60's Cardin,Glen Check,,Lv2,,Dance;K-Indie,,,,,신나는
+S0377,Velvet Goldmine,Glen Check,,Lv2,,Dance;K-Indie,,,,,신나는
+S0378,Dazed & Confused,Glen Check,,Lv2,,Dance;K-Indie,,,,,신나는
+S0379,French Virgin Party,Glen Check,,Lv3,,Dance;K-Indie,,,,,그루브
+S0380,들었다 놨다,데이브레이크,,Lv2,,K-Band;Pop,,,,,신나는
+S0381,좋다,데이브레이크,,Lv2,,K-Band;Pop,,,,,신나는
+S0382,꽃길만 걷게 해줄게,데이브레이크,,Lv2,,K-Band;Pop,,,,,신나는
+S0383,Jogging,LUCY,,Lv2,,K-Band;Pop,,,,,신나는
+S0384,Snooze,LUCY,,Lv2,,K-Band;Pop,,,,,그루브
+S0385,너의 이름은,LUCY,,Lv2,,K-Band;Pop,,,,,신나는
+S0386,한 페이지가 될 수 있게,DAY6,,Lv1,,K-Band;Pop,,,,,신나는
+S0387,예뻤어,DAY6,,Lv1,,K-Band;Pop,,,,,멜로딕
+S0388,Time of Our Life,DAY6,,Lv2,,K-Band;Pop,,,,,신나는
+S0389,Rooftop,N.Flying,,Lv1,,K-Band;Rock,,,,,신나는
+S0390,Hot Potato,N.Flying,,Lv1,,K-Band;Rock,,,,,신나는
+S0391,Swing,Super Junior-M,,Lv2,,K-Pop;Swing,,,,,스윙
+S0392,Breathe,AB6IX,,Lv1,,K-Pop;Pop,,,,,신나는
+S0393,Love Shot,EXO,,Lv2,,K-Pop;Pop,,,,,(재도전) / 그루브
+S0394,Tempo,EXO,,Lv2,,K-Pop;Pop,,,,,(재도전) / 리듬 변주
+S0395,Call Me Baby,EXO,,Lv1,,K-Pop;Pop,,,,,(재도전) / 신나는
+S0396,MAGO,여자친구(GFRIEND),,Lv2,,Disco;K-Pop,,,,,(재도전) / 댄서블
+S0397,La Di Da,EVERGLOW,,Lv2,,K-Pop;Synth Pop,,,,,(재도전) / 신나는
+S0398,DUN DUN,EVERGLOW,,Lv1,,K-Pop;Pop,,,,,신나는
+S0399,Dolphin,오마이걸(OH MY GIRL),,Lv1,,K-Pop;Pop,,,,,신나는
+S0400,Nonstop,오마이걸(OH MY GIRL),,Lv1,,K-Pop;Pop,,,,,신나는
+S0401,ASAP,STAYC,,Lv1,,K-Pop;Pop,,,,,(재도전) / 그루브
+S0402,Stereotype,STAYC,,Lv1,,K-Pop;Pop,,,,,(재도전) / 신나는
+S0403,Run2U,STAYC,,Lv1,,K-Pop;Pop,,,,,신나는
+S0404,After School,Weeekly,,Lv1,,K-Pop;Pop,,,,,(재도전) / 신나는
+S0405,LOVE,혁오(HYUKOH),,Lv2,,K-Indie;Pop,,,,,그루브
+S0406,Wi Ing Wi Ing,혁오(HYUKOH),,Lv2,,K-Indie;Pop,,,,,그루브
+S0407,껍질을 깨,실리카겔(Silica Gel),,Lv3,,Alt;K-Indie,,,,,그루브
+S0408,NO PAIN,실리카겔(Silica Gel),,Lv3,,Alt;K-Indie,,,,,그루브
+S0409,Tik Tak Tok,실리카겔(Silica Gel),,Lv3,,Alt;K-Indie,,,,,그루브
+S0410,CLEAN,The Black Skirts,,Lv2,,K-Indie;Pop,,,,,그루브
+S0411,Everything,The Black Skirts,,Lv2,,K-Indie;Pop,,,,,멜로딕
+S0412,야간비행,백예린(Yerin Baek),,Lv2,,K-R&B;Pop,,,,,그루브
+S0413,Square (2017),백예린(Yerin Baek),,Lv1,,K-R&B;Pop,,,,,그루브
+S0414,Hate You,백예린(Yerin Baek),,Lv1,,K-R&B;Pop,,,,,그루브
+S0415,ENDLESS DANCE,까데호(CADEJO),,Lv4,,Funk;K-Jazz,,,,,그루브/변주
+S0416,ENDLESS WAVE,까데호(CADEJO),,Lv4,,Funk;K-Jazz,,,,,그루브/변주
+S0417,ENDLESS JUNGLE,까데호(CADEJO),,Lv4,,Funk;K-Jazz,,,,,그루브/변주
+S0418,ENDLESS,까데호(CADEJO),,Lv4,,Funk;K-Jazz,,,,,그루브/변주
+S0419,NEW WAVE,Soul Delivery,,Lv4,,Fusion;K-Jazz,,,,,그루브
+S0420,Heatwave,Soul Delivery,,Lv4,,Fusion;K-Jazz,,,,,그루브
+S0421,Daydreaming,Soul Delivery,,Lv4,,Fusion;K-Jazz,,,,,그루브
+S0422,Four Jackets,JSFA(제이슨밴드),,Lv5,,Funk;K-Jazz,,,,,보스전
+S0423,That Thing,JSFA(제이슨밴드),,Lv5,,Funk;K-Jazz,,,,,보스전
+S0424,Drive,JSFA(제이슨밴드),,Lv4,,Funk;K-Jazz,,,,,그루브
+S0425,Groove Station,Groove Station,,Lv4,,Funk;K-Jazz,,,,,그루브
+S0426,Take a Walk,Groove Station,,Lv3,,Funk;K-Jazz,,,,,그루브
+S0427,How Sweet,NewJeans,,Lv1,,Dance;K-Pop,,,,,(재도전) / 신나는
+S0428,Bubble Gum,NewJeans,,Lv1,,K-Pop;Pop,,,,,(재도전) / 그루브
+S0429,Cookie,NewJeans,,Lv1,,K-Pop;R&B,,,,,그루브
+S0430,Hurt,NewJeans,,Lv1,,K-Pop;R&B,,,,,그루브
+S0431,ASAP,NewJeans,,Lv1,,K-Pop;Pop,,,,,그루브
+S0432,New Jeans,NewJeans,,Lv1,,Dance;K-Pop,,,,,신나는
+S0433,Get Up,NewJeans,,Lv1,,Dance;K-Pop,,,,,신나는
+S0434,Right Now,NewJeans,,Lv1,,Dance;K-Pop,,,,,신나는
+S0435,Telepathy,BTS,,Lv2,,Disco;K-Pop,,,,,댄서블
+S0436,Boy With Luv,BTS,,Lv1,,K-Pop;Pop,,,,,신나는
+S0437,DNA,BTS,,Lv1,,K-Pop;Pop,,,,,(중복) / 신나는
+S0438,Run BTS,BTS,,Lv2,,K-Pop;Rock,,,,,신나는
+S0439,MIC Drop,BTS,,Lv2,,K-Hip-hop,,,,,그루브
+S0440,IDOL,BTS,,Lv2,,Dance;K-Pop,,,,,신나는
+S0441,Dingga,MAMAMOO,,Lv2,,Disco;K-Pop,,,,,댄서블
+S0442,HIP,MAMAMOO,,Lv1,,K-Pop;Pop,,,,,신나는
+S0443,Egotistic,MAMAMOO,,Lv1,,K-Pop;Latin,,,,,신나는
+S0444,FANCY,TWICE,,Lv1,,K-Pop;Pop,,,,,신나는
+S0445,Feel Special,TWICE,,Lv1,,K-Pop;Pop,,,,,(재도전) / 신나는
+S0446,Alcohol-Free,TWICE,,Lv1,,K-Pop;Latin,,,,,신나는
+S0447,Signal,TWICE,,Lv1,,K-Pop;Pop,,,,,신나는
+S0448,YES or YES,TWICE,,Lv1,,K-Pop;Pop,,,,,신나는
+S0449,Red Flavor,Red Velvet,,Lv1,,K-Pop;Pop,,,,,(재도전) / 신나는
+S0450,Power Up,Red Velvet,,Lv1,,K-Pop;Pop,,,,,신나는
+S0451,Bad Boy,Red Velvet,,Lv2,,K-Pop;R&B,,,,,(재도전) / 그루브
+S0452,Psycho,Red Velvet,,Lv1,,K-Pop;Pop,,,,,(재도전) / 그루브
+S0453,Umpah Umpah,Red Velvet,,Lv1,,K-Pop;Pop,,,,,신나는
+S0454,Peek-A-Boo,Red Velvet,,Lv2,,K-Pop;Pop,,,,,그루브
+S0455,Dumb Dumb,Red Velvet,,Lv2,,K-Pop;Pop,,,,,그루브
+S0456,All Night,소녀시대(Girls' Generation),,Lv2,,Disco;K-Pop,,,,,(재도전) / 댄서블
+S0457,Holiday,소녀시대(Girls' Generation),,Lv1,,K-Pop;Pop,,,,,신나는
+S0458,Step,KARA,,Lv2,,Dance;K-Pop,,,,,(재도전) / 신나는(구곡)
+S0459,Mister,KARA,,Lv2,,Dance;K-Pop,,,,,신나는(구곡)
+S0460,Rollin',Brave Girls,,Lv1,,Dance;K-Pop,,,,,(재도전) / 신나는
+S0461,Chi Mat Ba Ram,Brave Girls,,Lv1,,Dance;K-Pop,,,,,신나는
+S0462,We Ride,Brave Girls,,Lv2,,City Pop;K-Pop,,,,,(재도전) / 시티팝
+S0463,Dun Dun Dance,오마이걸(OH MY GIRL),,Lv1,,K-Pop;Pop,,,,,신나는
+S0464,LION HEART,소녀시대(Girls' Generation),,Lv2,,K-Pop;Retro,,,,,신나는
+S0465,DANCE THE NIGHT AWAY,TWICE,,Lv1,,K-Pop;Pop,,,,,신나는
+S0466,BOOM,NCT DREAM,,Lv2,,Dance;K-Pop,,,,,신나는
+S0467,Hot Sauce,NCT DREAM,,Lv2,,Dance;K-Pop,,,,,그루브
+S0468,Sticker,NCT 127,,Lv3,,Experimental;K-Pop,,,,,리듬 독특
+S0469,Fact Check,NCT 127,,Lv2,,Dance;K-Pop,,,,,신나는
+S0470,Candy Sugar Pop,ASTRO,,Lv1,,K-Pop;Pop,,,,,(재도전) / 신나는
+S0471,After Midnight,ASTRO,,Lv1,,Disco;K-Pop,,,,,(재도전) / 댄서블
+S0472,Love Scenario,iKON,,Lv1,,K-Pop;Pop,,,,,그루브
+S0473,Really Really,WINNER,,Lv1,,K-Pop;Pop,,,,,그루브
+S0474,Island,WINNER,,Lv1,,K-Pop;Pop,,,,,신나는
+S0475,Fever,ENHYPEN,,Lv1,,K-Pop;Pop,,,,,그루브
+S0476,Tamed-Dashed,ENHYPEN,,Lv1,,K-Pop;Pop,,,,,신나는
+S0477,Drunk-Dazed,ENHYPEN,,Lv2,,K-Pop;Pop,,,,,신나는
+S0478,God's Menu,Stray Kids,,Lv2,,K-Pop;Pop,,,,,신나는
+S0479,MANIAC,Stray Kids,,Lv1,,K-Pop;Pop,,,,,그루브
+S0480,Back Door,Stray Kids,,Lv2,,K-Pop;Pop,,,,,그루브
+S0481,Smiley,YENA,,Lv1,,K-Pop;Pop,,,,,신나는
+S0482,Nerdy,Purple Kiss,,Lv1,,K-Pop;Pop,,,,,신나는
+S0483,Midas Touch,KISS OF LIFE,,Lv2,,K-Pop;Pop,,,,,그루브
+S0484,Shhh,KISS OF LIFE,,Lv2,,K-Pop;R&B,,,,,그루브
+S0485,Sugarcoat,NATTY (KISS OF LIFE),,Lv2,,K-Pop;R&B,,,,,그루브
+S0486,Love Again,Baekhyun,,Lv2,,K-R&B,,,,,(재도전) / 그루브
+S0487,Candy,Baekhyun,,Lv2,,K-R&B;Pop,,,,,그루브
+S0488,Bambi,Baekhyun,,Lv2,,K-R&B,,,,,그루브
+S0489,Off The Record,IVE,,Lv1,,K-Pop;Pop,,,,,그루브
+S0490,Kitsch,IVE,,Lv1,,K-Pop;Pop,,,,,(재도전) / 신나는
+S0491,ELEVEN,IVE,,Lv1,,K-Pop;Pop,,,,,그루브
+S0492,UNFORGIVEN,LE SSERAFIM,,Lv2,,K-Pop;Pop,,,,,(재도전) / 신나는
+S0493,Fearless,LE SSERAFIM,,Lv1,,K-Pop;Pop,,,,,(재도전) / 그루브
+S0494,EUNOIA,Billlie,,Lv2,,K-Pop;Pop,,,,,그루브
+S0495,GingaMingaYo,Billlie,,Lv3,,K-Pop;Pop,,,,,리듬
+S0496,Hype Boy (alt ver.),NewJeans,,Lv2,,Dance;K-Pop,,,,,(연습용)
+S0497,LOVE ME LIKE THIS,NMIXX,,Lv2,,K-Pop;Pop,,,,,그루브
+S0498,DICE,NMIXX,,Lv2,,K-Pop;Pop,,,,,그루브
+S0499,Teddy Bear,STAYC,,Lv1,,K-Pop;Pop,,,,,(재도전) / 신나는
+S0500,Bubble,STAYC,,Lv1,,K-Pop;Pop,,,,,(재도전) / 신나는
+S0501,NCT U - Make A Wish,NCT U,,Lv2,,K-Pop;Pop,,,,,그루브
+S0502,NCT U - Baggy Jeans,NCT U,,Lv2,,K-Pop;Pop,,,,,신나는
+S0503,Overnight,Parcels,,Lv2,,Disco;Indie,,,,,댄서블
+S0504,Tieduprightnow,Parcels,,Lv2,,Disco;Indie,,,,,그루브
+S0505,Gamesofluck,Parcels,,Lv2,,Disco;Indie,,,,,그루브
+S0506,Lightenup,Parcels,,Lv2,,Disco;Indie,,,,,그루브
+S0507,Feel Like I Do,Parcels,,Lv2,,Disco;Indie,,,,,그루브
+S0508,I Know How I Feel,Parcels,,Lv2,,Disco;Indie,,,,,그루브
+S0509,DANCE,Justice,,Lv2,,Electronic,,,,,리프
+S0510,D.A.N.C.E.,Justice,,Lv2,,Electronic,,,,,리프
+S0511,Genesis,Justice,,Lv2,,Electronic,,,,,리프
+S0512,We Are Your Friends,Justice vs Simian,,Lv2,,Electronic,,,,,리프
+S0513,Baby I'm Yours,Breakbot,,Lv2,,Disco;French House,,,,,그루브
+S0514,Fantasy,Breakbot,,Lv2,,Disco;French House,,,,,그루브
+S0515,The Weekend,Michael Gray,,Lv2,,Disco House,,,,,그루브
+S0516,Jealous (I Ain't With It),Chromeo,,Lv2,,Electro-funk,,,,,그루브
+S0517,Fancy Footwork,Chromeo,,Lv2,,Electro-funk,,,,,그루브
+S0518,Night by Night,Chromeo,,Lv2,,Electro-funk,,,,,그루브
+S0519,Gotta Get Up,Kali Uchis,,Lv2,,Disco;Pop,,,,,그루브
+S0520,Leave It in the Past,Roosevelt,,Lv2,,Disco;Indie,,,,,그루브
+S0521,Fever,Roosevelt,,Lv2,,Disco;Indie,,,,,그루브
+S0522,Lovers,Roosevelt,,Lv2,,Disco;Indie,,,,,그루브
+S0523,Losing Touch,Roosevelt,,Lv2,,Disco;Indie,,,,,그루브
+S0524,Vanille Fraise,L'Impératrice,,Lv2,,Disco;Pop,,,,,그루브
+S0525,Agitations Tropicales,L'Impératrice,,Lv2,,Disco;Pop,,,,,그루브
+S0526,La lune,L'Impératrice,,Lv2,,Disco;Pop,,,,,그루브
+S0527,Odyssee,L'Impératrice,,Lv2,,Disco;Pop,,,,,그루브
+S0528,Texas Sun,Khruangbin & Leon Bridges,,Lv2,,Funk;Soul,,,,,그루브
+S0529,Time (You and I),Khruangbin,,Lv2,,Funk;Psychedelic,,,,,그루브
+S0530,August 10,Khruangbin,,Lv2,,Funk;Psychedelic,,,,,그루브
+S0531,People Everywhere (Still Alive),Khruangbin,,Lv3,,Funk;Psychedelic,,,,,그루브
+S0532,Two Fish and an Elephant,Khruangbin,,Lv2,,Funk;Psychedelic,,,,,그루브
+S0533,Tadow,Masego & FKJ,,Lv3,,Neo-soul,,,,,그루브
+S0534,Losing My Way,FKJ,,Lv3,,Neo-soul,,,,,그루브
+S0535,Skyline,FKJ,,Lv3,,Neo-soul,,,,,그루브
+S0536,Disco Yes,Tom Misch,,Lv3,,Funk;Neo-soul,,,,,그루브
+S0537,It Runs Through Me,Tom Misch,,Lv2,,Neo-soul,,,,,그루브
+S0538,Movie,Tom Misch,,Lv2,,Neo-soul,,,,,그루브
+S0539,South of the River,Tom Misch,,Lv2,,Neo-soul,,,,,그루브
+S0540,Supermassive Black Hole,Muse,,Lv2,,Alt Rock,,,,,그루브
+S0541,Pumped Up Kicks,Foster the People,,Lv1,,Indie Pop,,,,,리프
+S0542,This Charming Man,The Smiths,,Lv3,,Indie Rock,,,,,멜로딕
+S0543,Barbarism Begins at Home,The Smiths,,Lv4,,Funk Rock,,,,,도전
+S0544,Disorder,Joy Division,,Lv2,,Post-punk,,,,,리프
+S0545,Transmission,Joy Division,,Lv3,,Post-punk,,,,,리프
+S0546,"Dance, Dance",Fall Out Boy,,Lv1,,Pop Punk,,,,,펑크
+S0547,The Rock Show,blink-182,,Lv1,,Pop Punk,,,,,펑크
+S0548,All the Small Things,blink-182,,Lv1,,Pop Punk,,,,,펑크
+S0549,The Middle,Jimmy Eat World,,Lv1,,Pop Punk,,,,,펑크
+S0550,Basket Case,Green Day,,Lv1,,Punk Rock,,,,,펑크
+S0551,Holiday,Green Day,,Lv1,,Punk Rock,,,,,펑크
+S0552,American Idiot,Green Day,,Lv1,,Punk Rock,,,,,펑크
+S0553,Smells Like Teen Spirit,Nirvana,,Lv1,,Rock,,,,,리프
+S0554,Lithium,Nirvana,,Lv2,,Rock,,,,,멜로딕
+S0555,In Bloom,Nirvana,,Lv1,,Rock,,,,,리프
+S0556,R U Mine?,Arctic Monkeys,,Lv2,,Rock,,,,,리프
+S0557,Dance Dance Dance,Lykke Li,,Lv2,,Pop,,,,,그루브
+S0558,Love Talk,WayV,,Lv2,,K-Pop;R&B,,,,,그루브
+S0559,Make A Wish (Birthday Song),NCT U,,Lv2,,K-Pop;Pop,,,,,그루브
+S0560,Hello Future,NCT DREAM,,Lv1,,K-Pop;Pop,,,,,신나는
+S0561,Growl,EXO,,Lv1,,K-Pop;Pop,,,,,그루브
+S0562,Love Me Right,EXO,,Lv1,,K-Pop;Pop,,,,,신나는
+S0563,Candy,H.O.T.,,Lv2,,K-Pop;Pop,,,,,(구곡)
+S0564,Blue Flame,ASTRO,,Lv1,,K-Pop;Pop,,,,,신나는
+S0565,Back For More,TXT,,Lv2,,Disco;K-Pop,,,,,댄서블
+S0566,Do It Like That,TXT,,Lv1,,K-Pop;Pop,,,,,신나는
+S0567,Good Boy Gone Bad,TXT,,Lv1,,K-Pop;Rock,,,,,신나는
+S0568,Deja Vu,TXT,,Lv1,,K-Pop;Pop,,,,,신나는
+S0569,Cupid,FIFTY FIFTY,,Lv1,,K-Pop;Pop,,,,,그루브
+S0570,Cupid (Twin Ver.),FIFTY FIFTY,,Lv1,,K-Pop;Pop,,,,,(버전)
+S0571,Baddie,IVE,,Lv1,,K-Pop;Pop,,,,,신나는
+S0572,Either Way,IVE,,Lv1,,K-Pop;Pop,,,,,그루브
+S0573,I WANT,IVE,,Lv1,,K-Pop;Pop,,,,,신나는
+S0574,EASY,LE SSERAFIM,,Lv1,,K-Pop;Pop,,,,,그루브
+S0575,Smart,LE SSERAFIM,,Lv2,,Dance;K-Pop,,,,,그루브
+S0576,Drama,aespa,,Lv1,,K-Pop;Pop,,,,,신나는
+S0577,Supernova,aespa,,Lv1,,K-Pop;Pop,,,,,신나는
+S0578,Savage,aespa,,Lv2,,K-Pop;Pop,,,,,그루브
+S0579,Scientist,TWICE,,Lv1,,K-Pop;Pop,,,,,신나는
+S0580,Moonlight Sunrise,TWICE,,Lv1,,K-Pop;Pop,,,,,그루브
+S0581,Set Me Free,TWICE,,Lv1,,K-Pop;Pop,,,,,(재도전)
+S0582,Fancy,TWICE,,Lv1,,K-Pop;Pop,,,,,(재도전)
+S0583,Fever,여자친구(GFRIEND),,Lv1,,K-Pop;Pop,,,,,신나는
+S0584,Time for the moon night,여자친구(GFRIEND),,Lv1,,K-Pop;Pop,,,,,그루브
+S0585,FIRST,EVERGLOW,,Lv1,,K-Pop;Pop,,,,,신나는
+S0586,Tag Me (@Me),Weeekly,,Lv1,,K-Pop;Pop,,,,,신나는
+S0587,RUN2U,STAYC,,Lv1,,K-Pop;Pop,,,,,(재도전)
+S0588,Dumb Dumb,Somi,,Lv1,,K-Pop;Pop,,,,,(재도전)
+S0589,Fast Forward,Jeon Somi,,Lv1,,Dance;K-Pop,,,,,신나는
+S0590,Gotta Go,CHUNG HA,,Lv1,,K-Pop;Pop,,,,,그루브
+S0591,Snapping,CHUNG HA,,Lv1,,K-Pop;Pop,,,,,신나는
+S0592,Spark,TAEYEON,,Lv1,,K-Pop;Pop,,,,,신나는
+S0593,What Do I Call You,TAEYEON,,Lv1,,K-Pop;Pop,,,,,그루브
+S0594,Blueming,IU,,Lv1,,K-Pop;Pop,,,,,신나는
+S0595,BBIBBI,IU,,Lv1,,K-Pop;Pop,,,,,그루브
+S0596,eight,IU,,Lv1,,K-Pop;Pop,,,,,신나는
+S0597,You can't sit with us,SUNMI,,Lv1,,K-Pop;Pop,,,,,신나는
+S0598,CHI MAT BA RAM,Brave Girls,,Lv1,,Dance;K-Pop,,,,,(재도전)
+S0599,Bboom Bboom,MOMOLAND,,Lv1,,Dance;K-Pop,,,,,신나는
+S0600,BBoom BBoom,MOMOLAND,,Lv1,,Dance;K-Pop,,,,,(중복)
+S0601,GEE,소녀시대(Girls' Generation),,Lv1,,K-Pop;Pop,,,,,신나는(구곡)
+S0602,Genie,소녀시대(Girls' Generation),,Lv2,,K-Pop;Pop,,,,,신나는(구곡)
+S0603,ICY,ITZY,,Lv1,,K-Pop;Pop,,,,,신나는
+S0604,Loco,ITZY,,Lv1,,K-Pop;Pop,,,,,신나는
+S0605,CAKE,ITZY,,Lv1,,K-Pop;Pop,,,,,신나는
+S0606,SPOT!,ZICO ft. JENNIE,,Lv1,,K-Hip-hop;Pop,,,,,신나는
+S0607,All I Wanna Do,Jay Park,,Lv2,,K-R&B;Pop,,,,,그루브
+S0608,MOMMAE,Jay Park,,Lv2,,K-Hip-hop;R&B,,,,,그루브
+S0609,Me Like Yuh,Jay Park,,Lv2,,K-Hip-hop,,,,,그루브
+S0610,All I Wanna Do (K),Jay Park,,Lv2,,K-R&B;Pop,,,,,(버전)
+S0611,Red Tape,Jay Park,,Lv2,,K-Hip-hop,,,,,그루브
+S0612,Aquaman,Jay Park,,Lv2,,K-Hip-hop;R&B,,,,,그루브
+S0613,Don't,Loco & Hwasa,,Lv1,,K-R&B;Pop,,,,,그루브
+S0614,Somebody!,Loco & Hwasa,,Lv1,,K-R&B;Pop,,,,,그루브
+S0615,Late Night,Loco ft. Gray,,Lv1,,K-Hip-hop,,,,,그루브
+S0616,We Are,Woo ft. Loco & GRAY,,Lv1,,K-Hip-hop,,,,,그루브
+S0617,SoulMate,Zico ft. IU,,Lv1,,K-Pop;R&B,,,,,그루브
+S0618,Summer Hate,Zico ft. Rain,,Lv1,,K-Pop;Pop,,,,,신나는
+S0619,Baby It's U,Jeong Sewoon,,Lv1,,K-Pop;Pop,,,,,그루브
+S0620,instagram,DEAN,,Lv1,,K-R&B;Pop,,,,,그루브
+S0621,Pour Up,DEAN ft. Zico,,Lv2,,K-R&B,,,,,그루브
+S0622,Love,DEAN,,Lv1,,K-R&B,,,,,그루브
+S0623,Lullaby,GOT7,,Lv1,,K-Pop;R&B,,,,,그루브
+S0624,You Calling My Name,GOT7,,Lv2,,K-Pop;R&B,,,,,그루브
+S0625,Thursday,GOT7,,Lv1,,K-Pop;Pop,,,,,그루브
+S0626,Aloha,조정석,,Lv1,,K-Pop;Pop,,,,,신나는
+S0627,Any song (remix),Zico,,Lv2,,K-Hip-hop;Pop,,,,,(버전)
+S0628,You know,비비(BIBI),,Lv1,,K-R&B,,,,,그루브
+S0629,밤양갱,비비(BIBI),,Lv1,,K-Pop,,,,,그루브
+S0630,BIBI Vengeance,비비(BIBI),,Lv2,,K-Hip-hop,,,,,그루브
+S0631,Life is a Bi...,비비(BIBI),,Lv2,,K-R&B,,,,,그루브
+S0632,Dally,Hyolyn,,Lv2,,K-R&B;Pop,,,,,그루브
+S0633,Blue Moon,Hyolyn,,Lv2,,K-R&B;Pop,,,,,그루브
+S0634,Nunu Nana,Jessi,,Lv1,,K-Hip-hop;Pop,,,,,신나는
+S0635,Zoom,Jessi,,Lv1,,K-Hip-hop;Pop,,,,,신나는
+S0636,Eung Freestyle,"Sik-K, pH-1, Jay Park, HAON",,Lv2,,K-Hip-hop,,,,,신나는
+S0637,MORAGO,pH-1,,Lv1,,K-Hip-hop,,,,,그루브
+S0638,Homebody,pH-1,,Lv1,,K-Hip-hop,,,,,그루브
+S0639,Good Day,pH-1,,Lv1,,K-Hip-hop,,,,,신나는

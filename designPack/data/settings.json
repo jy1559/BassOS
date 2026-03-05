@@ -1,0 +1,229 @@
+{
+  "policy_version": 10,
+  "app": {
+    "name": "Bass Practice Game",
+    "version": "1.0",
+    "timezone": "local",
+    "currency": "XP"
+  },
+  "xp": {
+    "session": {
+      "start_bonus": 800,
+      "per_10min": 700,
+      "max_base_xp": 5200
+    },
+    "bonus": {
+      "core_warmup": 90,
+      "metronome_24": 80,
+      "metronome_onebar": 130,
+      "recording_audio": 200,
+      "recording_video": 260,
+      "earcopy": 180,
+      "theory": 120,
+      "slap": 140,
+      "clean_mute": 90,
+      "ab_compare": 160
+    },
+    "weekly_chest": {
+      "xp": 4200,
+      "conditions": {
+        "min_sessions": 3,
+        "min_core_sessions": 2
+      }
+    },
+    "monthly_long_goal": {
+      "song_fulltake": 13000,
+      "earcopy_full": 15000
+    },
+    "rehearsal_bonus": 320,
+    "performance_bonus": 980,
+    "backfill_multiplier": 0.5
+  },
+  "level_curve": {
+    "type": "quadratic",
+    "a": 2500,
+    "b": 423,
+    "c": 10,
+    "max_level": 50,
+    "rank_thresholds": [
+      {
+        "rank": "Bronze",
+        "min_level": 1
+      },
+      {
+        "rank": "Silver",
+        "min_level": 10
+      },
+      {
+        "rank": "Gold",
+        "min_level": 20
+      },
+      {
+        "rank": "Platinum",
+        "min_level": 30
+      },
+      {
+        "rank": "Diamond",
+        "min_level": 40
+      },
+      {
+        "rank": "Challenger",
+        "min_level": 50
+      }
+    ]
+  },
+  "ui": {
+    "default_theme": "midnight",
+    "levelup_sound": "media/sfx_levelup.mp3",
+    "enable_confetti": true,
+    "animation_intensity": "adaptive",
+    "language": "ko",
+    "dashboard_bg_mode": "auto",
+    "dashboard_glass_cards": true,
+    "dashboard_live_motion": true,
+    "song_genres": [
+      "Rock",
+      "Punk Rock",
+      "Alt Rock",
+      "Hard Rock",
+      "Metal",
+      "Funk",
+      "Jazz",
+      "Fusion",
+      "R&B",
+      "Soul",
+      "Hip-hop",
+      "Pop",
+      "City Pop",
+      "Ballad",
+      "Disco",
+      "Blues",
+      "Latin",
+      "World"
+    ],
+    "dashboard_layout": {
+      "hud": {
+        "y": 1,
+        "w": 1,
+        "h": 1,
+        "visible": true,
+        "x": 1
+      },
+      "timer": {
+        "y": 1,
+        "w": 1,
+        "h": 1,
+        "visible": true,
+        "x": 2
+      },
+      "photo": {
+        "y": 1,
+        "w": 1,
+        "h": 2,
+        "visible": true,
+        "x": 3
+      },
+      "progress": {
+        "y": 2,
+        "w": 2,
+        "h": 1,
+        "visible": true,
+        "x": 1
+      },
+      "todo": {
+        "y": 3,
+        "w": 1,
+        "h": 1,
+        "visible": true,
+        "x": 1
+      },
+      "songShortcut": {
+        "y": 3,
+        "w": 2,
+        "h": 1,
+        "visible": true,
+        "x": 2
+      },
+      "quests": {
+        "y": 3,
+        "w": 1,
+        "h": 1,
+        "visible": false,
+        "x": 3
+      },
+      "achievements": {
+        "y": 4,
+        "w": 1,
+        "h": 1,
+        "visible": false,
+        "x": 1
+      },
+      "inProgress": {
+        "y": 4,
+        "w": 2,
+        "h": 1,
+        "visible": false,
+        "x": 2
+      }
+    }
+  },
+  "audio": {
+    "enabled": false,
+    "master_volume": 0.6,
+    "levelup_sound": "media/sfx_levelup.mp3"
+  },
+  "critical": {
+    "backfill_multiplier_default": 0.5,
+    "max_backup_files": 3,
+    "backup_min_hours": 12,
+    "achievement_xp_multiplier": 1.0,
+    "quest_xp_multiplier": 0.06,
+    "session_xp_multiplier": 1.0
+  },
+  "admin": {
+    "gate_enabled": false,
+    "pin_hash": ""
+  },
+  "backup": {
+    "enabled": true,
+    "max_files": 3,
+    "min_hours_between": 12
+  },
+  "performance": {
+    "target_dashboard_ms": 1000
+  },
+  "profile": {
+    "nickname": "",
+    "weekly_goal_sessions": 3,
+    "onboarded": false,
+    "dashboard_photo_fit": "contain",
+    "dashboard_photo_anchor": "center",
+    "quest_settings": {
+      "period_days": {
+        "short": 7,
+        "mid": 30,
+        "long": 90
+      },
+      "auto_enabled_by_period": {
+        "short": true,
+        "mid": true,
+        "long": true
+      },
+      "auto_target_minutes_by_period": {
+        "short": 120,
+        "mid": 360,
+        "long": 900
+      },
+      "auto_priority_by_period": {
+        "short": "normal",
+        "mid": "normal",
+        "long": "urgent"
+      },
+      "auto_difficulty_by_period": {
+        "short": "low",
+        "mid": "mid",
+        "long": "high"
+      }
+    }
+  }
+}

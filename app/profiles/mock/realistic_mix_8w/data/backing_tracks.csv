@@ -1,0 +1,4 @@
+﻿backing_id,title,description,genre,favorite,chords,bpm,youtube_url,drill_id,tags,notes,created_at,last_used_at
+BT0001,느린 펑크 그루브 90,8분 루프. 고스트 노트와 16비트 뉘앙스 연습,Funk,false,Am7|D7,90,https://www.youtube.com/watch?v=9Q0x6N4c3o8,D002,펑크;그루브,메트로놈 2&4와 함께 쓰기 좋음,,
+BT0002,재즈 워킹 110,ii-V-I 진행 워킹 베이스 라인 루프,Jazz,false,Dm7|G7|Cmaj7,110,https://www.youtube.com/watch?v=x2B3Q8M4K7Y,D006,재즈;워킹,코드톤 인지 훈련,,
+BT0003,록 8비트 130,다운피킹 중심 8비트 펄스 유지,Rock,false,E5|A5|B5,130,https://www.youtube.com/watch?v=9zG3fP8q5XQ,D001,록;8비트,초반 템포 고정 루틴,,
