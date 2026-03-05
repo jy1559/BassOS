@@ -4,8 +4,10 @@ import type {
   AchievementRecent,
   AdminAchievementMasterItem,
   AchievementRuleOptions,
+  BackupInfo,
   GalleryItem,
   HudSummary,
+  LevelUpCopy,
   MockDatasetExportResult,
   PlayerXP,
   PlayerXPWindow,
@@ -28,6 +30,14 @@ import type {
   TutorialState
 } from "./types/models";
 
+type DeepPartial<T> = {
+  [P in keyof T]?: T[P] extends (infer U)[]
+    ? DeepPartial<U>[]
+    : T[P] extends object
+      ? DeepPartial<T[P]>
+      : T[P];
+};
+
 async function call<T>(url: string, init?: RequestInit): Promise<T> {
   const headers = new Headers(init?.headers ?? {});
   if (!(init?.body instanceof FormData) && !headers.has("Content-Type")) {
@@ -49,7 +59,7 @@ export async function getSettings(): Promise<Settings> {
   return data.settings;
 }
 
-export async function putBasicSettings(patch: Partial<Settings>): Promise<Settings> {
+export async function putBasicSettings(patch: DeepPartial<Settings>): Promise<Settings> {
   const data = await call<{ settings: Settings; ok: true }>("/api/settings/basic", {
     method: "PUT",
     body: JSON.stringify(patch)
@@ -92,6 +102,20 @@ export async function quickLog(input: SessionStopInput): Promise<SessionStopResu
     method: "POST",
     body: JSON.stringify(input)
   });
+}
+
+export async function getLevelUpCopy(input: {
+  level: number;
+  before_level: number;
+  lang?: "ko" | "en";
+}): Promise<LevelUpCopy> {
+  const params = new URLSearchParams({
+    level: String(Math.max(1, Number(input.level || 1))),
+    before_level: String(Math.max(1, Number(input.before_level || 1))),
+    lang: input.lang ?? "ko",
+  });
+  const data = await call<{ ok: true; copy: LevelUpCopy }>(`/api/gamification/level-up-copy?${params.toString()}`);
+  return data.copy;
 }
 
 export async function getHudSummary(): Promise<HudSummary> {
@@ -357,6 +381,25 @@ export async function createExport(): Promise<{ file: string; path: string }> {
     body: JSON.stringify({})
   });
   return { file: data.file, path: data.path };
+}
+
+export async function getBackupList(): Promise<BackupInfo[]> {
+  const data = await call<{ backups: BackupInfo[]; ok: true }>("/api/backup/list");
+  return data.backups;
+}
+
+export async function restoreBackup(backupName: string): Promise<void> {
+  await call("/api/backup/restore", {
+    method: "POST",
+    body: JSON.stringify({ backup_name: backupName }),
+  });
+}
+
+export async function createBackupSnapshot(): Promise<{ created?: boolean; reason?: string; file?: string }> {
+  return call<{ backup: { created?: boolean; reason?: string; file?: string }; ok: true }>("/api/system/pre-exit", {
+    method: "POST",
+    body: JSON.stringify({}),
+  }).then((data) => data.backup);
 }
 
 export async function getUnlockables(): Promise<{ level: number; items: Array<Record<string, unknown>> }> {

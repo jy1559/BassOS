@@ -73,7 +73,7 @@
     ]
   },
   "ui": {
-    "default_theme": "midnight",
+    "default_theme": "studio",
     "levelup_sound": "media/sfx_levelup.mp3",
     "enable_confetti": true,
     "animation_intensity": "adaptive",

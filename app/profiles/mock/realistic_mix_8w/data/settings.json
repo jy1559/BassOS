@@ -1,5 +1,5 @@
 {
-  "policy_version": 10,
+  "policy_version": 12,
   "app": {
     "name": "Bass Practice Game",
     "version": "1.0",
@@ -8,10 +8,9 @@
   },
   "xp": {
     "session": {
-      "start_bonus": 20,
-      "per_10min": 14,
-      "max_base_xp": 100
+      "per_min": 3
     },
+    "display_scale": 4000,
     "bonus": {
       "core_warmup": 8,
       "metronome_24": 6,
@@ -36,10 +35,13 @@
     "backfill_multiplier": 0.5
   },
   "level_curve": {
-    "type": "quadratic",
-    "a": 230,
-    "b": 13,
-    "c": 1.1,
+    "type": "decade_linear",
+    "base": 220,
+    "slope": 5,
+    "step_10": 50,
+    "step_20": 110,
+    "step_30": 240,
+    "step_40": 434,
     "max_level": 50,
     "rank_thresholds": [
       {
@@ -74,9 +76,7 @@
     "enable_confetti": true,
     "animation_intensity": "adaptive",
     "language": "ko",
-    "dashboard_bg_mode": "auto",
     "dashboard_glass_cards": true,
-    "dashboard_live_motion": true,
     "song_genres": [
       "Rock",
       "Punk Rock",
@@ -97,69 +97,141 @@
       "Latin",
       "World"
     ],
-    "dashboard_layout": {
+    "dashboard_version": "legacy",
+    "dashboard_layout_legacy": {
       "hud": {
+        "x": 1,
         "y": 1,
         "w": 1,
         "h": 1,
-        "visible": true,
-        "x": 1
+        "visible": true
       },
       "timer": {
+        "x": 2,
         "y": 1,
         "w": 1,
         "h": 1,
-        "visible": true,
-        "x": 2
-      },
-      "photo": {
-        "y": 1,
-        "w": 1,
-        "h": 2,
-        "visible": true,
-        "x": 3
+        "visible": true
       },
       "progress": {
+        "x": 1,
         "y": 2,
         "w": 2,
         "h": 1,
-        "visible": true,
-        "x": 1
+        "visible": true
       },
-      "todo": {
+      "nextWin": {
+        "x": 3,
         "y": 3,
         "w": 1,
         "h": 1,
-        "visible": true,
-        "x": 1
+        "visible": true
+      },
+      "photo": {
+        "x": 3,
+        "y": 1,
+        "w": 1,
+        "h": 2,
+        "visible": true
       },
       "songShortcut": {
+        "x": 2,
         "y": 3,
         "w": 2,
         "h": 1,
-        "visible": true,
-        "x": 2
-      },
-      "quests": {
-        "y": 3,
-        "w": 1,
-        "h": 1,
-        "visible": false,
-        "x": 3
+        "visible": true
       },
       "achievements": {
+        "x": 1,
         "y": 4,
         "w": 1,
         "h": 1,
-        "visible": false,
-        "x": 1
+        "visible": false
+      }
+    },
+    "dashboard_layout_focus": {
+      "hud": {
+        "x": 1,
+        "y": 1,
+        "w": 1,
+        "h": 1,
+        "visible": true
       },
-      "inProgress": {
+      "timer": {
+        "x": 2,
+        "y": 1,
+        "w": 1,
+        "h": 1,
+        "visible": true
+      },
+      "nextWin": {
+        "x": 3,
+        "y": 4,
+        "w": 1,
+        "h": 1,
+        "visible": true
+      },
+      "progress": {
+        "x": 1,
+        "y": 2,
+        "w": 2,
+        "h": 1,
+        "visible": true
+      },
+      "photo": {
+        "x": 3,
+        "y": 1,
+        "w": 1,
+        "h": 3,
+        "visible": true
+      },
+      "songShortcut": {
+        "x": 1,
+        "y": 3,
+        "w": 2,
+        "h": 1,
+        "visible": true
+      },
+      "achievements": {
+        "x": 1,
         "y": 4,
         "w": 2,
         "h": 1,
-        "visible": false,
-        "x": 2
+        "visible": true
+      }
+    },
+    "achievement_card_styles": {
+      "tier_bronze": {
+        "border": "#b88746",
+        "fill": "#f8f1e7"
+      },
+      "tier_silver": {
+        "border": "#8ca0ad",
+        "fill": "#eff4f7"
+      },
+      "tier_gold": {
+        "border": "#d6aa2d",
+        "fill": "#fcf6e7"
+      },
+      "tier_platinum": {
+        "border": "#58a4be",
+        "fill": "#e8f7fa"
+      },
+      "tier_diamond": {
+        "border": "#6f72ff",
+        "fill": "#f0f0ff"
+      },
+      "tier_master": {
+        "border": "#ff9640",
+        "fill": "#fff1e2"
+      },
+      "single_event": {
+        "border": "#4f8b92",
+        "fill": "#ebf6f8"
+      },
+      "single_hidden": {
+        "border": "#59606a",
+        "fill": "#f0f2f5"
       }
     }
   },
@@ -173,9 +245,9 @@
     "max_backup_files": 3,
     "backup_min_hours": 12,
     "achievement_xp_multiplier": 0.15,
-    "quest_xp_multiplier": 0.06,
+    "quest_xp_multiplier": 0.15,
     "session_xp_multiplier": 1.0,
-    "daily_session_xp_cap": 200
+    "daily_session_xp_cap": 0
   },
   "admin": {
     "gate_enabled": false,
@@ -193,7 +265,6 @@
     "nickname": "E2E Player",
     "weekly_goal_sessions": 3,
     "onboarded": true,
-    "dashboard_photo_fit": "contain",
     "dashboard_photo_anchor": "center",
     "dashboard_photo_items": [],
     "dashboard_featured_photo_id": "",
@@ -235,7 +306,30 @@
         "short": "low",
         "mid": "mid",
         "long": "high"
+      },
+      "ui_style": {
+        "period_border": {
+          "short": "#44728a",
+          "mid": "#5e6f8f",
+          "long": "#6e5f8d"
+        },
+        "period_fill": {
+          "short": "#e7f5ff",
+          "mid": "#eef2ff",
+          "long": "#f4efff"
+        },
+        "priority_border": {
+          "urgent": "#d8664a",
+          "normal": "#4f8bc4",
+          "low": "#6b8892"
+        },
+        "difficulty_fill": {
+          "low": "#eef8f5",
+          "mid": "#eef2ff",
+          "high": "#fff0f1"
+        }
       }
-    }
+    },
+    "journal_tag_catalog": []
   }
 }

@@ -7,15 +7,17 @@ import {
   getDrillLibrary,
   getGallery,
   getHudSummary,
+  getLevelUpCopy,
   getQuests,
   getRecentAchievements,
   getSettings,
+  putBasicSettings,
   getTutorialState,
   getUnlockables,
-  putBasicSettings,
   saveTutorialProgress,
   startTutorial,
 } from "./api";
+import type { CSSProperties } from "react";
 import { t, type Lang } from "./i18n";
 import type {
   Achievement,
@@ -23,6 +25,7 @@ import type {
   GalleryItem,
   HudSummary,
   Quest,
+  SessionStopResult,
   Settings,
   TutorialState,
 } from "./types/models";
@@ -42,8 +45,10 @@ import { SongsPage } from "./pages/SongsPage";
 import { XPPage } from "./pages/XPPage";
 import { TutorialOverlay } from "./components/tutorial/TutorialOverlay";
 import { GlobalMetronomeDock, MetronomeProvider } from "./metronome";
-import { CORE_CAMPAIGN_ID, DEEP_DIVE_CAMPAIGNS, getTutorialCampaign } from "./tutorial/campaigns";
+import { CORE_CAMPAIGN_ID, getTutorialCampaign } from "./tutorial/campaigns";
 import type { TutorialCampaign } from "./tutorial/types";
+import { configureGenreCatalog } from "./genreCatalog";
+import { formatDisplayXp, getXpDisplayScale } from "./utils/xpDisplay";
 
 type TabId =
   | "dashboard"
@@ -62,10 +67,46 @@ type TabId =
   | "settings";
 type NavGroupId = "tools" | "library" | "records" | "challenge";
 
-type Toast = { id: number; text: string; type: "success" | "error" | "info" };
-type CelebrateType = "level" | "achievement";
-type Celebrate = { id: number; type: CelebrateType; title: string; subtitle: string };
+type ToastLane = "top-right" | "bottom-right";
+type Toast = {
+  id: number;
+  lane: ToastLane;
+  title: string;
+  subtitle?: string;
+  icon?: string;
+  type: "success" | "error" | "info";
+  style?: "default" | "achievement" | "quest";
+};
+type FxOverlayEvent =
+  | {
+      id: number;
+      kind: "level";
+      level: number;
+      beforeLevel: number;
+      afterLevel: number;
+      title: string;
+      subtitle: string;
+      tierUp: boolean;
+      beforeTier: string;
+      afterTier: string;
+      tierColor: string;
+      badgeBefore: string;
+      badgeAfter: string;
+    }
+  | {
+      id: number;
+      kind: "session";
+      title: string;
+      subtitle: string;
+      durationMin: number;
+      gainedXp: number;
+      cheer: string;
+    };
+type FxOverlayPayload =
+  | Omit<Extract<FxOverlayEvent, { kind: "level" }>, "id">
+  | Omit<Extract<FxOverlayEvent, { kind: "session" }>, "id">;
 type TutorialRuntime = { campaign: TutorialCampaign; stepIndex: number };
+type FxBadgeTier = "bronze" | "silver" | "gold" | "platinum" | "diamond" | "challenger";
 
 function preventBrowserReload() {
   window.addEventListener("keydown", (event) => {
@@ -74,6 +115,42 @@ function preventBrowserReload() {
       event.preventDefault();
     }
   });
+}
+
+function fxBadgeTier(level: number): FxBadgeTier {
+  if (level >= 50) return "challenger";
+  if (level >= 40) return "diamond";
+  if (level >= 30) return "platinum";
+  if (level >= 20) return "gold";
+  if (level >= 10) return "silver";
+  return "bronze";
+}
+
+function fxBadgeStep(level: number): number {
+  const lv = Math.max(1, level);
+  if (lv >= 50) return 10;
+  if (lv >= 40) return lv - 39;
+  if (lv >= 30) return lv - 29;
+  if (lv >= 20) return lv - 19;
+  if (lv >= 10) return lv - 9;
+  return lv;
+}
+
+function fxTierLabel(tier: FxBadgeTier, lang: Lang): string {
+  if (lang === "ko") {
+    if (tier === "bronze") return "브론즈";
+    if (tier === "silver") return "실버";
+    if (tier === "gold") return "골드";
+    if (tier === "platinum") return "플래티넘";
+    if (tier === "diamond") return "다이아";
+    return "챌린저";
+  }
+  if (tier === "bronze") return "Bronze";
+  if (tier === "silver") return "Silver";
+  if (tier === "gold") return "Gold";
+  if (tier === "platinum") return "Platinum";
+  if (tier === "diamond") return "Diamond";
+  return "Challenger";
 }
 
 export default function App() {
@@ -102,67 +179,181 @@ export default function App() {
   const [tutorialRuntime, setTutorialRuntime] = useState<TutorialRuntime | null>(null);
   const [busy, setBusy] = useState(false);
   const [toasts, setToasts] = useState<Toast[]>([]);
-  const [celebrate, setCelebrate] = useState<Celebrate | null>(null);
+  const [fxQueue, setFxQueue] = useState<FxOverlayEvent[]>([]);
+  const [activeFx, setActiveFx] = useState<FxOverlayEvent | null>(null);
 
   const signalReadyRef = useRef(false);
   const prevLevelRef = useRef(0);
-  const prevRecentKeyRef = useRef("");
+  const seenAchievementKeysRef = useRef<Set<string>>(new Set());
+  const prevClaimableQuestIdsRef = useRef<Set<string>>(new Set());
+  const contentRef = useRef<HTMLElement | null>(null);
+  const prevTabRef = useRef<TabId>("dashboard");
+  const practiceScrollTopRef = useRef(0);
+  const isPracticeScrollRestoringRef = useRef(false);
 
   const lang = (settings?.ui?.language ?? "ko") as Lang;
+  const xpDisplayScale = getXpDisplayScale(settings);
 
-  const notify = (text: string, type: "success" | "error" | "info" = "info") => {
+  const switchTab = (nextTab: TabId) => {
+    if (tab === "practice" && contentRef.current) {
+      practiceScrollTopRef.current = contentRef.current.scrollTop;
+    }
+    setTab(nextTab);
+  };
+
+  const pushToast = ({
+    title,
+    subtitle,
+    lane = "top-right",
+    type = "info",
+    style = "default",
+    icon,
+    timeout = 2800,
+  }: {
+    title: string;
+    subtitle?: string;
+    lane?: ToastLane;
+    type?: "success" | "error" | "info";
+    style?: "default" | "achievement" | "quest";
+    icon?: string;
+    timeout?: number;
+  }) => {
     const id = Date.now() + Math.floor(Math.random() * 10000);
-    setToasts((prev) => [...prev, { id, text, type }]);
+    setToasts((prev) => [...prev, { id, lane, title, subtitle, type, style, icon }]);
     window.setTimeout(() => {
       setToasts((prev) => prev.filter((item) => item.id !== id));
-    }, 2600);
+    }, timeout);
   };
 
-  const emitCelebrate = (type: CelebrateType, title: string, subtitle: string) => {
-    setCelebrate({ id: Date.now() + Math.floor(Math.random() * 1000), type, title, subtitle });
+  const notify = (text: string, type: "success" | "error" | "info" = "info") => {
+    pushToast({ title: text, lane: "top-right", type, style: "default" });
   };
 
-  const applySignals = (nextHud: HudSummary, nextRecent: AchievementRecent[]) => {
+  const enqueueFx = (event: FxOverlayPayload) => {
+    setFxQueue((prev) => [...prev, { ...event, id: Date.now() + Math.floor(Math.random() * 10000) } as FxOverlayEvent]);
+  };
+
+  const applySignals = (
+    nextHud: HudSummary,
+    nextRecent: AchievementRecent[],
+    nextQuests: Quest[],
+    nextAchievements: Achievement[]
+  ) => {
     const uiLang = (settings?.ui?.language ?? "ko") as Lang;
-    const latest = nextRecent[0];
-    const latestKey = latest ? `${latest.achievement_id}:${latest.created_at}` : "";
+    const uiSettings = (settings?.ui ?? {}) as Settings["ui"];
+    const levelNotifyOn = uiSettings.notify_level_up !== false;
+    const levelFxOn = uiSettings.fx_level_up_overlay ?? uiSettings.enable_confetti ?? true;
+    const achievementNotifyOn = uiSettings.notify_achievement_unlock !== false;
+    const questNotifyOn = uiSettings.notify_quest_complete !== false;
 
     if (!signalReadyRef.current) {
       signalReadyRef.current = true;
       prevLevelRef.current = nextHud.level;
-      prevRecentKeyRef.current = latestKey;
+      seenAchievementKeysRef.current = new Set(
+        nextRecent.map((item) => `${item.achievement_id}:${item.created_at}`)
+      );
+      prevClaimableQuestIdsRef.current = new Set(
+        nextQuests.filter((item) => item.claimable).map((item) => item.quest_id)
+      );
       return;
     }
 
     if (nextHud.level > prevLevelRef.current) {
-      notify(uiLang === "ko" ? `레벨업! Lv.${nextHud.level}` : `Level up! Lv.${nextHud.level}`, "success");
-      emitCelebrate(
-        "level",
-        uiLang === "ko" ? `레벨 ${nextHud.level} 달성` : `Reached Lv.${nextHud.level}`,
-        uiLang === "ko" ? "지금 텐션 좋습니다. 다음 구간도 그대로 갑시다." : "Strong pace. Keep the groove going."
-      );
+      const beforeLevel = prevLevelRef.current;
+      const afterLevel = nextHud.level;
+      void (async () => {
+        let subtitle = uiLang === "ko" ? "새 티어가 열렸습니다." : "A new tier has opened.";
+        let tierUp = false;
+        let beforeTier = "bronze";
+        let afterTier = "bronze";
+        let tierColor = "#4f7cff";
+        let badgeBefore = "";
+        let badgeAfter = "";
+        try {
+          const copy = await getLevelUpCopy({
+            level: afterLevel,
+            before_level: beforeLevel,
+            lang: uiLang,
+          });
+          subtitle = copy.line || subtitle;
+          tierUp = copy.tier_up === true;
+          beforeTier = copy.before_tier || beforeTier;
+          afterTier = copy.after_tier || afterTier;
+          tierColor = copy.tier_color || tierColor;
+          badgeBefore = copy.badge_before || "";
+          badgeAfter = copy.badge_after || "";
+        } catch {
+          // Keep fallback copy when API fetch fails.
+        }
+        if (levelNotifyOn && !levelFxOn) {
+          pushToast({
+            lane: "top-right",
+            type: "success",
+            style: "quest",
+            title: uiLang === "ko" ? `레벨업! Lv.${afterLevel}` : `Level up! Lv.${afterLevel}`,
+            subtitle,
+          });
+        }
+        if (levelFxOn) {
+          enqueueFx({
+            kind: "level",
+            level: afterLevel,
+            beforeLevel,
+            afterLevel,
+            title: uiLang === "ko" ? `LEVEL UP! Lv.${afterLevel}` : `LEVEL UP! Lv.${afterLevel}`,
+            subtitle,
+            tierUp,
+            beforeTier,
+            afterTier,
+            tierColor,
+            badgeBefore,
+            badgeAfter,
+          });
+        }
+      })();
     }
     prevLevelRef.current = nextHud.level;
 
-    if (latestKey && latestKey !== prevRecentKeyRef.current) {
-      notify(uiLang === "ko" ? `업적 달성: ${latest.name}` : `Achievement unlocked: ${latest.name}`, "success");
-      emitCelebrate(
-        "achievement",
-        uiLang === "ko" ? "업적 달성" : "Achievement Unlocked",
-        latest.name || (uiLang === "ko" ? "새 업적" : "New achievement")
-      );
+    const achievementMap = new Map(nextAchievements.map((item) => [item.achievement_id, item]));
+    for (const item of [...nextRecent].reverse()) {
+      const key = `${item.achievement_id}:${item.created_at}`;
+      if (seenAchievementKeysRef.current.has(key)) continue;
+      seenAchievementKeysRef.current.add(key);
+      const detail = achievementMap.get(item.achievement_id);
+      if (String(detail?.rule_type || "").toLowerCase() === "manual") continue;
+      const icon = detail?.icon_url || (detail?.icon_path ? `/media/${detail.icon_path}` : "");
+      const title = uiLang === "ko" ? "업적 달성!" : "Achievement Unlocked!";
+      const subtitle = detail?.description || item.name || (uiLang === "ko" ? "새 업적" : "New achievement");
+      if (achievementNotifyOn) {
+        pushToast({
+          lane: "bottom-right",
+          type: "success",
+          style: "achievement",
+          title: `${title} ${item.name ? `· ${item.name}` : ""}`.trim(),
+          subtitle,
+          icon,
+          timeout: 6200,
+        });
+      }
     }
-    if (latestKey) prevRecentKeyRef.current = latestKey;
-  };
 
-  const deepDiveOptions = useMemo(
-    () =>
-      DEEP_DIVE_CAMPAIGNS.map((item) => ({
-        id: item.id,
-        label: item.label[lang],
-      })),
-    [lang]
-  );
+    const prevClaimable = prevClaimableQuestIdsRef.current;
+    const nextClaimable = new Set(nextQuests.filter((item) => item.claimable).map((item) => item.quest_id));
+    for (const quest of nextQuests) {
+      if (!quest.claimable || prevClaimable.has(quest.quest_id)) continue;
+      if (questNotifyOn) {
+        pushToast({
+          lane: "top-right",
+          type: "success",
+          style: "quest",
+          title: uiLang === "ko" ? "퀘스트 완료! 보상을 수령하세요" : "Quest complete! Claim your reward",
+          subtitle: quest.title,
+          timeout: 4200,
+        });
+      }
+    }
+    prevClaimableQuestIdsRef.current = nextClaimable;
+  };
 
   const syncCoreTutorialState = async () => {
     try {
@@ -187,7 +378,7 @@ export default function App() {
       }
       const nextIndex = Math.max(0, Math.min(startIndex, campaign.steps.length - 1));
       setTutorialRuntime({ campaign, stepIndex: nextIndex });
-      setTab(campaign.steps[nextIndex]?.tab as TabId);
+      switchTab(campaign.steps[nextIndex]?.tab as TabId);
       if (campaignId === CORE_CAMPAIGN_ID) {
         setTutorialState((prev) =>
           prev
@@ -237,7 +428,7 @@ export default function App() {
     const nextIndex = Math.max(0, Math.min(maxIndex, tutorialRuntime.stepIndex + delta));
     if (nextIndex === tutorialRuntime.stepIndex) return;
     setTutorialRuntime({ ...tutorialRuntime, stepIndex: nextIndex });
-    setTab(tutorialRuntime.campaign.steps[nextIndex]?.tab as TabId);
+    switchTab(tutorialRuntime.campaign.steps[nextIndex]?.tab as TabId);
     if (tutorialRuntime.campaign.id === CORE_CAMPAIGN_ID) {
       setTutorialState((prev) =>
         prev
@@ -263,8 +454,8 @@ export default function App() {
       if (result.reward_granted) {
         notify(
           lang === "ko"
-            ? `가이드 완주! +${result.xp_granted}XP, 칭호 [가이드 완주자] 획득.`
-            : `Guide complete! +${result.xp_granted} XP and title unlocked.`,
+            ? `가이드 완주! +${formatDisplayXp(result.xp_granted, xpDisplayScale)} XP, 칭호 [가이드 완주자] 획득.`
+            : `Guide complete! +${formatDisplayXp(result.xp_granted, xpDisplayScale)} XP and title unlocked.`,
           "success"
         );
       } else {
@@ -315,7 +506,7 @@ export default function App() {
       setGallery(nextGallery);
       setUnlockables(nextUnlockables.items);
       setTutorialState(nextTutorialState);
-      applySignals(nextHud, nextRecentAchievements);
+      applySignals(nextHud, nextRecentAchievements, nextQuests, nextAchievements);
     } catch (error) {
       notify(error instanceof Error ? error.message : "Unknown error", "error");
     } finally {
@@ -330,22 +521,180 @@ export default function App() {
 
   useEffect(() => {
     const interval = window.setInterval(() => {
-      void Promise.all([getHudSummary(), getRecentAchievements(5)])
-        .then(([nextHud, nextRecent]) => {
+      void Promise.all([getHudSummary(), getRecentAchievements(5), getQuests(), getAchievements()])
+        .then(([nextHud, nextRecent, nextQuests, nextAchievements]) => {
           setHud(nextHud);
           setRecentAchievements(nextRecent);
-          applySignals(nextHud, nextRecent);
+          setQuests(nextQuests);
+          setAchievements(nextAchievements);
+          applySignals(nextHud, nextRecent, nextQuests, nextAchievements);
         })
         .catch(() => undefined);
     }, 5000);
     return () => window.clearInterval(interval);
-  }, [settings?.ui?.language]);
+  }, [settings]);
 
   useEffect(() => {
-    if (!celebrate) return;
-    const timer = window.setTimeout(() => setCelebrate(null), 2100);
+    const contentEl = contentRef.current;
+    if (!contentEl) {
+      prevTabRef.current = tab;
+      return;
+    }
+    const previousTab = prevTabRef.current;
+    if (previousTab === "practice" && tab !== "practice") {
+      practiceScrollTopRef.current = contentEl.scrollTop;
+    }
+    if (tab === "practice") {
+      const restoreTop = Math.max(0, practiceScrollTopRef.current || 0);
+      if (restoreTop > 0) {
+        isPracticeScrollRestoringRef.current = true;
+        const apply = () => {
+          if (contentRef.current) {
+            contentRef.current.scrollTop = restoreTop;
+          }
+        };
+        apply();
+        const timerA = window.setTimeout(apply, 50);
+        const timerB = window.setTimeout(apply, 180);
+        const timerDone = window.setTimeout(() => {
+          isPracticeScrollRestoringRef.current = false;
+        }, 280);
+        prevTabRef.current = tab;
+        return () => {
+          window.clearTimeout(timerA);
+          window.clearTimeout(timerB);
+          window.clearTimeout(timerDone);
+          isPracticeScrollRestoringRef.current = false;
+        };
+      }
+    }
+    prevTabRef.current = tab;
+  }, [tab]);
+
+  useEffect(() => {
+    const contentEl = contentRef.current;
+    if (!contentEl || tab !== "practice") return;
+    const syncPracticeScroll = () => {
+      if (isPracticeScrollRestoringRef.current) return;
+      practiceScrollTopRef.current = contentEl.scrollTop;
+    };
+    contentEl.addEventListener("scroll", syncPracticeScroll, { passive: true });
+    return () => contentEl.removeEventListener("scroll", syncPracticeScroll);
+  }, [tab]);
+
+  useEffect(() => {
+    if (activeFx || !fxQueue.length) return;
+    const [next] = fxQueue;
+    setFxQueue((prev) => prev.slice(1));
+    setActiveFx(next);
+  }, [fxQueue, activeFx]);
+
+  useEffect(() => {
+    if (!activeFx) return;
+    const timer = window.setTimeout(() => setActiveFx(null), activeFx.kind === "session" ? 4200 : 3600);
     return () => window.clearTimeout(timer);
-  }, [celebrate]);
+  }, [activeFx]);
+
+  useEffect(() => {
+    if (!activeFx) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setActiveFx(null);
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [activeFx]);
+
+  useEffect(() => {
+    if (!settings) return;
+    configureGenreCatalog({
+      groups: Array.isArray(settings.ui?.song_genre_groups) ? settings.ui.song_genre_groups : null,
+      aliases:
+        settings.ui?.song_genre_aliases && typeof settings.ui.song_genre_aliases === "object"
+          ? settings.ui.song_genre_aliases
+          : null,
+    });
+  }, [settings?.ui?.song_genre_groups, settings?.ui?.song_genre_aliases, settings]);
+
+  const patchUiSettings = async (patch: Partial<Settings["ui"]>) => {
+    setSettings((prev) => (prev ? { ...prev, ui: { ...prev.ui, ...patch } } : prev));
+    try {
+      const updated = await putBasicSettings({
+        ui: patch,
+      } as Partial<Settings>);
+      setSettings(updated);
+    } catch (error) {
+      notify(error instanceof Error ? error.message : "Failed to save setting", "error");
+      void loadAll();
+    }
+  };
+
+  const onSessionCompleted = (result: SessionStopResult, source: "normal" | "quick") => {
+    const ui = (settings?.ui ?? {}) as Settings["ui"];
+    const levelNotifyOn = ui.notify_level_up !== false;
+    const levelFxOn = ui.fx_level_up_overlay ?? ui.enable_confetti ?? true;
+    const durationMin = Math.max(
+      0,
+      Number(result.event?.duration_min || (source === "quick" ? 10 : 0))
+    );
+    const gainedXp = Number(result.xp_breakdown?.total_xp || 0);
+    const beforeLevel = Math.max(1, Number(result.before_level || 1));
+    const afterLevel = Math.max(1, Number(result.after_level || beforeLevel));
+    const gamification = result.gamification || {};
+    const sessionMessage =
+      String(gamification.session_message || result.coach_message || "").trim() ||
+      (lang === "ko" ? "리듬 상승 완료. 다음 라운드 준비!" : "Rhythm boost complete. Queue the next run!");
+    const levelMessage =
+      String(gamification.level_message || "").trim() ||
+      (lang === "ko" ? "새 티어가 열렸습니다." : "A new tier has opened.");
+    prevLevelRef.current = Math.max(prevLevelRef.current, afterLevel);
+    if (result.level_up && afterLevel > beforeLevel) {
+      if (levelNotifyOn && !levelFxOn) {
+        pushToast({
+          lane: "top-right",
+          type: "success",
+          style: "quest",
+          title: lang === "ko" ? `레벨업! Lv.${afterLevel}` : `Level up! Lv.${afterLevel}`,
+          subtitle: levelMessage,
+          timeout: 4200,
+        });
+      }
+      if (levelFxOn) {
+        enqueueFx({
+          kind: "level",
+          level: afterLevel,
+          beforeLevel,
+          afterLevel,
+          title: lang === "ko" ? `LEVEL UP! Lv.${afterLevel}` : `LEVEL UP! Lv.${afterLevel}`,
+          subtitle: levelMessage,
+          tierUp: gamification.tier_up === true,
+          beforeTier: String(gamification.before_tier || "bronze"),
+          afterTier: String(gamification.after_tier || "bronze"),
+          tierColor: String(gamification.tier_color || "#4f7cff"),
+          badgeBefore: String(gamification.badge_before || ""),
+          badgeAfter: String(gamification.badge_after || ""),
+        });
+      }
+    }
+    const isQuick = durationMin <= 10 || source === "quick";
+    const shouldFx = isQuick ? ui.fx_session_complete_quick === true : ui.fx_session_complete_normal !== false;
+    if (!shouldFx) return;
+    enqueueFx({
+      kind: "session",
+      title: lang === "ko" ? "세션 완료!" : "Session Complete!",
+      subtitle: isQuick ? (lang === "ko" ? "빠른 세션" : "Quick Session") : (lang === "ko" ? "일반 세션" : "Standard Session"),
+      durationMin,
+      gainedXp,
+      cheer: sessionMessage,
+    });
+  };
+
+  const onQuestClaimed = (_questTitle: string) => {
+    // Intentionally silent: claim notifications are disabled by design.
+  };
+
+  const onAchievementClaimed = (_payload: { name: string; description?: string; icon?: string }) => {
+    // Intentionally silent: claim notifications are disabled by design.
+  };
 
   const navGroups: Array<{ id: NavGroupId; title: string; tabs: Array<{ id: TabId; label: string }> }> = useMemo(
     () => [
@@ -397,9 +746,11 @@ export default function App() {
     return <div className="screen-center">Loading BassOS...</div>;
   }
 
+  const startupTheme = settings.profile.onboarded ? settings.ui.default_theme ?? "studio" : "studio";
+
   return (
     <MetronomeProvider>
-      <div className={`app-root theme-${settings.ui.default_theme ?? "studio"}`}>
+      <div className={`app-root theme-${startupTheme}`}>
         {!settings.profile.onboarded ? (
           <OnboardingWizard
             lang={lang}
@@ -423,7 +774,7 @@ export default function App() {
                 <button
                   key={item.id}
                   className={`nav-btn nav-btn-priority ${tab === item.id ? "active" : ""}`}
-                  onClick={() => setTab(item.id)}
+                  onClick={() => switchTab(item.id)}
                 >
                   {item.label}
                 </button>
@@ -440,7 +791,7 @@ export default function App() {
                 </button>
                 {navOpen[group.id]
                   ? group.tabs.map((item) => (
-                      <button key={item.id} className={`nav-btn ${tab === item.id ? "active" : ""}`} onClick={() => setTab(item.id)}>
+                      <button key={item.id} className={`nav-btn ${tab === item.id ? "active" : ""}`} onClick={() => switchTab(item.id)}>
                         {item.label}
                       </button>
                     ))
@@ -452,21 +803,31 @@ export default function App() {
             <button
               className={`nav-btn ${tab === "settings" ? "active" : ""}`}
               data-testid="sidebar-settings-btn"
-              onClick={() => setTab("settings")}
+              onClick={() => switchTab("settings")}
             >
               {lang === "ko" ? "⚙ 설정" : "⚙ Settings"}
             </button>
             <button
               className="ghost-btn sidebar-guide-btn"
               data-testid="tutorial-help-btn"
-              onClick={() => void openTutorial(CORE_CAMPAIGN_ID, false)}
+              onClick={() =>
+                void openTutorial(
+                  CORE_CAMPAIGN_ID,
+                  Boolean(
+                    tutorialState &&
+                      !tutorialState.completed &&
+                      Number(tutorialState.resume_step_index ?? 0) > 0
+                  )
+                )
+              }
             >
-              {lang === "ko" ? "? 가이드" : "? Guide"}
+              {lang === "ko" ? "가이드" : "Guide"}
             </button>
           </div>
         </aside>
 
         <main
+          ref={contentRef}
           className={`content ${tab === "dashboard" ? "content-dashboard" : ""} ${tab === "quests" ? "content-quests" : ""} ${tab === "xp" ? "content-xp" : ""} ${
             tab === "review" || tab === "xp" || tab === "sessions" ? "content-records" : ""
           } ${tab === "review" ? "content-record-review" : ""} ${tab === "xp" ? "content-record-xp" : ""} ${
@@ -487,16 +848,6 @@ export default function App() {
             </div>
             <div className="topbar-actions">
               <GlobalMetronomeDock />
-              <button
-                className="ghost-btn"
-                onClick={async () => {
-                  const next = settings.ui.language === "ko" ? "en" : "ko";
-                  const updated = await putBasicSettings({ ui: { ...settings.ui, language: next } });
-                  setSettings(updated);
-                }}
-              >
-                {settings.ui.language === "ko" ? "EN" : "KO"}
-              </button>
             </div>
           </header>
 
@@ -512,11 +863,13 @@ export default function App() {
               gallery={gallery}
               onRefresh={loadAll}
               notify={notify}
-              onNavigate={(nextTab) => setTab(nextTab)}
+              onNavigate={(nextTab) => switchTab(nextTab)}
               onSettingsChange={setSettings}
+              onSessionCompleted={onSessionCompleted}
+              onQuestClaimed={onQuestClaimed}
             />
           ) : null}
-          {tab === "practice" ? (
+          <div className={`practice-page-shell ${tab === "practice" ? "active" : "inactive"}`}>
             <PracticeStudioPage
               lang={lang}
               hud={hud}
@@ -524,8 +877,15 @@ export default function App() {
               backingTracks={catalogs.backing_tracks}
               onRefresh={loadAll}
               notify={notify}
+              isActive={tab === "practice"}
+              pipMode={settings.ui.practice_video_pip_mode ?? "mini"}
+              tabSwitchPlayback={settings.ui.practice_video_tab_switch_playback ?? "continue"}
+              onPipModeChange={(nextMode) => void patchUiSettings({ practice_video_pip_mode: nextMode })}
+              onReturnToStudio={() => switchTab("practice")}
+              onSessionCompleted={(result) => onSessionCompleted(result, "normal")}
+              xpDisplayScale={xpDisplayScale}
             />
-          ) : null}
+          </div>
           {tab === "tools" ? <PracticeToolsPage lang={lang} /> : null}
           {tab === "recommend" ? (
             <RecommendationsPage
@@ -534,7 +894,7 @@ export default function App() {
               library={catalogs.song_library}
               settings={settings}
               onRefresh={loadAll}
-              onOpenLibrary={() => setTab("songs")}
+              onOpenLibrary={() => switchTab("songs")}
               setMessage={(msg) => notify(msg, "success")}
             />
           ) : null}
@@ -550,7 +910,14 @@ export default function App() {
             />
           ) : null}
           {tab === "xp" ? <XPPage lang={lang} refreshToken={hud.total_xp} settings={settings} onSettingsChange={setSettings} /> : null}
-          {tab === "quests" ? <QuestsPage lang={lang} notify={notify} onRefresh={loadAll} /> : null}
+          {tab === "quests" ? (
+            <QuestsPage
+              lang={lang}
+              notify={notify}
+              onRefresh={loadAll}
+              onQuestClaimed={(quest) => onQuestClaimed(quest.title || (lang === "ko" ? "퀘스트" : "Quest"))}
+            />
+          ) : null}
           {tab === "achievements" ? (
             <AchievementsPage
               lang={lang}
@@ -558,6 +925,7 @@ export default function App() {
               items={achievements}
               onRefresh={loadAll}
               setMessage={(msg) => notify(msg, "success")}
+              onAchievementClaimed={onAchievementClaimed}
             />
           ) : null}
           {tab === "songs" ? (
@@ -599,13 +967,6 @@ export default function App() {
               onSettingsChange={setSettings}
               setMessage={(msg) => notify(msg, "success")}
               onRefresh={loadAll}
-              tutorialSummary={{
-                core_completed: Boolean(tutorialState?.completed),
-                core_resume_step_index: Number(tutorialState?.resume_step_index ?? 0),
-                deep_dive_options: deepDiveOptions,
-                guide_finisher_unlocked: Boolean(settings.profile.guide_finisher_unlocked),
-              }}
-              onStartTutorial={(campaignId, resume) => void openTutorial(campaignId, resume)}
             />
           ) : null}
 
@@ -625,18 +986,149 @@ export default function App() {
 
           {busy ? <div className="busy-indicator">Syncing...</div> : null}
 
-          <div className="toast-stack">
-            {toasts.map((toast) => (
-              <div key={toast.id} className={`toast ${toast.type}`}>
-                {toast.text}
-              </div>
-            ))}
+          <div className="toast-stack toast-stack-top">
+            {toasts
+              .filter((toast) => toast.lane === "top-right")
+              .map((toast) => (
+                <div
+                  key={toast.id}
+                  className={`toast ${toast.type} ${toast.style === "quest" ? "toast-quest" : toast.style === "achievement" ? "toast-achievement" : ""}`}
+                >
+                  <strong>{toast.title}</strong>
+                  {toast.subtitle ? <small>{toast.subtitle}</small> : null}
+                </div>
+              ))}
           </div>
 
-          {celebrate ? (
-            <div key={celebrate.id} className={`global-celebrate ${celebrate.type}`}>
-              <strong>{celebrate.title}</strong>
-              <small>{celebrate.subtitle}</small>
+          <div className="toast-stack toast-stack-bottom">
+            {toasts
+              .filter((toast) => toast.lane === "bottom-right")
+              .map((toast) => (
+                <div
+                  key={toast.id}
+                  className={`toast ${toast.type} ${toast.style === "quest" ? "toast-quest" : toast.style === "achievement" ? "toast-achievement" : ""}`}
+                >
+                  {toast.style === "achievement" ? (
+                    <>
+                      <div className="toast-achievement-icon-wrap">
+                        {toast.icon ? (
+                          <img src={toast.icon} alt="achievement icon" className="toast-achievement-icon" />
+                        ) : (
+                          <span className="toast-achievement-fallback">★</span>
+                        )}
+                      </div>
+                      <div className="toast-achievement-copy">
+                        <strong>{toast.title}</strong>
+                        {toast.subtitle ? <small>{toast.subtitle}</small> : null}
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <strong>{toast.title}</strong>
+                      {toast.subtitle ? <small>{toast.subtitle}</small> : null}
+                    </>
+                  )}
+                </div>
+              ))}
+          </div>
+
+          {activeFx ? (
+            <div
+              key={activeFx.id}
+              className={`global-fx-overlay fx-${activeFx.kind}`}
+              onClick={() => setActiveFx(null)}
+              role="button"
+              tabIndex={0}
+            >
+              {activeFx.kind === "level" ? (
+                <div className="confetti-layer">
+                  {Array.from({ length: 56 }).map((_, index) => (
+                    <span
+                      key={`${activeFx.id}_confetti_${index}`}
+                      className={`confetti confetti-${index % 4}`}
+                      style={{
+                        left: `${(index * 17) % 100}%`,
+                        animationDelay: `${(index % 8) * 70}ms`,
+                        animationDuration: `${1000 + (index % 5) * 220}ms`,
+                      }}
+                    />
+                  ))}
+                </div>
+              ) : null}
+              {activeFx.kind === "session" ? (
+                <div className="firework-layer" aria-hidden>
+                  <span className="firework firework-a" />
+                  <span className="firework firework-b" />
+                  <span className="firework firework-c" />
+                </div>
+              ) : null}
+              <div
+                className={`global-fx-card global-fx-${activeFx.kind} ${activeFx.kind === "level" && activeFx.tierUp ? "global-fx-tier-up" : ""}`}
+                style={
+                  activeFx.kind === "level"
+                    ? ({
+                        ["--fx-tier-color" as string]: activeFx.tierColor || "#4f7cff",
+                      } as CSSProperties)
+                    : undefined
+                }
+                onClick={(event) => event.stopPropagation()}
+              >
+                {activeFx.kind === "level" ? (
+                  <>
+                    {(() => {
+                      const beforeLevel = Math.max(1, Number(activeFx.beforeLevel || activeFx.level - 1));
+                      const afterLevel = Math.max(beforeLevel, Number(activeFx.afterLevel || activeFx.level));
+                      const beforeTier = fxBadgeTier(beforeLevel);
+                      const afterTier = fxBadgeTier(afterLevel);
+                      const beforeStep = Math.min(10, fxBadgeStep(beforeLevel));
+                      const afterStep = Math.min(10, fxBadgeStep(afterLevel));
+                      return (
+                        <div className={`fx-level-badge-flow ${activeFx.tierUp ? "tier-up" : ""}`}>
+                          <div className="fx-level-badge-stage">
+                            <div className={`hud-emblem hud-emblem-fx tier-${beforeTier} step-${beforeStep}`}>
+                              <span className="emblem-core" />
+                              {beforeStep >= 2 ? <span className="emblem-ring ring-1" /> : null}
+                              {beforeStep >= 4 ? <span className="emblem-ring ring-2" /> : null}
+                              {beforeStep >= 6 ? <span className="emblem-wing left" /> : null}
+                              {beforeStep >= 7 ? <span className="emblem-wing right" /> : null}
+                              {beforeStep >= 8 ? <span className="emblem-gem" /> : null}
+                              {beforeStep >= 10 ? <span className="emblem-crown" /> : null}
+                            </div>
+                            <small>{fxTierLabel(beforeTier, lang)} · Lv.{beforeLevel}</small>
+                          </div>
+                          <span className="tier-badge-arrow">→</span>
+                          <div className="fx-level-badge-stage fx-level-badge-stage-next">
+                            <div className={`hud-emblem hud-emblem-fx tier-${afterTier} step-${afterStep}`}>
+                              <span className="emblem-core" />
+                              {afterStep >= 2 ? <span className="emblem-ring ring-1" /> : null}
+                              {afterStep >= 4 ? <span className="emblem-ring ring-2" /> : null}
+                              {afterStep >= 6 ? <span className="emblem-wing left" /> : null}
+                              {afterStep >= 7 ? <span className="emblem-wing right" /> : null}
+                              {afterStep >= 8 ? <span className="emblem-gem" /> : null}
+                              {afterStep >= 10 ? <span className="emblem-crown" /> : null}
+                            </div>
+                            <small>{fxTierLabel(afterTier, lang)} · Lv.{afterLevel}</small>
+                          </div>
+                        </div>
+                      );
+                    })()}
+                    <small>{lang === "ko" ? "레벨 상승" : "Level Up"}</small>
+                    <strong>{activeFx.title}</strong>
+                    <p>{activeFx.subtitle}</p>
+                  </>
+                ) : (
+                  <>
+                    <small>{activeFx.subtitle}</small>
+                    <strong>{activeFx.title}</strong>
+                    <p>
+                      {lang === "ko"
+                        ? `총 ${activeFx.durationMin}분 · +${formatDisplayXp(activeFx.gainedXp, xpDisplayScale)} XP`
+                        : `${activeFx.durationMin} min · +${formatDisplayXp(activeFx.gainedXp, xpDisplayScale)} XP`}
+                    </p>
+                    <em>{activeFx.cheer}</em>
+                  </>
+                )}
+              </div>
             </div>
           ) : null}
         </main>

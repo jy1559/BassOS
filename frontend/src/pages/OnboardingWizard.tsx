@@ -1,4 +1,4 @@
-import { useState } from "react";
+﻿import { useState } from "react";
 import { t, type Lang } from "../i18n";
 
 type Props = {
@@ -14,46 +14,20 @@ type Props = {
 
 export function OnboardingWizard({ lang, onComplete }: Props) {
   const [nickname, setNickname] = useState("");
-  const [weeklyGoal, setWeeklyGoal] = useState(3);
-  const [theme, setTheme] = useState("studio");
-  const [audioEnabled, setAudioEnabled] = useState(false);
   const [busy, setBusy] = useState(false);
 
   return (
     <div className="onboarding-overlay">
       <div className="onboarding-card">
         <h2>{t(lang, "onboardingTitle")}</h2>
-        <p>BassOS를 빠르게 시작하기 위한 기본 설정입니다.</p>
+        <p>{lang === "ko" ? "이름을 입력해주세요" : "Please enter your name."}</p>
         <label>
-          Nickname
-          <input value={nickname} onChange={(event) => setNickname(event.target.value)} />
-        </label>
-        <label>
-          Weekly Goal Sessions
           <input
-            type="number"
-            min={1}
-            max={14}
-            value={weeklyGoal}
-            onChange={(event) => setWeeklyGoal(Number(event.target.value))}
+            value={nickname}
+            onChange={(event) => setNickname(event.target.value)}
+            aria-label="Nickname"
+            placeholder={lang === "ko" ? "이름" : "Nickname"}
           />
-        </label>
-        <label>
-          Theme
-          <select value={theme} onChange={(event) => setTheme(event.target.value)}>
-            <option value="studio">Studio</option>
-            <option value="dark">Dark</option>
-            <option value="neon">Neon</option>
-            <option value="jazz">Jazz</option>
-          </select>
-        </label>
-        <label className="inline">
-          <input
-            type="checkbox"
-            checked={audioEnabled}
-            onChange={(event) => setAudioEnabled(event.target.checked)}
-          />
-          Level-up sound enabled
         </label>
         <button
           className="primary-btn"
@@ -62,10 +36,10 @@ export function OnboardingWizard({ lang, onComplete }: Props) {
             setBusy(true);
             await onComplete({
               nickname,
-              weekly_goal_sessions: weeklyGoal,
-              theme,
+              weekly_goal_sessions: 3,
+              theme: "studio",
               language: lang,
-              audio_enabled: audioEnabled
+              audio_enabled: false,
             });
             setBusy(false);
           }}

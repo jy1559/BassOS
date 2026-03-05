@@ -117,7 +117,22 @@ def test_custom_quest_and_session_delete(tmp_path):
         },
     )
     assert stop_res.status_code == 200
-    event_id = stop_res.get_json()["event"]["event_id"]
+    stop_payload = stop_res.get_json()
+    assert "level_up" in stop_payload
+    assert "before_level" in stop_payload
+    assert "after_level" in stop_payload
+    assert isinstance(stop_payload.get("auto_granted_names"), list)
+    gamification = stop_payload.get("gamification")
+    assert isinstance(gamification, dict)
+    assert "session_bucket" in gamification
+    assert "streak_days" in gamification
+    assert "streak_weeks" in gamification
+    assert "is_first_session_of_week" in gamification
+    assert "is_long_session" in gamification
+    assert "long_session_probability" in gamification
+    assert "long_session_roll" in gamification
+    assert gamification.get("long_session_threshold_min") == 60
+    event_id = stop_payload["event"]["event_id"]
 
     sessions_before = client.get("/api/sessions").get_json()["sessions"]
     assert any(s["event_id"] == event_id for s in sessions_before)
@@ -127,6 +142,77 @@ def test_custom_quest_and_session_delete(tmp_path):
 
     sessions_after = client.get("/api/sessions").get_json()["sessions"]
     assert all(s["event_id"] != event_id for s in sessions_after)
+
+
+def test_gamification_level_up_copy_endpoint(tmp_path):
+    root = _prepare_temp_root(tmp_path)
+    app = create_app(root)
+    client = app.test_client()
+
+    res = client.get("/api/gamification/level-up-copy?level=10&before_level=9&lang=ko")
+    assert res.status_code == 200
+    payload = res.get_json()
+    assert payload.get("ok") is True
+    copy = payload.get("copy")
+    assert isinstance(copy, dict)
+    assert "line" in copy
+    assert copy.get("before_tier") == "bronze"
+    assert copy.get("after_tier") == "silver"
+    assert isinstance(copy.get("tier_up"), bool)
+
+
+def test_achievements_endpoint_auto_claims_non_manual_even_if_auto_grant_false(tmp_path):
+    root = _prepare_temp_root(tmp_path)
+    app = create_app(root)
+    client = app.test_client()
+    storage = app.config["storage"]
+
+    rows = storage.read_csv("achievements_master.csv")
+    headers = storage.read_csv_headers("achievements_master.csv")
+    base = dict(rows[0]) if rows else {}
+    custom = {
+        **base,
+        "achievement_id": "TEST_AUTO_NON_MANUAL",
+        "group_id": "TEST_AUTO_NON_MANUAL",
+        "name": "Auto Non Manual",
+        "description": "auto claim check",
+        "hint": "",
+        "category": "test",
+        "tier": "1",
+        "tier_name": "Bronze",
+        "target": "1",
+        "display_order": "99901",
+        "rule_type": "count_events",
+        "rule_filter": '{"event_type":"SESSION"}',
+        "xp_reward": "10",
+        "is_hidden": "false",
+        "auto_grant": "false",
+        "ui_badge_style": "custom",
+        "evidence_hint": "",
+        "icon_path": "",
+        "icon_url": "",
+    }
+    rows.append(custom)
+    storage.write_csv("achievements_master.csv", rows, headers=headers)
+
+    quick = client.post(
+        "/api/session/quick-log",
+        json={
+            "activity": "Core",
+            "tags": ["CORE"],
+            "start_at": "2026-03-01T10:00:00",
+            "end_at": "2026-03-01T10:20:00",
+            "duration_min": 20,
+        },
+    )
+    assert quick.status_code == 200
+
+    ach_res = client.get("/api/achievements")
+    assert ach_res.status_code == 200
+    items = ach_res.get_json()["achievements"]
+    target = next((item for item in items if item.get("achievement_id") == "TEST_AUTO_NON_MANUAL"), None)
+    assert target is not None
+    assert target["claimed"] is True
 
 
 def test_stats_overview_includes_quest_breakdown(tmp_path):
@@ -254,8 +340,8 @@ def test_post_quest_uses_server_xp_and_priority(tmp_path):
     assert create_res.status_code == 200
     quest = create_res.get_json()["quest"]
     assert quest["priority"] == "urgent"
-    # manual uses 1/5 of long+high matrix(480) => 96
-    assert int(quest["xp_reward"]) == 96
+    # manual uses 1/6 of long+high matrix(480) => 80
+    assert int(quest["xp_reward"]) == 80
 
 
 def test_auto_quest_refresh_rollover_and_single_active_policy(tmp_path):

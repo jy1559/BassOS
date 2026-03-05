@@ -5,6 +5,7 @@ import { RecordTabHeader } from "../components/records/RecordTabHeader";
 import { createDefaultRecordPeriodState } from "../components/records/recordPeriod";
 import type { Lang } from "../i18n";
 import type { PlayerXP, PlayerXPWindow, RecordPeriodState, SessionItem, Settings, XPGranularityKey } from "../types/models";
+import { formatDisplayXp, getXpDisplayScale } from "../utils/xpDisplay";
 
 type Props = {
   lang: Lang;
@@ -72,6 +73,12 @@ type ActivityRow = {
 type BarLabelParts = {
   top: string;
   bottom: string;
+};
+
+const QUEST_XP_MATRIX: Record<"short" | "mid" | "long", Record<"low" | "mid" | "high", number>> = {
+  short: { low: 80, mid: 110, high: 140 },
+  mid: { low: 150, mid: 210, high: 280 },
+  long: { low: 260, mid: 360, high: 480 },
 };
 
 function toYmdLocal(input: Date): string {
@@ -201,6 +208,47 @@ function markerLabelForBar(key: string, granularity: XPGranularityKey): string |
   const monthToken = String(key || "").slice(5, 7);
   if (monthToken === "01") return key.slice(0, 4);
   return null;
+}
+
+function toPositiveNumber(value: unknown, fallback: number): number {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) return fallback;
+  return parsed > 0 ? parsed : fallback;
+}
+
+function toNumberOr(value: unknown, fallback: number): number {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : fallback;
+}
+
+function xpToNextByCurve(level: number, curve: Record<string, unknown>): number {
+  const lv = Math.max(1, Math.round(Number(level) || 1));
+  const curveType = String(curve.type || "quadratic").trim().toLowerCase();
+  if (curveType === "decade_linear") {
+    const base = Number(curve.base ?? 220);
+    const slope = Number(curve.slope ?? 5);
+    const step10 = Number(curve.step_10 ?? 50);
+    const step20 = Number(curve.step_20 ?? 110);
+    const step30 = Number(curve.step_30 ?? 240);
+    const step40 = Number(curve.step_40 ?? 434);
+    const step = lv >= 40 ? step40 : lv >= 30 ? step30 : lv >= 20 ? step20 : lv >= 10 ? step10 : 0;
+    return Math.max(1, Math.round(base + slope * (lv - 1) + step));
+  }
+  const a = Number(curve.a ?? 230);
+  const b = Number(curve.b ?? 13);
+  const c = Number(curve.c ?? 1.1);
+  const n = lv - 1;
+  return Math.max(1, Math.round(a + b * n + c * n * n));
+}
+
+function questPeriodLabel(period: "short" | "mid" | "long", lang: Lang): string {
+  if (lang === "ko") return period === "short" ? "Short(단기)" : period === "mid" ? "Mid(중기)" : "Long(장기)";
+  return period;
+}
+
+function questDifficultyLabel(difficulty: "low" | "mid" | "high", lang: Lang): string {
+  if (lang === "ko") return difficulty === "low" ? "Low(낮음)" : difficulty === "mid" ? "Mid(보통)" : "High(높음)";
+  return difficulty;
 }
 
 function buildSampleIndices(length: number, targetCount = 5): number[] {
@@ -465,10 +513,43 @@ export function XPPage({ lang, refreshToken, settings, onSettingsChange }: Props
   const [heatmapYear, setHeatmapYear] = useState(new Date().getFullYear());
   const [activityBreakdownMode, setActivityBreakdownMode] = useState<ActivityBreakdownMode>("overall");
   const [activityChartMode, setActivityChartMode] = useState<"bar" | "pie">("bar");
+  const [xpGuideOpen, setXpGuideOpen] = useState(false);
+  const xpDisplayScale = getXpDisplayScale(settings);
   const lineShellRef = useRef<HTMLDivElement | null>(null);
   const yearGridRef = useRef<HTMLDivElement | null>(null);
   const [lineShellWidth, setLineShellWidth] = useState(0);
   const [yearGridWidth, setYearGridWidth] = useState(0);
+  const levelCurveConfig = (settings.level_curve as Record<string, unknown>) ?? {};
+  const xpConfig = (settings.xp as Record<string, unknown>) ?? {};
+  const criticalConfig = (settings.critical as Record<string, unknown>) ?? {};
+  const guideMaxLevel = Math.max(2, Math.round(toPositiveNumber(levelCurveConfig.max_level, 50)));
+  const guideLevelRows = Array.from({ length: guideMaxLevel - 1 }, (_, idx) => {
+    const level = idx + 1;
+    const needPoint = xpToNextByCurve(level, levelCurveConfig);
+    return {
+      level,
+      nextLevel: level + 1,
+      needPoint,
+      needDisplay: formatDisplayXp(needPoint, xpDisplayScale),
+    };
+  });
+  const guideTotalPoint = guideLevelRows.reduce((sum, row) => sum + row.needPoint, 0);
+  const sessionPerMinPoint = Math.max(0, Math.round(Number((xpConfig.session as Record<string, unknown> | undefined)?.per_min ?? 3)));
+  const sessionMultiplier = Math.max(0, toNumberOr(criticalConfig.session_xp_multiplier, 1));
+  const backfillMultiplier = Math.max(0, toNumberOr(
+    xpConfig.backfill_multiplier ?? criticalConfig.backfill_multiplier_default,
+    0.5
+  ));
+  const questMultiplier = Math.max(0, toNumberOr(criticalConfig.quest_xp_multiplier, 0.15));
+  const achievementMultiplier = Math.max(0, toNumberOr(criticalConfig.achievement_xp_multiplier, 0.15));
+  const questGuideRows = (Object.keys(QUEST_XP_MATRIX) as Array<"short" | "mid" | "long">).flatMap((period) =>
+    (Object.keys(QUEST_XP_MATRIX[period]) as Array<"low" | "mid" | "high">).map((difficulty) => {
+      const rawBase = QUEST_XP_MATRIX[period][difficulty];
+      const autoPoint = Math.round(rawBase * questMultiplier);
+      const manualPoint = Math.round((rawBase / 6) * questMultiplier);
+      return { period, difficulty, autoPoint, manualPoint };
+    })
+  );
 
   const loadBase = async () => {
     const [next, sessionRows] = await Promise.all([getPlayerXP(), getSessions(2400).catch(() => [] as SessionItem[])]);
@@ -537,6 +618,15 @@ export function XPPage({ lang, refreshToken, settings, onSettingsChange }: Props
     observer.observe(node);
     return () => observer.disconnect();
   }, [heatmapMode, heatmapYear, windowData]);
+
+  useEffect(() => {
+    if (!xpGuideOpen) return undefined;
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setXpGuideOpen(false);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [xpGuideOpen]);
 
   if (!player || !windowData) return <div className="card">Loading...</div>;
 
@@ -688,6 +778,7 @@ export function XPPage({ lang, refreshToken, settings, onSettingsChange }: Props
   const monthlyPrevXp = Math.max(0, monthlyGoal.prev_xp ?? 0);
   const weeklyDeltaPct = calcDeltaPct(weeklyGoal.current_xp, weeklyPrevXp);
   const monthlyDeltaPct = calcDeltaPct(monthlyGoal.current_xp, monthlyPrevXp);
+  const pointWithDisplay = (point: number) => `${formatDisplayXp(point, xpDisplayScale)} XP (${Math.max(0, Math.round(point)).toLocaleString()}p)`;
   const pieGradient = (() => {
     if (!pieRows.length || pieTotalXp <= 0) return "conic-gradient(color-mix(in srgb, var(--border) 80%, transparent) 0 100%)";
     let cursor = 0;
@@ -766,7 +857,18 @@ export function XPPage({ lang, refreshToken, settings, onSettingsChange }: Props
       </section>
 
       <section className="card xp-story-top-card xp-story-level-card">
-        <h2>{lang === "ko" ? "현재 레벨 진행" : "Level Progress"}</h2>
+        <div className="xp-story-level-head">
+          <h2>{lang === "ko" ? "현재 레벨 진행" : "Level Progress"}</h2>
+          <button
+            type="button"
+            className="ghost-btn xp-story-mini-icon-btn"
+            title={lang === "ko" ? "XP 규칙 보기" : "View XP rules"}
+            aria-label={lang === "ko" ? "XP 규칙 보기" : "View XP rules"}
+            onClick={() => setXpGuideOpen(true)}
+          >
+            i
+          </button>
+        </div>
         <div className="xp-story-level-body">
           <div className="xp-story-level-ring" style={ringStyle}>
             <div className="xp-story-level-core">
@@ -777,15 +879,15 @@ export function XPPage({ lang, refreshToken, settings, onSettingsChange }: Props
           <div className="xp-story-level-meta">
             <div>
               <span>Total XP</span>
-              <strong>{player.hud.total_xp.toLocaleString()}</strong>
+              <strong>{formatDisplayXp(player.hud.total_xp, xpDisplayScale)}</strong>
             </div>
             <div>
               <span>{lang === "ko" ? "다음 레벨까지" : "To Next Level"}</span>
-              <strong>{xpToNext.toLocaleString()} XP</strong>
+              <strong>{formatDisplayXp(xpToNext, xpDisplayScale)} XP</strong>
             </div>
             <div>
               <span>{lang === "ko" ? "이번 기간 획득" : "XP This Range"}</span>
-              <strong>{summary.xp_total.toLocaleString()} XP</strong>
+              <strong>{formatDisplayXp(summary.xp_total, xpDisplayScale)} XP</strong>
             </div>
             <div>
               <span>{lang === "ko" ? "연속 연습" : "Current Streak"}</span>
@@ -809,19 +911,19 @@ export function XPPage({ lang, refreshToken, settings, onSettingsChange }: Props
             ) : null}
           </div>
         </div>
-        <div className="xp-story-period-value">{summary.xp_total.toLocaleString()} XP</div>
+        <div className="xp-story-period-value">{formatDisplayXp(summary.xp_total, xpDisplayScale)} XP</div>
 
         <div className="xp-story-mixed-kpi-grid">
           <div className="xp-story-mixed-kpi-item">
             <span>{lang === "ko" ? "주간 XP" : "Weekly XP"}</span>
-            <strong>{weeklyGoal.current_xp.toLocaleString()} XP</strong>
+            <strong>{formatDisplayXp(weeklyGoal.current_xp, xpDisplayScale)} XP</strong>
             <small className={weeklyDeltaPct >= 0 ? "xp-story-positive" : "xp-story-negative"}>
               {lang === "ko" ? "직전 주 대비" : "vs Prev Week"} {formatSignedPct(weeklyDeltaPct)}
             </small>
           </div>
           <div className="xp-story-mixed-kpi-item">
             <span>{lang === "ko" ? "월간 XP" : "Monthly XP"}</span>
-            <strong>{monthlyGoal.current_xp.toLocaleString()} XP</strong>
+            <strong>{formatDisplayXp(monthlyGoal.current_xp, xpDisplayScale)} XP</strong>
             <small className={monthlyDeltaPct >= 0 ? "xp-story-positive" : "xp-story-negative"}>
               {lang === "ko" ? "직전 월 대비" : "vs Prev Month"} {formatSignedPct(monthlyDeltaPct)}
             </small>
@@ -834,13 +936,13 @@ export function XPPage({ lang, refreshToken, settings, onSettingsChange }: Props
               {lang === "ko" ? "주간 목표" : "Weekly Goal"}
               <small className="xp-story-goal-period">{weeklyRangeLabel}</small>
             </span>
-            <strong>{weeklyGoal.current_xp.toLocaleString()} / {weeklyGoal.effective.toLocaleString()} XP</strong>
+            <strong>{formatDisplayXp(weeklyGoal.current_xp, xpDisplayScale)} / {formatDisplayXp(weeklyGoal.effective, xpDisplayScale)} XP</strong>
           </div>
           <div className="progress-bar"><div style={{ width: `${Math.max(2, Math.min(100, weeklyGoal.progress_pct))}%` }} /></div>
           <small className="xp-story-goal-compare">
             {lang === "ko"
-              ? `직전 ${weeklyPrevXp.toLocaleString()} XP · ${formatSignedPct(weeklyDeltaPct)}`
-              : `Prev ${weeklyPrevXp.toLocaleString()} XP · ${formatSignedPct(weeklyDeltaPct)}`}
+              ? `직전 ${formatDisplayXp(weeklyPrevXp, xpDisplayScale)} XP · ${formatSignedPct(weeklyDeltaPct)}`
+              : `Prev ${formatDisplayXp(weeklyPrevXp, xpDisplayScale)} XP · ${formatSignedPct(weeklyDeltaPct)}`}
           </small>
         </div>
 
@@ -850,13 +952,13 @@ export function XPPage({ lang, refreshToken, settings, onSettingsChange }: Props
               {lang === "ko" ? "월간 목표" : "Monthly Goal"}
               <small className="xp-story-goal-period">{monthlyRangeLabel}</small>
             </span>
-            <strong>{monthlyGoal.current_xp.toLocaleString()} / {monthlyGoal.effective.toLocaleString()} XP</strong>
+            <strong>{formatDisplayXp(monthlyGoal.current_xp, xpDisplayScale)} / {formatDisplayXp(monthlyGoal.effective, xpDisplayScale)} XP</strong>
           </div>
           <div className="progress-bar"><div style={{ width: `${Math.max(2, Math.min(100, monthlyGoal.progress_pct))}%` }} /></div>
           <small className="xp-story-goal-compare">
             {lang === "ko"
-              ? `직전 ${monthlyPrevXp.toLocaleString()} XP · ${formatSignedPct(monthlyDeltaPct)}`
-              : `Prev ${monthlyPrevXp.toLocaleString()} XP · ${formatSignedPct(monthlyDeltaPct)}`}
+              ? `직전 ${formatDisplayXp(monthlyPrevXp, xpDisplayScale)} XP · ${formatSignedPct(monthlyDeltaPct)}`
+              : `Prev ${formatDisplayXp(monthlyPrevXp, xpDisplayScale)} XP · ${formatSignedPct(monthlyDeltaPct)}`}
           </small>
         </div>
 
@@ -915,7 +1017,7 @@ export function XPPage({ lang, refreshToken, settings, onSettingsChange }: Props
         </div>
         <div className="xp-story-bar-shell">
           <div className="xp-story-y-axis">
-            {[...yTicks].reverse().map((tick) => <span key={`tick_${tick}`}>{tick.toLocaleString()}</span>)}
+            {[...yTicks].reverse().map((tick) => <span key={`tick_${tick}`}>{formatDisplayXp(tick, xpDisplayScale)}</span>)}
           </div>
           <div className="xp-story-bar-canvas">
             {[...yTicks].reverse().map((tick, idx) => <div key={`grid_${idx}_${tick}`} className="xp-story-grid-line" style={{ top: `${(idx / (yTicks.length - 1)) * 100}%` }} />)}
@@ -931,8 +1033,12 @@ export function XPPage({ lang, refreshToken, settings, onSettingsChange }: Props
                     <div className="xp-story-bar-column">
                       <span className="xp-story-bar-tip">
                         <span>{lang === "ko" ? `${windowDaySpan}일 데이터` : `${windowDaySpan} days in range`}</span>
-                        <span>{lang === "ko" ? `구간 총 XP ${summary.xp_total.toLocaleString()}` : `Range total ${summary.xp_total.toLocaleString()} XP`}</span>
-                        <span>{`${formatBarPointKey(row.key, granularity)} · ${pointLabel} ${row.xp.toLocaleString()}`}</span>
+                        <span>
+                          {lang === "ko"
+                            ? `구간 총 XP ${formatDisplayXp(summary.xp_total, xpDisplayScale)}`
+                            : `Range total ${formatDisplayXp(summary.xp_total, xpDisplayScale)} XP`}
+                        </span>
+                        <span>{`${formatBarPointKey(row.key, granularity)} · ${pointLabel} ${formatDisplayXp(row.xp, xpDisplayScale)}`}</span>
                       </span>
                       {markerLabel ? (
                         <>
@@ -1032,7 +1138,7 @@ export function XPPage({ lang, refreshToken, settings, onSettingsChange }: Props
                   <i
                     key={cell.key}
                     className={`xp-story-heat-cell heat-i-${cell.intensity}`}
-                    title={`${cell.weekStartKey} ~ ${cell.weekEndKey} · ${cell.xp.toLocaleString()} XP`}
+                    title={`${cell.weekStartKey} ~ ${cell.weekEndKey} · ${formatDisplayXp(cell.xp, xpDisplayScale)} XP`}
                   />
                 ))}
               </div>
@@ -1045,7 +1151,7 @@ export function XPPage({ lang, refreshToken, settings, onSettingsChange }: Props
                 key={`compact_${cell.key}_${cell.row}_${cell.col}`}
                 className={`xp-story-heat-cell heat-i-${cell.intensity}`}
                 style={{ gridColumn: cell.col + 1, gridRow: cell.row + 1 }}
-                title={`${cell.key} · ${cell.xp.toLocaleString()} XP`}
+                title={`${cell.key} · ${formatDisplayXp(cell.xp, xpDisplayScale)} XP`}
               />
             ))}
           </div>
@@ -1065,7 +1171,7 @@ export function XPPage({ lang, refreshToken, settings, onSettingsChange }: Props
                   <i
                     key={`heat_${cell.key}_${cell.month}_${cell.day}`}
                     className={`xp-story-heat-cell heat-i-${cell.intensity} ${cell.outside ? "outside placeholder" : ""}`}
-                    title={cell.outside ? `${row.label}` : `${cell.key} · ${cell.xp.toLocaleString()} XP`}
+                    title={cell.outside ? `${row.label}` : `${cell.key} · ${formatDisplayXp(cell.xp, xpDisplayScale)} XP`}
                   />
                 ))}
               </div>
@@ -1105,12 +1211,12 @@ export function XPPage({ lang, refreshToken, settings, onSettingsChange }: Props
         ) : activityChartMode === "bar" ? (
           <div className="activity-bars">
             {activityRows.map((item) => (
-              <div key={item.key} className="activity-row" title={`${item.label} · ${item.xp.toLocaleString()} XP`}>
+              <div key={item.key} className="activity-row" title={`${item.label} · ${formatDisplayXp(item.xp, xpDisplayScale)} XP`}>
                 <span>{item.label}</span>
                 <div className="progress-bar">
                   <div style={{ width: `${Math.max(2, Math.round((item.xp / maxActivity) * 100))}%`, background: item.color }} />
                 </div>
-                <strong>{item.xp.toLocaleString()}</strong>
+                <strong>{formatDisplayXp(item.xp, xpDisplayScale)}</strong>
               </div>
             ))}
           </div>
@@ -1118,13 +1224,17 @@ export function XPPage({ lang, refreshToken, settings, onSettingsChange }: Props
           <div className="xp-story-pie-wrap">
             <div className="xp-story-pie-chart" style={{ background: pieGradient }}>
               <small>{lang === "ko" ? "총 XP" : "Total XP"}</small>
-              <strong>{pieTotalXp.toLocaleString()}</strong>
+              <strong>{formatDisplayXp(pieTotalXp, xpDisplayScale)}</strong>
             </div>
             <div className="xp-story-pie-legend">
               {activityRows.map((item) => {
                 const pct = pieTotalXp > 0 ? (item.xp / pieTotalXp) * 100 : 0;
                 return (
-                  <div key={`legend_${item.key}`} className="xp-story-pie-item" title={`${item.label} · ${item.xp.toLocaleString()} XP`}>
+                  <div
+                    key={`legend_${item.key}`}
+                    className="xp-story-pie-item"
+                    title={`${item.label} · ${formatDisplayXp(item.xp, xpDisplayScale)} XP`}
+                  >
                     <i style={{ background: item.color }} />
                     <span>{item.label}</span>
                     <small>{pct.toFixed(1)}%</small>
@@ -1135,6 +1245,112 @@ export function XPPage({ lang, refreshToken, settings, onSettingsChange }: Props
           </div>
         )}
       </section>
+
+      {xpGuideOpen ? (
+        <div className="modal-backdrop" onClick={() => setXpGuideOpen(false)}>
+          <div className="modal xp-guide-modal" onClick={(event) => event.stopPropagation()}>
+            <div className="row">
+              <h3>{lang === "ko" ? "XP 규칙 보기" : "XP Rulebook"}</h3>
+              <button className="ghost-btn compact-add-btn" onClick={() => setXpGuideOpen(false)}>
+                {lang === "ko" ? "닫기" : "Close"}
+              </button>
+            </div>
+
+            <div className="xp-guide-grid">
+              <section className="xp-guide-section">
+                <h4>{lang === "ko" ? "레벨별 필요 XP" : "XP Required Per Level"}</h4>
+                <small className="muted">
+                  {lang === "ko"
+                    ? `커브 타입: ${String(levelCurveConfig.type || "quadratic")} · Lv.${guideMaxLevel}까지`
+                    : `Curve type: ${String(levelCurveConfig.type || "quadratic")} · up to Lv.${guideMaxLevel}`}
+                </small>
+                <div className="table-wrap xp-guide-table-wrap">
+                  <table className="session-table xp-guide-table">
+                    <thead>
+                      <tr>
+                        <th>{lang === "ko" ? "레벨" : "Level"}</th>
+                        <th>{lang === "ko" ? "다음 레벨 필요" : "Need for Next Level"}</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {guideLevelRows.map((row) => (
+                        <tr key={`xp_guide_lv_${row.level}`}>
+                          <td>Lv.{row.level} → Lv.{row.nextLevel}</td>
+                          <td>{row.needDisplay} XP</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                <small className="muted">
+                  {lang === "ko"
+                    ? `Lv.${guideMaxLevel} 누적 총합: ${pointWithDisplay(guideTotalPoint)}`
+                    : `Total to Lv.${guideMaxLevel}: ${pointWithDisplay(guideTotalPoint)}`}
+                </small>
+              </section>
+
+              <section className="xp-guide-section">
+                <h4>{lang === "ko" ? "활동별 XP 기준" : "XP by Activity"}</h4>
+                <div className="xp-guide-kv-list">
+                  <div>
+                    <span>{lang === "ko" ? "세션 기본" : "Session Base"}</span>
+                    <strong>{lang === "ko" ? `분당 ${sessionPerMinPoint}p` : `${sessionPerMinPoint}p per min`}</strong>
+                  </div>
+                  <div>
+                    <span>{lang === "ko" ? "세션 배율" : "Session Multiplier"}</span>
+                    <strong>x{sessionMultiplier.toFixed(2)}</strong>
+                  </div>
+                  <div>
+                    <span>{lang === "ko" ? "백필 배율" : "Backfill Multiplier"}</span>
+                    <strong>x{backfillMultiplier.toFixed(2)}</strong>
+                  </div>
+                  <div>
+                    <span>{lang === "ko" ? "퀘스트 배율" : "Quest Multiplier"}</span>
+                    <strong>x{questMultiplier.toFixed(2)}</strong>
+                  </div>
+                  <div>
+                    <span>{lang === "ko" ? "업적 배율" : "Achievement Multiplier"}</span>
+                    <strong>x{achievementMultiplier.toFixed(2)}</strong>
+                  </div>
+                </div>
+
+                <div className="xp-guide-example-row">
+                  <small>{lang === "ko" ? "세션 예시(배율 적용 후)" : "Session examples (after multiplier)"}</small>
+                  <small>10m: {pointWithDisplay(sessionPerMinPoint * 10 * sessionMultiplier)}</small>
+                  <small>30m: {pointWithDisplay(sessionPerMinPoint * 30 * sessionMultiplier)}</small>
+                  <small>60m: {pointWithDisplay(sessionPerMinPoint * 60 * sessionMultiplier)}</small>
+                </div>
+
+                <div className="table-wrap xp-guide-table-wrap">
+                  <table className="session-table xp-guide-table">
+                    <thead>
+                      <tr>
+                        <th>{lang === "ko" ? "퀘스트" : "Quest"}</th>
+                        <th>{lang === "ko" ? "자동/일반" : "Auto/Normal"}</th>
+                        <th>{lang === "ko" ? "수동" : "Manual"}</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {questGuideRows.map((row) => (
+                        <tr key={`xp_guide_quest_${row.period}_${row.difficulty}`}>
+                          <td>{questPeriodLabel(row.period, lang)} · {questDifficultyLabel(row.difficulty, lang)}</td>
+                          <td>{pointWithDisplay(row.autoPoint)}</td>
+                          <td>{pointWithDisplay(row.manualPoint)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                <small className="muted">
+                  {lang === "ko"
+                    ? "업적은 업적 마스터의 base 보상에 업적 배율이 적용됩니다."
+                    : "Achievement XP = master base reward × achievement multiplier."}
+                </small>
+              </section>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

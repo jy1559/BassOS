@@ -1,8 +1,10 @@
 ﻿import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
+import { createPortal } from "react-dom";
 import { getRecords, getSessions, startSession } from "../api";
 import { SessionStopModal } from "../components/session/SessionStopModal";
 import type { Lang } from "../i18n";
-import type { HudSummary, RecordPost, SessionItem } from "../types/models";
+import type { HudSummary, RecordPost, SessionItem, SessionStopResult } from "../types/models";
+import { formatDisplayXp } from "../utils/xpDisplay";
 
 type Props = {
   lang: Lang;
@@ -15,6 +17,13 @@ type Props = {
   backingTracks: Array<Record<string, string>>;
   onRefresh: () => Promise<void>;
   notify: (message: string, type?: "success" | "error" | "info") => void;
+  isActive: boolean;
+  pipMode: "mini" | "native" | "none";
+  tabSwitchPlayback: "continue" | "pause" | "pip_only";
+  onPipModeChange: (mode: "mini" | "native" | "none") => void;
+  onReturnToStudio: () => void;
+  onSessionCompleted?: (result: SessionStopResult) => void;
+  xpDisplayScale?: number;
 };
 
 type PracticeType = "song" | "drill";
@@ -353,7 +362,21 @@ function groupDrillOptions(items: Array<Record<string, string>>, lang: Lang): Op
   return groups;
 }
 
-export function PracticeStudioPage({ lang, hud, catalogs, backingTracks, onRefresh, notify }: Props) {
+export function PracticeStudioPage({
+  lang,
+  hud,
+  catalogs,
+  backingTracks,
+  onRefresh,
+  notify,
+  isActive,
+  pipMode,
+  tabSwitchPlayback,
+  onPipModeChange,
+  onReturnToStudio,
+  onSessionCompleted,
+  xpDisplayScale = 4000,
+}: Props) {
   const [sessions, setSessions] = useState<SessionItem[]>([]);
   const [practiceType, setPracticeType] = useState<PracticeType>(hud.active_session?.drill_id ? "drill" : "song");
   const [songId, setSongId] = useState(hud.active_session?.song_library_id ?? "");
@@ -381,6 +404,7 @@ export function PracticeStudioPage({ lang, hud, catalogs, backingTracks, onRefre
 
   const [selectedSongLink, setSelectedSongLink] = useState("");
   const [isSongVideoPlaying, setIsSongVideoPlaying] = useState(false);
+  const [nativePipFallback, setNativePipFallback] = useState(false);
   const [songSplitDirection, setSongSplitDirection] = useState<"horizontal" | "vertical">("horizontal");
   const [songSplitRatio, setSongSplitRatio] = useState(0.56);
   const [isSongSplitResizing, setIsSongSplitResizing] = useState(false);
@@ -872,6 +896,64 @@ export function PracticeStudioPage({ lang, hud, catalogs, backingTracks, onRefre
     }
   };
 
+  const pauseSongVideoPlayback = () => {
+    if (songDirectVideo && songVideoElementRef.current) {
+      songVideoElementRef.current.pause();
+      setIsSongVideoPlaying(false);
+      return;
+    }
+    if (songEmbed && songVideoIframeRef.current) {
+      postYoutubeCommand("pauseVideo");
+      setIsSongVideoPlaying(false);
+    }
+  };
+
+  const requestNativePictureInPicture = async (): Promise<boolean> => {
+    const video = songVideoElementRef.current;
+    if (!video || typeof video.requestPictureInPicture !== "function") return false;
+    try {
+      if (document.pictureInPictureElement !== video) {
+        await video.requestPictureInPicture();
+      }
+      return true;
+    } catch {
+      return false;
+    }
+  };
+
+  const exitNativePictureInPicture = async () => {
+    if (!document.pictureInPictureElement || typeof document.exitPictureInPicture !== "function") return;
+    try {
+      await document.exitPictureInPicture();
+    } catch {
+      // Ignore forced PiP exit failures.
+    }
+  };
+
+  const switchPipMode = async (nextMode: "mini" | "native" | "none") => {
+    onPipModeChange(nextMode);
+    setNativePipFallback(false);
+    if (nextMode === "none") {
+      await exitNativePictureInPicture();
+      return;
+    }
+    if (nextMode !== "native") {
+      await exitNativePictureInPicture();
+      return;
+    }
+    const success = await requestNativePictureInPicture();
+    if (!success) {
+      setNativePipFallback(true);
+      notify(
+        lang === "ko"
+          ? "native PiP를 사용할 수 없어 mini 모드로 fallback합니다."
+          : "Native PiP is unavailable. Falling back to mini mode.",
+        "info"
+      );
+      onPipModeChange("mini");
+    }
+  };
+
   const resetSongVideoToStart = () => {
     if (songDirectVideo && songVideoElementRef.current) {
       const target = songVideoElementRef.current;
@@ -1000,6 +1082,63 @@ export function PracticeStudioPage({ lang, hud, catalogs, backingTracks, onRefre
     songScoreImages,
   ]);
 
+  useEffect(() => {
+    if (isActive) {
+      if (pipMode !== "native") {
+        void exitNativePictureInPicture();
+      }
+      return;
+    }
+    const hasSongMedia = practiceType === "song" && (Boolean(songDirectVideo) || Boolean(songEmbed));
+    if (!hasSongMedia) return;
+    if (tabSwitchPlayback === "pause") {
+      pauseSongVideoPlayback();
+      return;
+    }
+    if (tabSwitchPlayback === "continue") return;
+    if (pipMode === "none") {
+      pauseSongVideoPlayback();
+      return;
+    }
+    if (pipMode === "mini") {
+      void exitNativePictureInPicture();
+      return;
+    }
+    let cancelled = false;
+    void (async () => {
+      const success = await requestNativePictureInPicture();
+      if (cancelled || success) return;
+      if (!nativePipFallback) {
+        notify(
+          lang === "ko"
+            ? "native PiP를 사용할 수 없어 mini 모드로 fallback됩니다."
+            : "Native PiP unavailable. Falling back to mini mode.",
+          "info"
+        );
+      }
+      setNativePipFallback(true);
+      onPipModeChange("mini");
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    isActive,
+    practiceType,
+    songDirectVideo,
+    songEmbed,
+    tabSwitchPlayback,
+    pipMode,
+    nativePipFallback,
+    lang,
+  ]);
+
+  useEffect(() => {
+    return () => {
+      void exitNativePictureInPicture();
+    };
+  }, []);
+
   const renderSongVideoPanel = () => {
     if (!songVideoOptions.length) {
       return <small className="muted">{lang === "ko" ? "등록된 영상 링크가 없습니다." : "No video links found."}</small>;
@@ -1031,6 +1170,39 @@ export function PracticeStudioPage({ lang, hud, catalogs, backingTracks, onRefre
             <button type="button" className="ghost-btn compact-add-btn" onClick={toggleSongVideoFullscreen}>
               {lang === "ko" ? "영상 전체화면 (F)" : "Video Fullscreen (F)"}
             </button>
+          </div>
+          <div className="song-video-pip-row">
+            <small className="muted">{lang === "ko" ? "PIP 모드" : "PIP mode"}</small>
+            <div className="switch-row">
+              <button
+                type="button"
+                className={`ghost-btn compact-add-btn ${pipMode === "mini" ? "active-mini" : ""}`}
+                onClick={() => void switchPipMode("mini")}
+              >
+                Mini
+              </button>
+              <button
+                type="button"
+                className={`ghost-btn compact-add-btn ${pipMode === "native" ? "active-mini" : ""}`}
+                onClick={() => void switchPipMode("native")}
+              >
+                Native
+              </button>
+              <button
+                type="button"
+                className={`ghost-btn compact-add-btn ${pipMode === "none" ? "active-mini" : ""}`}
+                onClick={() => void switchPipMode("none")}
+              >
+                Off
+              </button>
+            </div>
+            {nativePipFallback ? (
+              <small className="muted">
+                {lang === "ko"
+                  ? "현재 소스는 native PiP가 제한되어 mini 모드로 동작합니다."
+                  : "Native PiP is limited for this source, running in mini mode."}
+              </small>
+            ) : null}
           </div>
         </div>
 
@@ -1258,6 +1430,17 @@ export function PracticeStudioPage({ lang, hud, catalogs, backingTracks, onRefre
     practiceType === "song"
       ? song?.title || (lang === "ko" ? "곡 미선택" : "No song selected")
       : drill?.name || (lang === "ko" ? "드릴 미선택" : "No drill selected");
+  const showMiniDock =
+    !isActive &&
+    practiceType === "song" &&
+    Boolean(selectedSongLink) &&
+    tabSwitchPlayback !== "pause" &&
+    (pipMode === "mini" || nativePipFallback);
+  const miniThumb =
+    toYoutubeThumb(selectedSongLink) ||
+    (songDirectVideo ? songCover : "") ||
+    songCover ||
+    "";
   const renderSessionControls = () => (
     <div className="practice-session-controls">
       {hasActiveSession ? (
@@ -1288,10 +1471,40 @@ export function PracticeStudioPage({ lang, hud, catalogs, backingTracks, onRefre
     practiceType === "song" && songCover
       ? ({ ["--practice-song-bg" as string]: `url("${songCover.replace(/"/g, "%22")}")` } as CSSProperties)
       : undefined;
+  const miniPlayerPortal =
+    showMiniDock && typeof document !== "undefined"
+      ? createPortal(
+          <div className="studio-mini-player">
+            <div className="studio-mini-head">
+              <strong>{lang === "ko" ? "연습 스튜디오 (Mini)" : "Practice Studio (Mini)"}</strong>
+              <span>{isSongVideoPlaying ? (lang === "ko" ? "재생 중" : "Playing") : (lang === "ko" ? "일시정지" : "Paused")}</span>
+            </div>
+            <div className="studio-mini-body">
+              {miniThumb ? <img src={miniThumb} alt={song?.title || "mini-player"} /> : <div className="studio-mini-fallback">♪</div>}
+              <div className="studio-mini-meta">
+                <strong>{song?.title || (lang === "ko" ? "선택된 영상" : "Selected video")}</strong>
+                <small>{song?.artist || (lang === "ko" ? "연습 진행 중" : "Practice running")}</small>
+                <div className="row">
+                  <button type="button" className="ghost-btn compact-add-btn" onClick={toggleSongVideoPlayback}>
+                    {isSongVideoPlaying ? (lang === "ko" ? "일시정지" : "Pause") : (lang === "ko" ? "재생" : "Play")}
+                  </button>
+                  <button type="button" className="ghost-btn compact-add-btn" onClick={resetSongVideoToStart}>
+                    {lang === "ko" ? "처음으로" : "Restart"}
+                  </button>
+                </div>
+              </div>
+            </div>
+            <button type="button" className="primary-btn" onClick={onReturnToStudio}>
+              {lang === "ko" ? "연습 스튜디오로 복귀" : "Back to Studio"}
+            </button>
+          </div>,
+          document.body
+        )
+      : null;
 
   return (
     <div
-      className={`page-grid songs-page-list practice-studio-page ${practiceType === "song" && songCover ? "with-song-background" : ""}`}
+      className={`page-grid songs-page-list practice-studio-page ${practiceType === "song" && songCover ? "with-song-background" : ""} ${isActive ? "active" : "inactive"}`}
       style={pageStyle}
     >
       <section className="card">
@@ -1823,7 +2036,7 @@ export function PracticeStudioPage({ lang, hud, catalogs, backingTracks, onRefre
               </div>
               <div>
                 <span>XP</span>
-                <strong>{targetSummary.totalXp}</strong>
+                <strong>{formatDisplayXp(targetSummary.totalXp, xpDisplayScale)}</strong>
               </div>
               <div>
                 <span>{lang === "ko" ? "시작" : "First"}</span>
@@ -1925,6 +2138,7 @@ export function PracticeStudioPage({ lang, hud, catalogs, backingTracks, onRefre
       <SessionStopModal
         open={showStopModal}
         lang={lang}
+        xpDisplayScale={xpDisplayScale}
         songs={catalogs.song_library}
         drills={drillPool}
         activeSession={hud.active_session}
@@ -1932,16 +2146,19 @@ export function PracticeStudioPage({ lang, hud, catalogs, backingTracks, onRefre
         notify={notify}
         onClose={() => setShowStopModal(false)}
         onSaved={async (result) => {
-          if (result.coach_message) notify(result.coach_message, "info");
+          onSessionCompleted?.(result);
           await onRefresh();
         }}
         onDiscarded={async () => {
           await onRefresh();
         }}
       />
+      {miniPlayerPortal}
     </div>
   );
 }
+
+
 
 
 

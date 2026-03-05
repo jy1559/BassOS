@@ -1,4 +1,4 @@
-﻿import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
+﻿import { useEffect, useMemo, useState, type CSSProperties, type ReactNode } from "react";
 import {
   claimQuest,
   getSessions,
@@ -10,12 +10,15 @@ import {
 } from "../api";
 import { SessionStopModal } from "../components/session/SessionStopModal";
 import { t, type Lang } from "../i18n";
+import { pickSessionCoachLine } from "../utils/gameCopy";
+import { formatDisplayXp, getXpDisplayScale } from "../utils/xpDisplay";
 import type {
   Achievement,
   AchievementRecent,
   GalleryItem,
   HudSummary,
   Quest,
+  SessionStopResult,
   SessionItem,
   Settings,
   StatsOverview
@@ -39,6 +42,8 @@ type Props = {
   notify: (message: string, type?: "success" | "error" | "info") => void;
   onNavigate: (tab: "dashboard" | "practice" | "tools" | "sessions" | "review" | "xp" | "quests" | "achievements" | "recommend" | "songs" | "drills" | "gallery" | "media" | "settings") => void;
   onSettingsChange: (settings: Settings) => void;
+  onSessionCompleted?: (result: SessionStopResult, source: "normal" | "quick") => void;
+  onQuestClaimed?: (questTitle: string) => void;
 };
 
 type MainActivity = "Song" | "Drill" | "Etc";
@@ -265,7 +270,22 @@ function remainDays(dueDate: string): number {
   return Math.ceil((due - today) / (24 * 60 * 60 * 1000));
 }
 
-export function DashboardPage({ lang, hud, quests, achievements, recentAchievements, gallery, catalogs, settings, onRefresh, notify, onNavigate, onSettingsChange }: Props) {
+export function DashboardPage({
+  lang,
+  hud,
+  quests,
+  achievements,
+  recentAchievements,
+  gallery,
+  catalogs,
+  settings,
+  onRefresh,
+  notify,
+  onNavigate,
+  onSettingsChange,
+  onSessionCompleted,
+  onQuestClaimed,
+}: Props) {
   const dashboardVersion: DashboardVersion =
     settings.ui.dashboard_version === "legacy" || settings.ui.dashboard_version === "focus"
       ? settings.ui.dashboard_version
@@ -301,7 +321,6 @@ export function DashboardPage({ lang, hud, quests, achievements, recentAchieveme
   const [monthlyGoalMinutes, setMonthlyGoalMinutes] = useState(Number((settings.profile as Record<string, unknown>)?.monthly_goal_minutes ?? 420));
   const [lastCoachMessage, setLastCoachMessage] = useState("");
   const [lastNextWinHint, setLastNextWinHint] = useState("");
-  const prevLevelRef = useRef(hud.level);
 
   useEffect(() => {
     setWidgetLayout(normalizeWidgetLayout(activeLayoutRaw, dashboardVersion));
@@ -329,13 +348,6 @@ export function DashboardPage({ lang, hud, quests, achievements, recentAchieveme
     void getStatsOverview().then(setStats).catch(() => undefined);
     void getSessions(800).then(setSessions).catch(() => undefined);
   }, [hud.total_xp]);
-
-  useEffect(() => {
-    if (hud.level > prevLevelRef.current) {
-      notify(lang === "ko" ? `레벨업! Lv.${hud.level}` : `Level up! Lv.${hud.level}`, "success");
-    }
-    prevLevelRef.current = hud.level;
-  }, [hud.level, lang, notify]);
 
   const rankedSongs = useMemo(() => rankItems(catalogs.song_library, sessions, "song", songQuery), [catalogs.song_library, sessions, songQuery]);
   const rankedDrills = useMemo(() => rankItems([...catalogs.drills, ...catalogs.drill_library], sessions, "drill", drillQuery), [catalogs.drills, catalogs.drill_library, sessions, drillQuery]);
@@ -493,6 +505,7 @@ export function DashboardPage({ lang, hud, quests, achievements, recentAchieveme
   const nextTier = badgeTier(nextLevel);
   const nextStep = badgeStep(nextLevel);
   const xpNeeded = Math.max(0, hud.xp_to_next - hud.current_level_xp);
+  const xpDisplayScale = getXpDisplayScale(settings);
   const dashboardShellClass = [
     "dashboard-shell",
     dashboardVersion === "focus" ? "dashboard-focus" : "dashboard-legacy",
@@ -596,7 +609,8 @@ export function DashboardPage({ lang, hud, quests, achievements, recentAchieveme
   const claimQuestQuick = async (questId: string) => {
     try {
       await claimQuest(questId);
-      notify(lang === "ko" ? "퀘스트 보상을 수령했습니다." : "Quest reward claimed.", "success");
+      const claimedQuest = quests.find((item) => item.quest_id === questId);
+      onQuestClaimed?.(claimedQuest?.title || (lang === "ko" ? "퀘스트" : "Quest"));
       await onRefresh();
     } catch (error) {
       notify(error instanceof Error ? error.message : "Claim failed", "error");
@@ -649,14 +663,19 @@ export function DashboardPage({ lang, hud, quests, achievements, recentAchieveme
           <div className="hud-stat hud-stat-rank"><span>{t(lang, "rank")}</span><strong className="hud-rank-value">{hud.rank}</strong></div>
           <div className="hud-stat hud-stat-practice"><span>{lang === "ko" ? "총 연습 시간" : "Practice Time"}</span><strong className="hud-practice-time">{formatMinutes(totalPracticeMin, lang)}</strong></div>
         </div>
-        <small className="muted hud-total-xp">{t(lang, "totalXp")} {hud.total_xp.toLocaleString()} XP</small>
+        <small className="muted hud-total-xp">{t(lang, "totalXp")} {formatDisplayXp(hud.total_xp, xpDisplayScale)} XP</small>
 
         <div className="progress-wrap">
           <div className="progress-bar huge"><div style={{ width: `${Math.max(0, Math.min(100, hud.progress_pct))}%` }} /></div>
-          <small>{hud.current_level_xp.toLocaleString()} / {hud.xp_to_next.toLocaleString()} XP · {lang === "ko" ? `다음 레벨까지 ${xpNeeded.toLocaleString()} XP` : `${xpNeeded.toLocaleString()} XP to next level`}</small>
+          <small>
+            {formatDisplayXp(hud.current_level_xp, xpDisplayScale)} / {formatDisplayXp(hud.xp_to_next, xpDisplayScale)} XP ·{" "}
+            {lang === "ko"
+              ? `다음 레벨까지 ${formatDisplayXp(xpNeeded, xpDisplayScale)} XP`
+              : `${formatDisplayXp(xpNeeded, xpDisplayScale)} XP to next level`}
+          </small>
         </div>
         <div className="hud-id-meta">
-          <small>{lang === "ko" ? "이번 주 XP" : "Week XP"} · {hud.week_xp.toLocaleString()}</small>
+          <small>{lang === "ko" ? "이번 주 XP" : "Week XP"} · {formatDisplayXp(hud.week_xp, xpDisplayScale)}</small>
           <small>{lang === "ko" ? "다음 해금" : "Next Unlock"} · {hud.next_unlock?.name || (lang === "ko" ? "완료" : "Completed")}</small>
           {recentAchievements[0] ? <small>{lang === "ko" ? "최근 업적" : "Recent Achievement"} · {normalizeGoalText(recentAchievements[0].name, lang)}</small> : null}
         </div>
@@ -685,7 +704,11 @@ export function DashboardPage({ lang, hud, quests, achievements, recentAchieveme
                   className="ghost-btn timer-main-action"
                   onClick={async () => {
                     const result = await quickLog({ activity: "Drill", sub_activity: "Core", tags: ["QUICK", "DRILL", "CORE"], duration_min: 10, notes: "Quick Log" });
-                    notify(`${lang === "ko" ? "빠른 기록 저장" : "Quick log"} (+${result.xp_breakdown.total_xp} XP)`, "success");
+                    onSessionCompleted?.(result, "quick");
+                    notify(
+                      `${lang === "ko" ? "빠른 기록 저장" : "Quick log"} (+${formatDisplayXp(result.xp_breakdown.total_xp, xpDisplayScale)} XP)`,
+                      "success"
+                    );
                     await onRefresh();
                   }}
                 >
@@ -780,7 +803,7 @@ export function DashboardPage({ lang, hud, quests, achievements, recentAchieveme
                   <div key={q.quest_id} className="quest-center-item">
                     <div className="quest-center-main">
                       <strong>{normalizeGoalText(q.title, lang)}</strong>
-                      <small>{remainText(due)} · {q.progress}/{q.target} · +{q.xp_reward} XP</small>
+                      <small>{remainText(due)} · {q.progress}/{q.target} · +{formatDisplayXp(q.xp_reward, xpDisplayScale)} XP</small>
                     </div>
                     {q.claimable ? (
                       <button className="ghost-btn" onClick={() => void claimQuestQuick(q.quest_id)}>
@@ -810,7 +833,7 @@ export function DashboardPage({ lang, hud, quests, achievements, recentAchieveme
             <div><span>{lang === "ko" ? "주간 세션" : "Weekly Sessions"}</span><strong>{weekSessions}/{weeklyGoalSessions}</strong></div>
             <div><span>{lang === "ko" ? "주간 시간(분)" : "Weekly Min"}</span><strong>{weekMinutes}/{weeklyGoalMinutes}</strong></div>
             <div><span>{lang === "ko" ? "월간 시간(분)" : "Monthly Min"}</span><strong>{monthMinutes}/{monthlyGoalMinutes}</strong></div>
-            <div><span>{lang === "ko" ? "이번 주 XP" : "Week XP"}</span><strong>{hud.week_xp.toLocaleString()}</strong></div>
+            <div><span>{lang === "ko" ? "이번 주 XP" : "Week XP"}</span><strong>{formatDisplayXp(hud.week_xp, xpDisplayScale)}</strong></div>
           </div>
           <div className="progress-wrap"><div className="progress-bar"><div style={{ width: `${sessionPct}%` }} /></div><small>{lang === "ko" ? "주간 세션 목표" : "Weekly session goal"} {sessionPct}%</small></div>
           <div className="progress-wrap"><div className="progress-bar"><div style={{ width: `${weekMinPct}%` }} /></div><small>{lang === "ko" ? "주간 시간 목표" : "Weekly minute goal"} {weekMinPct}%</small></div>
@@ -1052,6 +1075,7 @@ export function DashboardPage({ lang, hud, quests, achievements, recentAchieveme
       <SessionStopModal
         open={showStopModal}
         lang={lang}
+        xpDisplayScale={xpDisplayScale}
         songs={catalogs.song_library}
         drills={rankedDrills}
         activeSession={hud.active_session}
@@ -1059,10 +1083,8 @@ export function DashboardPage({ lang, hud, quests, achievements, recentAchieveme
         notify={notify}
         onClose={() => setShowStopModal(false)}
         onSaved={async (result) => {
-          if (result.coach_message) {
-            setLastCoachMessage(result.coach_message);
-            notify(result.coach_message, "info");
-          }
+          setLastCoachMessage(pickSessionCoachLine(lang, result.coach_message));
+          onSessionCompleted?.(result, "normal");
           if (result.next_win_hint) setLastNextWinHint(result.next_win_hint);
           await onRefresh();
         }}
@@ -1079,5 +1101,6 @@ export function DashboardPage({ lang, hud, quests, achievements, recentAchieveme
     </div>
   );
 }
+
 
 

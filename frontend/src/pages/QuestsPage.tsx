@@ -18,6 +18,7 @@ type Props = {
   lang: Lang;
   notify: (message: string, type?: "success" | "error" | "info") => void;
   onRefresh: () => Promise<void>;
+  onQuestClaimed?: (quest: Quest) => void;
 };
 
 type QuestRange = "7d" | "30d" | "6m" | "all";
@@ -203,7 +204,7 @@ function sortLabel(mode: QuestSort | "global", lang: Lang): string {
   return lang === "ko" ? "제목순" : "Title";
 }
 
-export function QuestsPage({ lang, notify, onRefresh }: Props) {
+export function QuestsPage({ lang, notify, onRefresh, onQuestClaimed }: Props) {
   const [range, setRange] = useState<QuestRange>("all");
   const [quests, setQuests] = useState<Quest[]>([]);
   const [stats, setStats] = useState<StatsOverview | null>(null);
@@ -873,6 +874,7 @@ export function QuestsPage({ lang, notify, onRefresh }: Props) {
                                     onClick={async () => {
                                       try {
                                         await claimQuest(q.quest_id);
+                                        onQuestClaimed?.(q);
                                         await load(range);
                                         await onRefresh();
                                       } catch (error) {

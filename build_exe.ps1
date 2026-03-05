@@ -121,4 +121,36 @@ $pyInstallerArgs += @(
 )
 Invoke-Native -FilePath "pyinstaller" -Arguments $pyInstallerArgs -FailureMessage "PyInstaller build failed"
 
-Write-Host "EXE build complete: dist/$Name/$Name.exe"
+$builtDir = Join-Path "dist" $Name
+$builtExe = Join-Path $builtDir "$Name.exe"
+if (!(Test-Path $builtExe)) {
+  throw "Expected executable was not produced: $builtExe"
+}
+
+$distributionRootName = "BASSOS"
+$distRoot = "dist"
+$distributionRoot = Join-Path $distRoot $distributionRootName
+
+if ([string]::Equals((Split-Path $builtDir -Leaf), $distributionRootName, [System.StringComparison]::OrdinalIgnoreCase)) {
+  $distributionRoot = $builtDir
+}
+else {
+  if (Test-Path $distributionRoot) {
+    Remove-Item $distributionRoot -Recurse -Force
+  }
+  Move-Item -Path $builtDir -Destination $distributionRoot
+}
+
+$distributionRoot = Join-Path $distRoot $distributionRootName
+$distributionAppDir = Join-Path $distributionRoot "bassos"
+if (Test-Path $distributionAppDir) {
+  Remove-Item $distributionAppDir -Recurse -Force
+}
+New-Item -ItemType Directory -Path $distributionAppDir | Out-Null
+
+Get-ChildItem -Path $distributionRoot -Force |
+  Where-Object { $_.Name -ne "bassos" } |
+  Move-Item -Destination $distributionAppDir
+
+Write-Host "EXE build complete: $distributionAppDir/$Name.exe"
+

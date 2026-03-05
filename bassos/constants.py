@@ -192,12 +192,24 @@ DASHBOARD_LAYOUT_FOCUS_DEFAULT = {
 
 
 SETTINGS_DEFAULTS = {
-    "policy_version": 11,
+    "policy_version": 12,
     "ui": {
         "default_theme": "midnight",
         "enable_confetti": True,
         "animation_intensity": "adaptive",
         "language": "ko",
+        "practice_video_pip_mode": "mini",
+        "practice_video_tab_switch_playback": "continue",
+        "notify_level_up": True,
+        "notify_achievement_unlock": True,
+        "notify_quest_complete": True,
+        "fx_level_up_overlay": True,
+        "fx_achievement_unlock": True,
+        "fx_quest_complete": True,
+        "fx_session_complete_normal": True,
+        "fx_session_complete_quick": False,
+        "fx_claim_achievement": True,
+        "fx_claim_quest": True,
         "dashboard_glass_cards": True,
         "dashboard_version": "focus",
         "dashboard_layout_legacy": DASHBOARD_LAYOUT_LEGACY_DEFAULT,
@@ -243,9 +255,9 @@ SETTINGS_DEFAULTS = {
         "max_backup_files": 3,
         "backup_min_hours": 12,
         "achievement_xp_multiplier": 0.15,
-        "quest_xp_multiplier": 0.06,
+        "quest_xp_multiplier": 0.15,
         "session_xp_multiplier": 1.0,
-        "daily_session_xp_cap": 200,
+        "daily_session_xp_cap": 0,
     },
     "admin": {
         "gate_enabled": False,
@@ -295,8 +307,10 @@ SETTINGS_DEFAULTS = {
 }
 
 XP_BALANCE_V2 = {
-    # 30-minute baseline session ~= 62 XP before optional bonuses.
-    "session": {"start_bonus": 20, "per_10min": 14, "max_base_xp": 100},
+    # Session XP is now fixed at 3 points per minute.
+    "session": {"per_min": 3},
+    # Point -> display XP scale. e.g. 25,000 points = 100,000,000 XP.
+    "display_scale": 4000,
     "bonus": {
         "core_warmup": 8,
         "metronome_24": 6,
@@ -316,9 +330,17 @@ XP_BALANCE_V2 = {
     "backfill_multiplier": 0.5,
 }
 
-# Target milestones: Lv10 ~1 month, Lv20 ~3 months, Lv30 ~6 months,
-# Lv40 ~1 year, Lv50 ~2 years (3x30m/week + moderate quest/achievement).
-LEVEL_BALANCE_V2 = {"a": 230, "b": 13, "c": 1.1, "max_level": 50}
+# Target milestones: fast onboarding, slower late game with decade step-ups.
+LEVEL_BALANCE_V2 = {
+    "type": "decade_linear",
+    "base": 220,
+    "slope": 5,
+    "step_10": 50,
+    "step_20": 110,
+    "step_30": 240,
+    "step_40": 434,
+    "max_level": 50,
+}
 
 ACTIVITY_TO_TAG = {
     "Song": "SONG",

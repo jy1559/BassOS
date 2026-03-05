@@ -1,4 +1,4 @@
-﻿import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { claimAchievement } from "../api";
 import { FilterBar, PageHeader } from "../components/ui";
 import type { Lang } from "../i18n";
@@ -11,6 +11,7 @@ type Props = {
   items: Achievement[];
   onRefresh: () => Promise<void>;
   setMessage: (message: string) => void;
+  onAchievementClaimed?: (payload: { name: string; description?: string; icon?: string }) => void;
 };
 
 type StateFilter = "all" | "claimed" | "ready" | "in_progress";
@@ -37,11 +38,13 @@ type CopyPack = {
   infoTip: string;
   claimedRatio: string;
   cards: string;
+  recentUnlocked: string;
   foundHidden: string;
   claimable: string;
   locked: string;
   goal: string;
   notAchieved: string;
+  autoClaimed: string;
   event: string;
   hidden: string;
 };
@@ -65,11 +68,13 @@ const ko: CopyPack = {
   infoTip: "i 버튼에 마우스를 올리면 상세 조건과 힌트를 볼 수 있습니다.",
   claimedRatio: "수령 비율",
   cards: "표시 카드",
+  recentUnlocked: "최근 획득 업적",
   foundHidden: "발견한 히든",
   claimable: "지금 수령 가능",
   locked: "잠금",
   goal: "목표",
   notAchieved: "미달성",
+  autoClaimed: "자동 수령",
   event: "Event",
   hidden: "Hidden",
 };
@@ -93,11 +98,13 @@ const en: CopyPack = {
   infoTip: "Hover i to see detailed conditions and hints.",
   claimedRatio: "Claim ratio",
   cards: "Visible cards",
+  recentUnlocked: "Recent unlocks",
   foundHidden: "Hidden found",
   claimable: "Ready to claim",
   locked: "Locked",
   goal: "Goal",
   notAchieved: "Not achieved",
+  autoClaimed: "Auto claimed",
   event: "Event",
   hidden: "Hidden",
 };
@@ -266,14 +273,29 @@ function infoText(item: Achievement, copy: CopyPack, lang: Lang): string {
   return rows.filter(Boolean).join("\n");
 }
 
-export function AchievementsPage({ lang, settings, items, onRefresh, setMessage }: Props) {
+function formatClaimedAt(raw: string | undefined, lang: Lang): { date: string; time: string } | null {
+  const token = String(raw || "").trim();
+  if (!token) return null;
+  const dt = new Date(token);
+  if (Number.isNaN(dt.getTime())) return null;
+  const yyyy = dt.getFullYear();
+  const mm = String(dt.getMonth() + 1).padStart(2, "0");
+  const dd = String(dt.getDate()).padStart(2, "0");
+  const hh = String(dt.getHours()).padStart(2, "0");
+  const min = String(dt.getMinutes()).padStart(2, "0");
+  if (lang === "ko") return { date: `${yyyy}.${mm}.${dd}`, time: `${hh}:${min}` };
+  return { date: `${yyyy}-${mm}-${dd}`, time: `${hh}:${min}` };
+}
+
+export function AchievementsPage({ lang, settings, items, onRefresh, setMessage, onAchievementClaimed }: Props) {
   const copy = lang === "ko" ? ko : en;
   const [stateFilter, setStateFilter] = useState<StateFilter>("all");
   const [kindFilter, setKindFilter] = useState<KindFilter>("all");
   const [category, setCategory] = useState<string>("all");
   const [ruleFilter, setRuleFilter] = useState<string>("all");
   const [helpId, setHelpId] = useState<string>("");
-  const [celebrate, setCelebrate] = useState<{ name: string } | null>(null);
+  const recentStripRef = useRef<HTMLDivElement | null>(null);
+  const [recentVisibleCount, setRecentVisibleCount] = useState(4);
 
   const categories = useMemo(() => ["all", ...Array.from(new Set(items.map((item) => item.category))).sort()], [items]);
   const ruleTypes = useMemo(() => ["all", ...Array.from(new Set(items.map((item) => item.rule_type))).sort()], [items]);
@@ -355,6 +377,28 @@ export function AchievementsPage({ lang, settings, items, onRefresh, setMessage 
     return { total, claimed, claimable, hiddenFound };
   }, [groupCards]);
 
+  const recentClaims = useMemo(() => {
+    const rows = items
+      .filter((item) => item.claimed && item.claimed_at)
+      .sort((a, b) => String(b.claimed_at || "").localeCompare(String(a.claimed_at || "")));
+    return rows;
+  }, [items]);
+
+  useEffect(() => {
+    const host = recentStripRef.current;
+    if (!host || typeof ResizeObserver === "undefined") return;
+    const cardMinWidth = 320;
+    const update = () => {
+      const width = host.clientWidth || 0;
+      const next = Math.max(1, Math.floor(width / cardMinWidth));
+      setRecentVisibleCount(next);
+    };
+    update();
+    const observer = new ResizeObserver(update);
+    observer.observe(host);
+    return () => observer.disconnect();
+  }, [recentClaims.length]);
+
   const sectionOrder: SectionKind[] = ["tiered", "single"];
   const sectionLabel = (kind: SectionKind): string => (kind === "tiered" ? copy.tiered : copy.single);
 
@@ -413,6 +457,70 @@ export function AchievementsPage({ lang, settings, items, onRefresh, setMessage 
         </div>
       </section>
 
+      {recentClaims.length ? (
+        <section className="card achievement-recent-row-card">
+          <div className="row">
+            <h2>{copy.recentUnlocked}</h2>
+            <small className="muted">{Math.min(recentVisibleCount, recentClaims.length)} / {recentClaims.length}</small>
+          </div>
+          <div className="achievement-recent-strip" ref={recentStripRef}>
+            {recentClaims.slice(0, recentVisibleCount).map((item) => {
+              const groupSize = grouped.get(item.group_id || item.achievement_id)?.length ?? 1;
+              const kind = cardKind(item, groupSize);
+              const source = iconSource(item);
+              const topLabel =
+                kind === "tiered" ? canonicalTierName(Number(item.tier || 1)) : kind === "hidden" ? copy.hidden : copy.event;
+              const claimedAt = formatClaimedAt(item.claimed_at, lang);
+              const preview = String(item.description || fallbackDescription(item, lang)).trim();
+              const palette = paletteFor(item, kind, settings);
+              const recentStyle = {
+                borderColor: palette.border,
+                "--tile-accent": palette.border,
+                "--tile-fill": palette.fill,
+                "--tile-progress": "100%",
+              } as CSSProperties;
+              return (
+                <article
+                  key={`recent_${item.achievement_id}_${item.claimed_at || ""}`}
+                  className={`achievement-recent-item achievement-tile ${tierClass(item, kind)} claimed`}
+                  style={recentStyle}
+                >
+                  <div className="achievement-medal achievement-medal-recent">
+                    <div className="achievement-medal-ring" />
+                    <div className="achievement-medal-core">
+                      {source ? (
+                        <img className="achievement-tile-icon" src={source} alt={item.name || item.achievement_id} />
+                      ) : (
+                        <div className="achievement-tile-icon fallback">{iconFallback(item)}</div>
+                      )}
+                    </div>
+                    <span className="achievement-medal-check">✓</span>
+                  </div>
+                  <div className="achievement-recent-copy">
+                    <div className="achievement-recent-topline">
+                      <small className="achievement-tier-pill done">{topLabel}</small>
+                      {claimedAt ? <small className="achievement-recent-mini-time">{claimedAt.time}</small> : null}
+                    </div>
+                    <h3 className={`achievement-title ${titleScaleClass(item.name || item.achievement_id)}`} title={item.name || item.achievement_id}>
+                      {item.name || item.achievement_id}
+                    </h3>
+                    <small className={`achievement-tile-sub ${descScaleClass(preview)}`} title={preview}>
+                      {preview}
+                    </small>
+                    {claimedAt ? (
+                      <small className="achievement-claimed-at">
+                        <span>{claimedAt.date}</span>
+                        <span>{claimedAt.time}</span>
+                      </small>
+                    ) : null}
+                  </div>
+                </article>
+              );
+            })}
+          </div>
+        </section>
+      ) : null}
+
       {sectionOrder.map((section) => {
         const rows = bySection.get(section) || [];
         if (!rows.length) return null;
@@ -432,8 +540,10 @@ export function AchievementsPage({ lang, settings, items, onRefresh, setMessage 
                 const hiddenLocked = item.hidden && !item.claimed;
                 const progressRatio = hiddenLocked ? 0 : Math.min(1, progressSafe / targetSafe);
                 const progressPct = Math.round(progressRatio * 100);
+                const manualClaimable = claimable && String(item.rule_type || "").toLowerCase() === "manual";
                 const displayName = hiddenLocked ? "???" : (item.name || fallbackName(item));
                 const subtitle = hiddenLocked ? "???" : (item.description || fallbackDescription(item, lang));
+                const claimedAt = formatClaimedAt(item.claimed_at, lang);
                 const topLabel =
                   kind === "tiered" ? canonicalTierName(Number(item.tier || 1)) : kind === "hidden" ? copy.hidden : copy.event;
                 const palette = paletteFor(item, kind, settings);
@@ -486,6 +596,12 @@ export function AchievementsPage({ lang, settings, items, onRefresh, setMessage 
                     <small className={`achievement-tile-sub ${descScaleClass(subtitle)}`} title={subtitle}>
                       {subtitle}
                     </small>
+                    {claimedAt ? (
+                      <small className="achievement-claimed-at">
+                        <span>{claimedAt.date}</span>
+                        <span>{claimedAt.time}</span>
+                      </small>
+                    ) : null}
 
                     <div className="achievement-tile-footer">
                       <div className="progress-wrap achievement-progress-wrap">
@@ -501,16 +617,18 @@ export function AchievementsPage({ lang, settings, items, onRefresh, setMessage 
                       <div className="achievement-tile-actions">
                         {item.claimed ? (
                           <span className="badge">{copy.done}</span>
-                        ) : claimable ? (
+                        ) : manualClaimable ? (
                           <button
                             className="primary-btn compact-add-btn"
                             onClick={async () => {
                               try {
                                 await claimAchievement(item.achievement_id);
-                                setCelebrate({ name: displayName });
-                                setMessage(`${copy.unlocked}: ${displayName}`);
+                                onAchievementClaimed?.({
+                                  name: displayName,
+                                  description: subtitle,
+                                  icon: item.icon_url || (item.icon_path ? `/media/${item.icon_path}` : ""),
+                                });
                                 await onRefresh();
-                                window.setTimeout(() => setCelebrate(null), 2200);
                               } catch (error) {
                                 setMessage(error instanceof Error ? error.message : "Claim failed");
                               }
@@ -518,6 +636,8 @@ export function AchievementsPage({ lang, settings, items, onRefresh, setMessage 
                           >
                             {copy.claim}
                           </button>
+                        ) : claimable ? (
+                          <span className="badge">{copy.autoClaimed}</span>
                         ) : (
                           <span className="achievement-miss">{copy.notAchieved}</span>
                         )}
@@ -531,12 +651,6 @@ export function AchievementsPage({ lang, settings, items, onRefresh, setMessage 
         );
       })}
 
-      {celebrate ? (
-        <div className="celebrate-banner achievement-pop">
-          <strong>{copy.unlocked}</strong>
-          <span>{celebrate.name}</span>
-        </div>
-      ) : null}
     </div>
   );
 }

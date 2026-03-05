@@ -6,6 +6,7 @@ from bassos.services.calculations import (
     compute_level_summary,
     evaluate_rule,
     session_xp_breakdown,
+    xp_to_next,
 )
 
 
@@ -32,15 +33,18 @@ def _event(
 def _settings():
     return {
         "xp": {
-            "session": {"start_bonus": 15, "per_10min": 12, "max_base_xp": 80},
-            "bonus": {"metronome_24": 10, "recording_audio": 15},
+            "session": {"per_min": 3},
             "backfill_multiplier": 0.5,
         },
         "level_curve": {
-            "a": 200,
-            "b": 30,
-            "c": 2,
-            "rank_thresholds": [{"rank": "브론즈", "min_level": 1}],
+            "type": "decade_linear",
+            "base": 220,
+            "slope": 5,
+            "step_10": 50,
+            "step_20": 110,
+            "step_30": 240,
+            "step_40": 434,
+            "rank_thresholds": [{"rank": "Bronze", "min_level": 1}],
         },
     }
 
@@ -48,15 +52,30 @@ def _settings():
 def test_session_xp_breakdown_basic_and_backfill():
     settings = _settings()
     normal = session_xp_breakdown({"duration_min": 30, "tags": ["METRO_24"]}, settings)
-    assert normal["base_xp"] == 51
-    assert normal["bonus_xp"] == 10
-    assert normal["total_xp"] == 61
+    assert normal["base_xp"] == 90
+    assert normal["bonus_xp"] == 0
+    assert normal["total_xp"] == 90
 
     backfill = session_xp_breakdown(
         {"duration_min": 30, "tags": ["METRO_24"], "is_backfill": True},
         settings,
     )
-    assert backfill["total_xp"] == 30
+    assert backfill["total_xp"] == 45
+
+
+
+def test_session_xp_breakdown_per_minute_constant():
+    settings = _settings()
+    short = session_xp_breakdown({"duration_min": 30}, settings)
+    long = session_xp_breakdown({"duration_min": 60}, settings)
+    assert short["total_xp"] == 90
+    assert long["total_xp"] == 180
+
+
+def test_decade_linear_curve_total_to_level_50():
+    curve = _settings()["level_curve"]
+    total = sum(xp_to_next(level, curve) for level in range(1, 50))
+    assert total == 25000
 
 
 def test_level_curve_progression():
@@ -288,3 +307,4 @@ def test_distinct_count_supports_feature_dot_field():
         feature_context=context,
     )
     assert progress == 2 and unlocked
+

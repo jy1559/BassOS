@@ -934,8 +934,27 @@ def session_stop() -> Response:
 @api_bp.post("/session/quick-log")
 def session_quick_log() -> Response:
     payload = request.get_json(silent=True) or {}
-    result = _game().quick_log(payload, _settings())
+    settings = _settings()
+    before = _game().hud_summary(settings)
+    result = _game().quick_log(payload, settings)
+    after = _game().hud_summary(settings)
+    achievement_rows = {row.get("achievement_id"): row.get("name", "") for row in _storage().read_csv("achievements_master.csv")}
+    result["auto_granted_names"] = [achievement_rows.get(item, item) for item in result.get("auto_granted", [])]
+    result["level_up"] = after.get("level", 1) > before.get("level", 1)
+    result["before_level"] = before.get("level", 1)
+    result["after_level"] = after.get("level", 1)
     return jsonify({"ok": True, **result})
+
+
+@api_bp.get("/gamification/level-up-copy")
+def gamification_level_up_copy() -> Response:
+    level = max(1, to_int(request.args.get("level"), 1))
+    before_level = max(1, to_int(request.args.get("before_level"), max(1, level - 1)))
+    lang = str(request.args.get("lang", "ko") or "ko").strip().lower()
+    if lang not in {"ko", "en"}:
+        lang = "ko"
+    copy = _game().level_up_copy(level=level, before_level=before_level, lang=lang)
+    return jsonify({"ok": True, "copy": copy})
 
 
 @api_bp.get("/sessions")
@@ -1104,7 +1123,10 @@ def quests_auto_refresh() -> Response:
 
 @api_bp.get("/achievements")
 def achievements() -> Response:
-    states = evaluate_achievements(_storage(), _settings())
+    storage = _storage()
+    settings = _settings()
+    auto_grant_claims(storage, settings, now_local())
+    states = evaluate_achievements(storage, settings)
     payload = [state.__dict__ for state in states]
     return jsonify({"ok": True, "achievements": payload})
 

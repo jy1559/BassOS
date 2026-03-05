@@ -49,7 +49,7 @@ def test_migrate_v11_existing_user_defaults_to_legacy_and_cleans_removed_keys(tm
     storage.migrate_files()
     migrated = storage.read_json("settings.json")
 
-    assert int(migrated.get("policy_version", 0)) == 11
+    assert int(migrated.get("policy_version", 0)) == 12
     ui = migrated["ui"]
     profile = migrated["profile"]
 
@@ -82,6 +82,8 @@ def test_migrate_v11_existing_user_defaults_to_legacy_and_cleans_removed_keys(tm
     assert focus_layout["nextWin"]["h"] == 1
     assert focus_layout["photo"]["y"] == 1
     assert focus_layout["photo"]["h"] == 3
+    assert int(migrated.get("xp", {}).get("display_scale", 0)) == 4000
+    assert migrated.get("level_curve", {}).get("type") == "decade_linear"
 
 
 def test_migrate_v11_new_user_defaults_to_focus_and_seeds_layouts(tmp_path: Path):
@@ -104,7 +106,7 @@ def test_migrate_v11_new_user_defaults_to_focus_and_seeds_layouts(tmp_path: Path
     storage.migrate_files()
     migrated = storage.read_json("settings.json")
 
-    assert int(migrated.get("policy_version", 0)) == 11
+    assert int(migrated.get("policy_version", 0)) == 12
     ui = migrated["ui"]
     assert ui.get("dashboard_version") == "focus"
 
@@ -121,6 +123,7 @@ def test_migrate_v11_new_user_defaults_to_focus_and_seeds_layouts(tmp_path: Path
     assert focus_layout["achievements"]["y"] == 4
     assert focus_layout["achievements"]["visible"] is True
     assert focus_layout["songShortcut"]["y"] == 3
+    assert int(migrated.get("xp", {}).get("display_scale", 0)) == 4000
 
 
 def test_existing_v11_old_focus_default_gets_photo_y_upgrade(tmp_path: Path):
@@ -225,3 +228,40 @@ def test_existing_v11_custom_focus_layout_is_not_overwritten(tmp_path: Path):
     focus_layout = migrated["ui"]["dashboard_layout_focus"]
     assert focus_layout["photo"]["y"] == 3
     assert focus_layout["photo"]["h"] == 1
+
+
+def test_migrate_v11_seeds_new_ui_notification_and_fx_keys(tmp_path: Path):
+    storage = _build_storage(tmp_path)
+    storage.write_json(
+        "settings.json",
+        {
+            "policy_version": 11,
+            "ui": {
+                "default_theme": "midnight",
+                "language": "ko",
+                "animation_intensity": "adaptive",
+                "enable_confetti": False,
+                "practice_video_pip_mode": "unknown",
+                "practice_video_tab_switch_playback": "weird",
+            },
+            "profile": {"onboarded": True},
+        },
+    )
+
+    storage.migrate_files()
+    migrated = storage.read_json("settings.json")
+    ui = migrated["ui"]
+
+    assert ui["practice_video_pip_mode"] == "mini"
+    assert ui["practice_video_tab_switch_playback"] == "continue"
+    assert ui["notify_level_up"] is True
+    assert ui["notify_achievement_unlock"] is True
+    assert ui["notify_quest_complete"] is True
+    assert ui["fx_level_up_overlay"] is False
+    assert ui["enable_confetti"] is False
+    assert ui["fx_achievement_unlock"] is True
+    assert ui["fx_quest_complete"] is True
+    assert ui["fx_session_complete_normal"] is True
+    assert ui["fx_session_complete_quick"] is False
+    assert ui["fx_claim_achievement"] is True
+    assert ui["fx_claim_quest"] is True

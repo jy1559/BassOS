@@ -13,6 +13,7 @@ from bassos.app_factory import create_app
 HOST = "127.0.0.1"
 PORT = int(os.getenv("BASSOS_PORT", "5000"))
 BASE_URL = f"http://{HOST}:{PORT}"
+START_MAXIMIZED = os.getenv("BASSOS_START_MAXIMIZED", "1").strip().lower() not in {"0", "false", "no", "off"}
 
 
 def _runtime_root() -> Path:
@@ -85,6 +86,8 @@ if __name__ == "__main__":
         height=940,
         min_size=(1000, 700),
         confirm_close=True,
+        fullscreen=False,
+        maximized=START_MAXIMIZED,
     )
 
     def on_closing():

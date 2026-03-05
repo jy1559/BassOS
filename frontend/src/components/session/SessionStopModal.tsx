@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { discardSession, stopSession, uploadEvidenceFile } from "../../api";
 import type { Lang } from "../../i18n";
 import type { SessionStopInput, SessionStopResult } from "../../types/models";
+import { formatDisplayXp } from "../../utils/xpDisplay";
 
 type MainActivity = "Song" | "Drill" | "Etc";
 type Mode = "single" | "range";
@@ -64,6 +65,7 @@ function toIsoIfValid(input: string): string {
 export type SessionStopModalProps = {
   open: boolean;
   lang: Lang;
+  xpDisplayScale?: number;
   songs: Array<Record<string, string>>;
   drills: Array<Record<string, string>>;
   activeSession?: {
@@ -84,6 +86,7 @@ export type SessionStopModalProps = {
 export function SessionStopModal({
   open,
   lang,
+  xpDisplayScale = 4000,
   songs,
   drills,
   activeSession,
@@ -216,7 +219,10 @@ export function SessionStopModal({
         payload.evidence_url = "";
       }
       const result = await stopSession(payload);
-      notify(`${lang === "ko" ? "세션 저장 완료" : "Session saved"} (+${result.xp_breakdown.total_xp} XP)`, "success");
+      notify(
+        `${lang === "ko" ? "세션 저장 완료" : "Session saved"} (+${formatDisplayXp(result.xp_breakdown.total_xp, xpDisplayScale)} XP)`,
+        "success"
+      );
       await onSaved?.(result);
       onClose();
     } catch (error) {

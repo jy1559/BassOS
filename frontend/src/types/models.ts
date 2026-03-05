@@ -18,6 +18,35 @@ export type SessionStopInput = {
   feelings?: string[];
 };
 
+export type LevelUpCopy = {
+  line: string;
+  tier_up: boolean;
+  before_tier: string;
+  after_tier: string;
+  tier_color: string;
+  badge_before: string;
+  badge_after: string;
+};
+
+export type SessionGamification = {
+  session_bucket?: string;
+  streak_days?: number;
+  streak_weeks?: number;
+  is_first_session_of_week?: boolean;
+  is_long_session?: boolean;
+  long_session_probability?: number;
+  long_session_roll?: number;
+  long_session_threshold_min?: number;
+  session_message?: string;
+  level_message?: string;
+  tier_up?: boolean;
+  before_tier?: string;
+  after_tier?: string;
+  tier_color?: string;
+  badge_before?: string;
+  badge_after?: string;
+};
+
 export type SessionStopResult = {
   event: Record<string, string>;
   xp_breakdown: {
@@ -27,9 +56,14 @@ export type SessionStopResult = {
     total_xp: number;
   };
   auto_granted: string[];
+  auto_granted_names?: string[];
+  level_up?: boolean;
+  before_level?: number;
+  after_level?: number;
   coach_message?: string;
   coach_reason_tags?: string[];
   next_win_hint?: string;
+  gamification?: SessionGamification;
 };
 
 export type HudSummary = {
@@ -101,6 +135,7 @@ export type Achievement = {
   progress: number;
   unlocked: boolean;
   claimed: boolean;
+  claimed_at?: string;
   hidden: boolean;
   auto_grant: boolean;
   xp_reward: number;
@@ -493,14 +528,35 @@ export type DashboardLayoutItem = {
   visible: boolean;
 };
 
+export type GenreGroup = {
+  name: string;
+  values: string[];
+};
+
 export type Settings = {
   ui: {
     default_theme: string;
     language: "ko" | "en";
     animation_intensity: "adaptive" | "low" | "high";
+    enable_confetti?: boolean;
+    practice_video_pip_mode?: "mini" | "native" | "none";
+    practice_video_tab_switch_playback?: "continue" | "pause" | "pip_only";
+    notify_level_up?: boolean;
+    notify_achievement_unlock?: boolean;
+    notify_quest_complete?: boolean;
+    fx_level_up_overlay?: boolean;
+    fx_achievement_unlock?: boolean;
+    fx_quest_complete?: boolean;
+    fx_session_complete_normal?: boolean;
+    fx_session_complete_quick?: boolean;
+    fx_claim_achievement?: boolean;
+    fx_claim_quest?: boolean;
+    levelup_sound?: string;
     dashboard_glass_cards?: boolean;
     dashboard_version?: "legacy" | "focus";
     song_genres?: string[];
+    song_genre_groups?: GenreGroup[];
+    song_genre_aliases?: Record<string, string>;
     achievement_card_styles?: Record<
       string,
       {
@@ -514,6 +570,7 @@ export type Settings = {
   audio: {
     enabled: boolean;
     master_volume: number;
+    levelup_sound?: string;
   };
   profile: {
     nickname: string;
@@ -595,6 +652,18 @@ export type Settings = {
       };
     };
   };
+  backup?: {
+    enabled?: boolean;
+    max_files?: number;
+    min_hours_between?: number;
+  };
+  performance?: {
+    target_dashboard_ms?: number;
+  };
+  admin?: {
+    gate_enabled?: boolean;
+    pin_hash?: string;
+  };
   [key: string]: unknown;
 };
 
@@ -613,6 +682,12 @@ export type MockDataStatus = {
   active_data_path?: string;
   real_data_path?: string;
   datasets_root?: string;
+};
+
+export type BackupInfo = {
+  name: string;
+  size: number;
+  mtime: number;
 };
 
 export type MockDatasetExportResult = {

@@ -9,7 +9,6 @@ from dataclasses import dataclass
 from datetime import date, datetime
 from typing import Any
 
-from bassos.constants import ACTIVITY_TO_TAG, CHECKBOX_TAG_TO_BONUS_KEY
 from bassos.utils.time_utils import parse_dt
 
 
@@ -60,30 +59,11 @@ def event_date(event: dict[str, str]) -> date | None:
 def session_xp_breakdown(payload: dict[str, Any], settings: dict[str, Any]) -> dict[str, Any]:
     duration = to_int(payload.get("duration_min"), 0)
     session_cfg = settings.get("xp", {}).get("session", {})
-    bonus_cfg = settings.get("xp", {}).get("bonus", {})
-
-    start_bonus = to_int(session_cfg.get("start_bonus"), 20)
-    per_10 = to_int(session_cfg.get("per_10min"), 14)
-    max_base = to_int(session_cfg.get("max_base_xp"), 100)
-
-    base_xp = min(max_base, start_bonus + per_10 * math.floor(max(duration, 0) / 10))
-    selected_tags = {tag.upper() for tag in payload.get("tags", [])}
-    activity = payload.get("activity", "")
-    if activity in ACTIVITY_TO_TAG:
-        selected_tags.add(ACTIVITY_TO_TAG[activity])
-
+    per_min = to_int(session_cfg.get("per_min"), 3)
+    base_xp = max(0, duration) * max(0, per_min)
     bonus_breakdown: dict[str, int] = {}
-    for tag, key in CHECKBOX_TAG_TO_BONUS_KEY.items():
-        if tag in selected_tags:
-            bonus_breakdown[tag] = to_int(bonus_cfg.get(key), 0)
-
-    if "BAND" in selected_tags:
-        bonus_breakdown["BAND"] = to_int(settings.get("xp", {}).get("rehearsal_bonus"), 0)
-    if "PERFORMANCE" in selected_tags:
-        bonus_breakdown["PERFORMANCE"] = to_int(settings.get("xp", {}).get("performance_bonus"), 0)
-
-    bonus_xp = sum(bonus_breakdown.values())
-    total = base_xp + bonus_xp
+    bonus_xp = 0
+    total = base_xp
     session_multiplier = to_float(settings.get("critical", {}).get("session_xp_multiplier"), 1.0)
     total = int(round(total * session_multiplier))
     if payload.get("is_backfill"):
@@ -96,7 +76,7 @@ def session_xp_breakdown(payload: dict[str, Any], settings: dict[str, Any]) -> d
         "bonus_xp": int(bonus_xp),
         "bonus_breakdown": bonus_breakdown,
         "total_xp": int(total),
-        "tags": sorted(selected_tags),
+        "tags": sorted({str(tag).upper() for tag in payload.get("tags", []) if str(tag).strip()}),
     }
 
 
@@ -111,11 +91,30 @@ class LevelSummary:
 
 
 def xp_to_next(level: int, level_curve: dict[str, Any]) -> int:
-    a = to_float(level_curve.get("a"), 230.0)
-    b = to_float(level_curve.get("b"), 13.0)
-    c = to_float(level_curve.get("c"), 1.1)
     l = max(level, 1)
-    needed = a + b * (l - 1) + c * ((l - 1) ** 2)
+    curve_type = str(level_curve.get("type") or "quadratic").strip().lower()
+    if curve_type == "decade_linear":
+        base = to_float(level_curve.get("base"), 220.0)
+        slope = to_float(level_curve.get("slope"), 5.0)
+        step_10 = to_float(level_curve.get("step_10"), 50.0)
+        step_20 = to_float(level_curve.get("step_20"), 110.0)
+        step_30 = to_float(level_curve.get("step_30"), 240.0)
+        step_40 = to_float(level_curve.get("step_40"), 434.0)
+        step = 0.0
+        if l >= 40:
+            step = step_40
+        elif l >= 30:
+            step = step_30
+        elif l >= 20:
+            step = step_20
+        elif l >= 10:
+            step = step_10
+        needed = base + slope * (l - 1) + step
+    else:
+        a = to_float(level_curve.get("a"), 230.0)
+        b = to_float(level_curve.get("b"), 13.0)
+        c = to_float(level_curve.get("c"), 1.1)
+        needed = a + b * (l - 1) + c * ((l - 1) ** 2)
     return max(1, int(round(needed)))
 
 

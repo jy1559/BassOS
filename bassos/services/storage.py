@@ -563,6 +563,26 @@ class Storage:
         settings = self.read_json("settings.json")
         current_version = int(settings.get("policy_version", 1))
         merged = self._merge_defaults(settings, SETTINGS_DEFAULTS)
+
+        def _apply_level_curve_defaults(level_curve: dict[str, Any], *, overwrite: bool = False) -> None:
+            curve_type = str(level_curve.get("type") or LEVEL_BALANCE_V2.get("type", "decade_linear")).strip().lower()
+            if overwrite:
+                curve_type = str(LEVEL_BALANCE_V2.get("type", "decade_linear")).strip().lower()
+
+            if curve_type == "quadratic":
+                level_curve["type"] = "quadratic"
+                for key, fallback in (("a", 230.0), ("b", 13.0), ("c", 1.1)):
+                    if overwrite or key not in level_curve:
+                        level_curve[key] = fallback
+            else:
+                level_curve["type"] = "decade_linear"
+                for key in ("base", "slope", "step_10", "step_20", "step_30", "step_40"):
+                    if overwrite or key not in level_curve:
+                        level_curve[key] = LEVEL_BALANCE_V2[key]
+
+            if overwrite or "max_level" not in level_curve:
+                level_curve["max_level"] = LEVEL_BALANCE_V2.get("max_level", 50)
+
         if current_version < 2:
             xp = merged.setdefault("xp", {})
             xp["session"] = dict(XP_BALANCE_V2["session"])
@@ -573,10 +593,7 @@ class Storage:
             xp["performance_bonus"] = XP_BALANCE_V2["performance_bonus"]
             xp["backfill_multiplier"] = XP_BALANCE_V2["backfill_multiplier"]
             level_curve = merged.setdefault("level_curve", {})
-            level_curve["a"] = LEVEL_BALANCE_V2["a"]
-            level_curve["b"] = LEVEL_BALANCE_V2["b"]
-            level_curve["c"] = LEVEL_BALANCE_V2["c"]
-            level_curve["max_level"] = LEVEL_BALANCE_V2.get("max_level", 50)
+            _apply_level_curve_defaults(level_curve, overwrite=True)
             merged["policy_version"] = 2
         if current_version < 3 and "xp" in merged:
             xp = merged.setdefault("xp", {})
@@ -591,10 +608,7 @@ class Storage:
             merged["policy_version"] = 3
         if current_version < 4 and "xp" in merged:
             level_curve = merged.setdefault("level_curve", {})
-            level_curve["a"] = LEVEL_BALANCE_V2["a"]
-            level_curve["b"] = LEVEL_BALANCE_V2["b"]
-            level_curve["c"] = LEVEL_BALANCE_V2["c"]
-            level_curve["max_level"] = LEVEL_BALANCE_V2.get("max_level", 50)
+            _apply_level_curve_defaults(level_curve, overwrite=True)
             critical = merged.setdefault("critical", {})
             critical["achievement_xp_multiplier"] = SETTINGS_DEFAULTS["critical"]["achievement_xp_multiplier"]
             merged.setdefault("ui", {}).setdefault("song_genres", SETTINGS_DEFAULTS["ui"]["song_genres"])
@@ -609,10 +623,7 @@ class Storage:
             xp["performance_bonus"] = XP_BALANCE_V2["performance_bonus"]
             xp["backfill_multiplier"] = XP_BALANCE_V2["backfill_multiplier"]
             level_curve = merged.setdefault("level_curve", {})
-            level_curve["a"] = LEVEL_BALANCE_V2["a"]
-            level_curve["b"] = LEVEL_BALANCE_V2["b"]
-            level_curve["c"] = LEVEL_BALANCE_V2["c"]
-            level_curve["max_level"] = LEVEL_BALANCE_V2.get("max_level", 50)
+            _apply_level_curve_defaults(level_curve, overwrite=True)
             critical = merged.setdefault("critical", {})
             critical["daily_session_xp_cap"] = SETTINGS_DEFAULTS["critical"]["daily_session_xp_cap"]
             merged["policy_version"] = 5
@@ -630,10 +641,7 @@ class Storage:
             xp["performance_bonus"] = XP_BALANCE_V2["performance_bonus"]
             xp["backfill_multiplier"] = XP_BALANCE_V2["backfill_multiplier"]
             level_curve = merged.setdefault("level_curve", {})
-            level_curve["a"] = LEVEL_BALANCE_V2["a"]
-            level_curve["b"] = LEVEL_BALANCE_V2["b"]
-            level_curve["c"] = LEVEL_BALANCE_V2["c"]
-            level_curve["max_level"] = LEVEL_BALANCE_V2.get("max_level", 50)
+            _apply_level_curve_defaults(level_curve, overwrite=True)
             critical = merged.setdefault("critical", {})
             critical["daily_session_xp_cap"] = SETTINGS_DEFAULTS["critical"]["daily_session_xp_cap"]
             merged["policy_version"] = 7
@@ -647,10 +655,7 @@ class Storage:
             xp["performance_bonus"] = XP_BALANCE_V2["performance_bonus"]
             xp["backfill_multiplier"] = XP_BALANCE_V2["backfill_multiplier"]
             level_curve = merged.setdefault("level_curve", {})
-            level_curve["a"] = LEVEL_BALANCE_V2["a"]
-            level_curve["b"] = LEVEL_BALANCE_V2["b"]
-            level_curve["c"] = LEVEL_BALANCE_V2["c"]
-            level_curve["max_level"] = LEVEL_BALANCE_V2.get("max_level", 50)
+            _apply_level_curve_defaults(level_curve, overwrite=True)
             critical = merged.setdefault("critical", {})
             critical["daily_session_xp_cap"] = SETTINGS_DEFAULTS["critical"]["daily_session_xp_cap"]
             critical["achievement_xp_multiplier"] = SETTINGS_DEFAULTS["critical"]["achievement_xp_multiplier"]
@@ -666,10 +671,7 @@ class Storage:
             xp["performance_bonus"] = XP_BALANCE_V2["performance_bonus"]
             xp["backfill_multiplier"] = XP_BALANCE_V2["backfill_multiplier"]
             level_curve = merged.setdefault("level_curve", {})
-            level_curve["a"] = LEVEL_BALANCE_V2["a"]
-            level_curve["b"] = LEVEL_BALANCE_V2["b"]
-            level_curve["c"] = LEVEL_BALANCE_V2["c"]
-            level_curve["max_level"] = LEVEL_BALANCE_V2.get("max_level", 50)
+            _apply_level_curve_defaults(level_curve, overwrite=True)
             critical = merged.setdefault("critical", {})
             critical["daily_session_xp_cap"] = SETTINGS_DEFAULTS["critical"]["daily_session_xp_cap"]
             critical["achievement_xp_multiplier"] = SETTINGS_DEFAULTS["critical"]["achievement_xp_multiplier"]
@@ -721,6 +723,17 @@ class Storage:
                 profile.pop(key, None)
             merged["policy_version"] = 11
 
+        if current_version < 12:
+            critical = merged.setdefault("critical", {})
+            critical["daily_session_xp_cap"] = SETTINGS_DEFAULTS["critical"]["daily_session_xp_cap"]
+            critical["quest_xp_multiplier"] = SETTINGS_DEFAULTS["critical"]["quest_xp_multiplier"]
+            xp = merged.setdefault("xp", {})
+            xp["session"] = dict(XP_BALANCE_V2["session"])
+            xp["display_scale"] = int(XP_BALANCE_V2.get("display_scale", 4000))
+            level_curve = merged.setdefault("level_curve", {})
+            _apply_level_curve_defaults(level_curve, overwrite=True)
+            merged["policy_version"] = 12
+
         merged.setdefault("critical", {}).setdefault("quest_xp_multiplier", SETTINGS_DEFAULTS["critical"]["quest_xp_multiplier"])
         merged.setdefault("critical", {}).setdefault(
             "achievement_xp_multiplier", SETTINGS_DEFAULTS["critical"]["achievement_xp_multiplier"]
@@ -728,10 +741,8 @@ class Storage:
         merged.setdefault("critical", {}).setdefault(
             "daily_session_xp_cap", SETTINGS_DEFAULTS["critical"]["daily_session_xp_cap"]
         )
-        merged.setdefault("level_curve", {}).setdefault("max_level", LEVEL_BALANCE_V2.get("max_level", 50))
-        merged["level_curve"].setdefault("a", LEVEL_BALANCE_V2["a"])
-        merged["level_curve"].setdefault("b", LEVEL_BALANCE_V2["b"])
-        merged["level_curve"].setdefault("c", LEVEL_BALANCE_V2["c"])
+        level_curve = merged.setdefault("level_curve", {})
+        _apply_level_curve_defaults(level_curve, overwrite=False)
         merged.setdefault("ui", {}).setdefault("song_genres", SETTINGS_DEFAULTS["ui"]["song_genres"])
 
         if "xp" in merged:
@@ -739,6 +750,7 @@ class Storage:
             merged["xp"]["backfill_multiplier"] = float(
                 merged["critical"].get("backfill_multiplier_default", merged["xp"]["backfill_multiplier"])
             )
+            merged["xp"].setdefault("display_scale", int(XP_BALANCE_V2.get("display_scale", 4000)))
 
         profile = merged.setdefault("profile", {})
         profile.setdefault("guide_finisher_unlocked", False)
@@ -818,6 +830,36 @@ class Storage:
         profile["quest_settings"] = quest_settings
 
         ui = merged.setdefault("ui", {})
+        raw_ui = settings.get("ui")
+        if not isinstance(raw_ui, dict):
+            raw_ui = {}
+        ui_defaults = SETTINGS_DEFAULTS["ui"]
+        for key in (
+            "practice_video_pip_mode",
+            "practice_video_tab_switch_playback",
+            "notify_level_up",
+            "notify_achievement_unlock",
+            "notify_quest_complete",
+            "fx_achievement_unlock",
+            "fx_quest_complete",
+            "fx_session_complete_normal",
+            "fx_session_complete_quick",
+            "fx_claim_achievement",
+            "fx_claim_quest",
+        ):
+            ui.setdefault(key, ui_defaults[key])
+        if "fx_level_up_overlay" in raw_ui:
+            ui["fx_level_up_overlay"] = bool(raw_ui.get("fx_level_up_overlay"))
+        elif "enable_confetti" in raw_ui:
+            ui["fx_level_up_overlay"] = bool(raw_ui.get("enable_confetti"))
+        else:
+            ui["fx_level_up_overlay"] = bool(ui.get("fx_level_up_overlay", ui_defaults["enable_confetti"]))
+        ui["fx_level_up_overlay"] = bool(ui.get("fx_level_up_overlay"))
+        ui["enable_confetti"] = bool(ui["fx_level_up_overlay"])
+        if str(ui.get("practice_video_pip_mode") or "").strip().lower() not in {"mini", "native", "none"}:
+            ui["practice_video_pip_mode"] = ui_defaults["practice_video_pip_mode"]
+        if str(ui.get("practice_video_tab_switch_playback") or "").strip().lower() not in {"continue", "pause", "pip_only"}:
+            ui["practice_video_tab_switch_playback"] = ui_defaults["practice_video_tab_switch_playback"]
         ui["dashboard_layout_legacy"] = self._normalize_dashboard_layout(
             ui.get("dashboard_layout_legacy"), DASHBOARD_LAYOUT_LEGACY_DEFAULT
         )

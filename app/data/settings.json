@@ -1,5 +1,5 @@
 {
-  "policy_version": 11,
+  "policy_version": 12,
   "app": {
     "name": "Bass Practice Game",
     "version": "1.0",
@@ -8,38 +8,44 @@
   },
   "xp": {
     "session": {
-      "start_bonus": 20,
-      "per_10min": 14,
-      "max_base_xp": 100
+      "per_min": 3
     },
+    "display_scale": 4000,
     "bonus": {
-      "core_warmup": 8,
-      "metronome_24": 6,
-      "metronome_onebar": 12,
-      "recording_audio": 14,
-      "recording_video": 16,
-      "earcopy": 14,
-      "theory": 10,
-      "slap": 10,
-      "clean_mute": 8,
-      "ab_compare": 12
+      "core_warmup": 90,
+      "metronome_24": 80,
+      "metronome_onebar": 130,
+      "recording_audio": 200,
+      "recording_video": 260,
+      "earcopy": 180,
+      "theory": 120,
+      "slap": 140,
+      "clean_mute": 90,
+      "ab_compare": 160
     },
     "weekly_chest": {
-      "xp": 180
+      "xp": 4200,
+      "conditions": {
+        "min_sessions": 3,
+        "min_core_sessions": 2
+      }
     },
     "monthly_long_goal": {
-      "song_fulltake": 650,
-      "earcopy_full": 900
+      "song_fulltake": 13000,
+      "earcopy_full": 15000
     },
-    "rehearsal_bonus": 16,
-    "performance_bonus": 48,
+    "rehearsal_bonus": 320,
+    "performance_bonus": 980,
     "backfill_multiplier": 0.5
   },
   "level_curve": {
-    "type": "quadratic",
-    "a": 230,
-    "b": 13,
-    "c": 1.1,
+    "type": "decade_linear",
+    "base": 220,
+    "slope": 5,
+    "step_10": 50,
+    "step_20": 110,
+    "step_30": 240,
+    "step_40": 434,
     "max_level": 50,
     "rank_thresholds": [
       {
@@ -95,41 +101,7 @@
       "Latin",
       "World"
     ],
-    "achievement_card_styles": {
-      "tier_bronze": {
-        "border": "#b88746",
-        "fill": "#f8f1e7"
-      },
-      "tier_silver": {
-        "border": "#8ca0ad",
-        "fill": "#eff4f7"
-      },
-      "tier_gold": {
-        "border": "#d6aa2d",
-        "fill": "#fcf6e7"
-      },
-      "tier_platinum": {
-        "border": "#58a4be",
-        "fill": "#e8f7fa"
-      },
-      "tier_diamond": {
-        "border": "#6f72ff",
-        "fill": "#f0f0ff"
-      },
-      "tier_master": {
-        "border": "#ff9640",
-        "fill": "#fff1e2"
-      },
-      "single_event": {
-        "border": "#4f8b92",
-        "fill": "#ebf6f8"
-      },
-      "single_hidden": {
-        "border": "#59606a",
-        "fill": "#f0f2f5"
-      }
-    },
-    "dashboard_version": "legacy",
+    "dashboard_version": "focus",
     "dashboard_layout_legacy": {
       "hud": {
         "x": 1,
@@ -231,6 +203,40 @@
         "h": 1,
         "visible": true
       }
+    },
+    "achievement_card_styles": {
+      "tier_bronze": {
+        "border": "#b88746",
+        "fill": "#f8f1e7"
+      },
+      "tier_silver": {
+        "border": "#8ca0ad",
+        "fill": "#eff4f7"
+      },
+      "tier_gold": {
+        "border": "#d6aa2d",
+        "fill": "#fcf6e7"
+      },
+      "tier_platinum": {
+        "border": "#58a4be",
+        "fill": "#e8f7fa"
+      },
+      "tier_diamond": {
+        "border": "#6f72ff",
+        "fill": "#f0f0ff"
+      },
+      "tier_master": {
+        "border": "#ff9640",
+        "fill": "#fff1e2"
+      },
+      "single_event": {
+        "border": "#4f8b92",
+        "fill": "#ebf6f8"
+      },
+      "single_hidden": {
+        "border": "#59606a",
+        "fill": "#f0f2f5"
+      }
     }
   },
   "audio": {
@@ -243,9 +249,9 @@
     "max_backup_files": 3,
     "backup_min_hours": 12,
     "achievement_xp_multiplier": 0.15,
-    "quest_xp_multiplier": 0.06,
+    "quest_xp_multiplier": 0.15,
     "session_xp_multiplier": 1.0,
-    "daily_session_xp_cap": 200
+    "daily_session_xp_cap": 0
   },
   "admin": {
     "gate_enabled": false,
@@ -264,25 +270,6 @@
     "weekly_goal_sessions": 3,
     "onboarded": true,
     "dashboard_photo_anchor": "center",
-    "guide_finisher_unlocked": true,
-    "tutorial_state": {
-      "campaign_id": "core_v1",
-      "banner_seen_campaigns": [
-        "core_v1"
-      ],
-      "completed_campaigns": [
-        "core_v1"
-      ],
-      "reward_claimed_campaigns": [
-        "core_v1"
-      ],
-      "resume_campaign_id": "",
-      "resume_step_index": 0,
-      "last_started_at": "2026-03-01T19:20:34",
-      "last_completed_at": "2026-03-01T19:20:35"
-    },
-    "dashboard_photo_items": [],
-    "dashboard_featured_photo_id": "",
     "quest_settings": {
       "period_days": {
         "short": 7,
@@ -332,35 +319,19 @@
         }
       }
     },
-    "journal_tag_catalog": [
-      {
-        "active": true,
-        "category": "E2E",
-        "id": "tag_1772556422092_g2clsy",
-        "label": "e2e_tag_1772556421839",
-        "order": 0
-      },
-      {
-        "active": true,
-        "category": "E2E",
-        "id": "tag_1772556537282_jiu32n",
-        "label": "e2e_tag_1772556537225",
-        "order": 1
-      },
-      {
-        "active": true,
-        "category": "E2E",
-        "id": "tag_1772556662046_9ntupy",
-        "label": "e2e_tag_1772556661787",
-        "order": 2
-      },
-      {
-        "active": true,
-        "category": "E2E",
-        "id": "tag_1772556723893_cmo7j5",
-        "label": "e2e_tag_1772556723634",
-        "order": 3
-      }
-    ]
+    "guide_finisher_unlocked": false,
+    "tutorial_state": {
+      "campaign_id": "core_v1",
+      "banner_seen_campaigns": [],
+      "completed_campaigns": [],
+      "reward_claimed_campaigns": [],
+      "resume_campaign_id": "core_v1",
+      "resume_step_index": 5,
+      "last_started_at": "2026-03-05T17:50:51",
+      "last_completed_at": ""
+    },
+    "dashboard_photo_items": [],
+    "dashboard_featured_photo_id": "",
+    "journal_tag_catalog": []
   }
 }

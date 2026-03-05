@@ -22,6 +22,7 @@ from bassos.services.calculations import (
     xp_to_next,
 )
 from bassos.services.events import create_event_row
+from bassos.services.gamification_messages import build_session_gamification, level_up_copy as build_level_up_copy
 from bassos.services.motivation import build_session_coach_feedback
 from bassos.services.storage import Storage
 from bassos.utils.time_utils import now_local, parse_dt, to_iso
@@ -267,17 +268,44 @@ class GameService:
         granted = auto_grant_claims(self.storage, settings, created_at=now)
         after_hud = self.hud_summary(settings)
         stats = self.stats_overview(settings)
+        lang = str((settings.get("ui") or {}).get("language") or "ko").strip().lower()
+        if lang not in {"ko", "en"}:
+            lang = "ko"
+        before_level = to_int(before_hud.get("level"), 1)
+        after_level = to_int(after_hud.get("level"), 1)
+        gamification = build_session_gamification(
+            self.storage,
+            event=event,
+            duration_min=duration_min,
+            before_level=before_level,
+            after_level=after_level,
+            lang=lang,
+        )
         feedback = build_session_coach_feedback(
             duration_min=duration_min,
             gained_xp=to_int(breakdown.get("total_xp"), 0),
             daily_cap_reduced=to_int(breakdown.get("daily_cap_reduced"), 0),
-            before_level=to_int(before_hud.get("level"), 1),
-            after_level=to_int(after_hud.get("level"), 1),
+            before_level=before_level,
+            after_level=after_level,
             after_hud=after_hud,
             stats=stats,
             settings=settings,
         )
-        return {"event": event, "xp_breakdown": breakdown, "auto_granted": granted, **feedback}
+        feedback["coach_message"] = str(gamification.get("session_message") or feedback.get("coach_message") or "")
+        reason_tags = feedback.get("coach_reason_tags")
+        if not isinstance(reason_tags, list):
+            reason_tags = []
+        bucket = str(gamification.get("session_bucket") or "").strip().upper()
+        if bucket:
+            reason_tags.insert(0, bucket)
+        feedback["coach_reason_tags"] = reason_tags
+        return {
+            "event": event,
+            "xp_breakdown": breakdown,
+            "auto_granted": granted,
+            "gamification": gamification,
+            **feedback,
+        }
 
     def quick_log(self, payload: dict[str, Any], settings: dict[str, Any]) -> dict[str, Any]:
         payload = dict(payload)
@@ -290,6 +318,15 @@ class GameService:
             payload["end_at"] = to_iso(end_at)
             payload["start_at"] = to_iso(end_at - timedelta(minutes=to_int(payload["duration_min"], 10)))
         return self.stop_session(payload, settings)
+
+    def level_up_copy(self, *, level: int, before_level: int, lang: str = "ko") -> dict[str, Any]:
+        return build_level_up_copy(
+            self.storage,
+            level=max(1, to_int(level, 1)),
+            before_level=max(1, to_int(before_level, 1)),
+            lang=lang,
+            seed_key=f"api:{to_int(before_level, 1)}:{to_int(level, 1)}:{lang}",
+        )
 
     def hud_summary(self, settings: dict[str, Any]) -> dict[str, Any]:
         events = self.storage.read_csv("events.csv")

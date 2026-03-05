@@ -27,6 +27,7 @@ class AchievementState:
     progress: int
     unlocked: bool
     claimed: bool
+    claimed_at: str
     hidden: bool
     auto_grant: bool
     xp_reward: int
@@ -56,6 +57,15 @@ def _claimed_ids(events: list[dict[str, str]]) -> set[str]:
     }
 
 
+def _claimed_map(events: list[dict[str, str]]) -> dict[str, str]:
+    out: dict[str, str] = {}
+    claims = [e for e in events if (e.get("event_type") or "").upper() == "ACHIEVEMENT_CLAIM" and e.get("achievement_id")]
+    claims.sort(key=lambda row: str(row.get("created_at") or ""))
+    for row in claims:
+        out[str(row.get("achievement_id") or "")] = str(row.get("created_at") or "")
+    return out
+
+
 def _effective_reward(base: int, settings: dict[str, Any]) -> int:
     multiplier = settings.get("critical", {}).get("achievement_xp_multiplier", 1.0)
     try:
@@ -83,7 +93,7 @@ def evaluate_achievements(storage: Storage, settings: dict[str, Any]) -> list[Ac
     achievements = storage.read_csv("achievements_master.csv")
     events = storage.read_csv("events.csv")
     feature_context = _feature_context(storage)
-    claimed = _claimed_ids(events)
+    claimed_map = _claimed_map(events)
     states: list[AchievementState] = []
 
     for row in achievements:
@@ -97,7 +107,8 @@ def evaluate_achievements(storage: Storage, settings: dict[str, Any]) -> list[Ac
             feature_context=feature_context,
         )
         ach_id = row.get("achievement_id", "")
-        claimed_flag = ach_id in claimed
+        claimed_at = str(claimed_map.get(ach_id) or "")
+        claimed_flag = bool(claimed_at)
         hidden = (row.get("is_hidden") or "").lower() == "true"
         auto_grant = (row.get("auto_grant") or "").lower() == "true"
         xp_reward = to_int(row.get("xp_reward"), 0)
@@ -118,6 +129,7 @@ def evaluate_achievements(storage: Storage, settings: dict[str, Any]) -> list[Ac
                 progress=progress,
                 unlocked=unlocked,
                 claimed=claimed_flag,
+                claimed_at=claimed_at,
                 hidden=hidden and not (unlocked or claimed_flag),
                 auto_grant=auto_grant,
                 xp_reward=xp_reward,
@@ -144,8 +156,6 @@ def auto_grant_claims(storage: Storage, settings: dict[str, Any], created_at: da
         for row in achievements:
             ach_id = row.get("achievement_id", "")
             if not ach_id or ach_id in claimed:
-                continue
-            if (row.get("auto_grant") or "").lower() != "true":
                 continue
             if (row.get("rule_type") or "").lower() == "manual":
                 continue

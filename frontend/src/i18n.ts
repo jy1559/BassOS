@@ -22,7 +22,7 @@ const dict: Dict = {
   recentXp: { ko: "최근 획득", en: "Recent XP" },
   quests: { ko: "퀘스트", en: "Quests" },
   claim: { ko: "수령", en: "Claim" },
-  onboardingTitle: { ko: "3분 시작 설정", en: "3-Min Setup" },
+  onboardingTitle: { ko: "BassOS에 오신걸 환영합니다", en: "Welcome to BassOS" },
   complete: { ko: "완료", en: "Complete" },
   nextUnlock: { ko: "다음 해금", en: "Next Unlock" },
   noData: { ko: "데이터가 없습니다.", en: "No data yet." }

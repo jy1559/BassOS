@@ -203,11 +203,11 @@ def _resolve_priority_tag(priority: str) -> str:
 
 
 def _effective_xp(raw_xp: int, settings: dict[str, Any]) -> int:
-    quest_multiplier = settings.get("critical", {}).get("quest_xp_multiplier", 0.06)
+    quest_multiplier = settings.get("critical", {}).get("quest_xp_multiplier", 0.15)
     try:
         q_mult = float(quest_multiplier)
     except (TypeError, ValueError):
-        q_mult = 0.06
+        q_mult = 0.15
     return max(0, int(round(max(0, raw_xp) * q_mult)))
 
 
@@ -231,7 +231,7 @@ def compute_quest_xp(period_class: str, difficulty: str, rule_type: str) -> int:
     diff = _normalize_difficulty(difficulty)
     base = XP_MATRIX[period][diff]
     if _normalize_rule_type(rule_type) == "manual":
-        return max(1, int(round(base / 5.0)))
+        return max(1, int(round(base / 6.0)))
     return base
 
 

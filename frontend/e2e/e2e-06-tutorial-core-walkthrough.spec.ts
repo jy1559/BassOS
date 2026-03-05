@@ -1,13 +1,10 @@
 import { expect, test } from "@playwright/test";
-import { gotoSettings, openApp, resetRuntimeFull } from "./helpers";
+import { openApp, resetRuntimeFull } from "./helpers";
 
 test("E2E-06 튜토리얼 코어 가이드 워크스루 + 이어하기", async ({ page, request }) => {
   await resetRuntimeFull(request);
   await openApp(page, 1280, 840);
-
-  const banner = page.locator("[data-testid='tutorial-banner']");
-  await expect(banner).toBeVisible();
-  await banner.locator("button").filter({ hasText: /가이드 시작|Start Guide/ }).click();
+  await page.locator("[data-testid='tutorial-help-btn']").click();
 
   const overlay = page.locator("[data-testid='tutorial-overlay']");
   const nextBtn = overlay.locator("button").filter({ hasText: /다음|Next/ });
@@ -24,8 +21,7 @@ test("E2E-06 튜토리얼 코어 가이드 워크스루 + 이어하기", async (
   await laterBtn.click();
   await expect(overlay).toBeHidden();
 
-  await gotoSettings(page);
-  await page.locator("[data-testid='tutorial-resume-btn']").click();
+  await page.locator("[data-testid='tutorial-help-btn']").click();
   await expect(overlay).toBeVisible();
   await expect(overlay).toContainText(/6\/11/);
 });

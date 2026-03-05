@@ -1106,11 +1106,16 @@ export function SongsPage({ lang, items, ladder, settings, onSettingsChange, onR
       {showCreate ? (
         <div className="modal-backdrop" onClick={() => setShowCreate(false)}>
           <div className="modal song-editor-modal" ref={createModalRef} data-testid="tutorial-songs-create-form" onClick={(event) => event.stopPropagation()}>
-            <div className="row">
+            <div className="row song-editor-head">
               <h3>{lang === "ko" ? "곡 추가" : "Add Song"}</h3>
-              <button type="button" className="ghost-btn" onClick={() => setShowCreate(false)}>
-                {lang === "ko" ? "닫기" : "Close"}
-              </button>
+              <div className="song-editor-head-actions">
+                <button type="button" className="primary-btn compact-add-btn" onClick={() => void saveSong("create")}>
+                  {lang === "ko" ? "저장" : "Save"}
+                </button>
+                <button type="button" className="ghost-btn compact-add-btn" onClick={() => setShowCreate(false)}>
+                  {lang === "ko" ? "닫기" : "Close"}
+                </button>
+              </div>
             </div>
             <SongFormEditor
               lang={lang}
@@ -1133,7 +1138,7 @@ export function SongsPage({ lang, items, ladder, settings, onSettingsChange, onR
                 {lang === "ko" ? "저장" : "Save"}
               </button>
               <button className="ghost-btn" onClick={() => setShowCreate(false)}>
-                {lang === "ko" ? "취소" : "Cancel"}
+                {lang === "ko" ? "닫기" : "Close"}
               </button>
             </div>
           </div>
@@ -1143,11 +1148,16 @@ export function SongsPage({ lang, items, ladder, settings, onSettingsChange, onR
       {editSongId ? (
         <div className="modal-backdrop" onClick={() => setEditSongId("")}>
           <div className="modal song-editor-modal" ref={editModalRef} onClick={(event) => event.stopPropagation()}>
-            <div className="row">
+            <div className="row song-editor-head">
               <h3>{lang === "ko" ? "곡 정보 수정" : "Edit Song"}</h3>
-              <button type="button" className="ghost-btn" onClick={() => setEditSongId("")}>
-                {lang === "ko" ? "닫기" : "Close"}
-              </button>
+              <div className="song-editor-head-actions">
+                <button type="button" className="primary-btn compact-add-btn" onClick={() => void saveSong("edit")}>
+                  {lang === "ko" ? "저장" : "Save"}
+                </button>
+                <button type="button" className="ghost-btn compact-add-btn" onClick={() => setEditSongId("")}>
+                  {lang === "ko" ? "닫기" : "Close"}
+                </button>
+              </div>
             </div>
             <SongFormEditor
               lang={lang}
@@ -1170,7 +1180,7 @@ export function SongsPage({ lang, items, ladder, settings, onSettingsChange, onR
                 {lang === "ko" ? "저장" : "Save"}
               </button>
               <button className="ghost-btn" onClick={() => setEditSongId("")}>
-                {lang === "ko" ? "취소" : "Cancel"}
+                {lang === "ko" ? "닫기" : "Close"}
               </button>
             </div>
           </div>
