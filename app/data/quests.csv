@@ -5,10 +5,10 @@ QX_LONG_MANUAL_GOAL,장기 수동 목표,🏆,장기 목표 하나를 직접 설
 QX0001,[자동] 단기 세션 시간,⏱️,세션 시간 120분을 누적하세요.,Active,80,2026-03-02,2026-03-09,short,low,normal,true,2026-03-04T01:53:21,[],[],[],sum_duration,"{""event_type"": ""SESSION""}",120,auto
 QX0002,[자동] 중기 세션 시간,🎯,세션 시간 360분을 누적하세요.,Active,210,2026-03-02,2026-04-01,mid,mid,normal,true,,[],[],[],sum_duration,"{""event_type"": ""SESSION""}",360,auto
 QX0003,[자동] 장기 세션 시간,🏁,세션 시간 900분을 누적하세요.,Active,480,2026-03-02,2026-05-31,long,high,urgent,true,,[],[],[],sum_duration,"{""event_type"": ""SESSION""}",900,auto
-QX0004,[자동] 단기 세션 시간,⏱️,세션 시간 120분을 누적하세요.,Expired,80,2026-03-03,2026-03-10,short,low,normal,true,2026-03-04T03:13:37,[],[],[],sum_duration,"{""event_type"": ""SESSION""}",120,auto
-QX0005,[자동] 단기 세션 시간,⏱️,세션 시간 120분을 누적하세요.,Expired,80,2026-03-03,2026-03-10,short,low,normal,true,2026-03-04T03:13:37,[],[],[],sum_duration,"{""event_type"": ""SESSION""}",120,auto
-QX0006,[자동] 단기 세션 시간,⏱️,세션 시간 120분을 누적하세요.,Expired,80,2026-03-03,2026-03-10,short,low,normal,true,2026-03-04T03:13:37,[],[],[],sum_duration,"{""event_type"": ""SESSION""}",120,auto
-QX0007,[자동] 단기 세션 시간,⏱️,세션 시간 120분을 누적하세요.,Expired,80,2026-03-04,2026-03-11,short,low,normal,true,2026-03-04T03:13:37,[],[],[],sum_duration,"{""event_type"": ""SESSION""}",120,auto
-QX0008,[자동] 단기 세션 시간,⏱️,세션 시간 120분을 누적하세요.,Expired,80,2026-03-04,2026-03-11,short,low,normal,true,2026-03-04T03:13:37,[],[],[],sum_duration,"{""event_type"": ""SESSION""}",120,auto
-QX0009,[자동] 단기 세션 시간,⏱️,세션 시간 120분을 누적하세요.,Expired,80,2026-03-04,2026-03-11,short,low,normal,true,2026-03-04T03:13:37,[],[],[],sum_duration,"{""event_type"": ""SESSION""}",120,auto
-QX0010,[자동] 단기 세션 시간,⏱️,세션 시간 120분을 누적하세요.,Expired,80,2026-03-04,2026-03-11,short,low,normal,true,2026-03-04T03:13:37,[],[],[],sum_duration,"{""event_type"": ""SESSION""}",120,auto
+QX0004,[자동] 단기 세션 시간,⏱️,세션 시간 120분을 누적하세요.,Expired,80,2026-03-03,2026-03-10,short,low,normal,true,2026-03-05T17:03:39,[],[],[],sum_duration,"{""event_type"": ""SESSION""}",120,auto
+QX0005,[자동] 단기 세션 시간,⏱️,세션 시간 120분을 누적하세요.,Expired,80,2026-03-03,2026-03-10,short,low,normal,true,2026-03-05T17:03:39,[],[],[],sum_duration,"{""event_type"": ""SESSION""}",120,auto
+QX0006,[자동] 단기 세션 시간,⏱️,세션 시간 120분을 누적하세요.,Expired,80,2026-03-03,2026-03-10,short,low,normal,true,2026-03-05T17:03:39,[],[],[],sum_duration,"{""event_type"": ""SESSION""}",120,auto
+QX0007,[자동] 단기 세션 시간,⏱️,세션 시간 120분을 누적하세요.,Expired,80,2026-03-04,2026-03-11,short,low,normal,true,2026-03-05T17:03:39,[],[],[],sum_duration,"{""event_type"": ""SESSION""}",120,auto
+QX0008,[자동] 단기 세션 시간,⏱️,세션 시간 120분을 누적하세요.,Expired,80,2026-03-04,2026-03-11,short,low,normal,true,2026-03-05T17:03:39,[],[],[],sum_duration,"{""event_type"": ""SESSION""}",120,auto
+QX0009,[자동] 단기 세션 시간,⏱️,세션 시간 120분을 누적하세요.,Expired,80,2026-03-04,2026-03-11,short,low,normal,true,2026-03-05T17:03:39,[],[],[],sum_duration,"{""event_type"": ""SESSION""}",120,auto
+QX0010,[자동] 단기 세션 시간,⏱️,세션 시간 120분을 누적하세요.,Expired,80,2026-03-04,2026-03-11,short,low,normal,true,2026-03-05T17:03:39,[],[],[],sum_duration,"{""event_type"": ""SESSION""}",120,auto

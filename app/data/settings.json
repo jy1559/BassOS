@@ -1,5 +1,5 @@
 {
-  "policy_version": 10,
+  "policy_version": 11,
   "app": {
     "name": "Bass Practice Game",
     "version": "1.0",
@@ -74,9 +74,7 @@
     "enable_confetti": true,
     "animation_intensity": "adaptive",
     "language": "ko",
-    "dashboard_bg_mode": "auto",
     "dashboard_glass_cards": true,
-    "dashboard_live_motion": true,
     "song_genres": [
       "Rock",
       "Punk Rock",
@@ -97,71 +95,6 @@
       "Latin",
       "World"
     ],
-    "dashboard_layout": {
-      "hud": {
-        "y": 1,
-        "w": 1,
-        "h": 1,
-        "visible": true,
-        "x": 1
-      },
-      "timer": {
-        "y": 1,
-        "w": 1,
-        "h": 1,
-        "visible": true,
-        "x": 2
-      },
-      "photo": {
-        "y": 1,
-        "w": 1,
-        "h": 2,
-        "visible": true,
-        "x": 3
-      },
-      "progress": {
-        "y": 2,
-        "w": 2,
-        "h": 1,
-        "visible": true,
-        "x": 1
-      },
-      "todo": {
-        "y": 3,
-        "w": 1,
-        "h": 1,
-        "visible": true,
-        "x": 1
-      },
-      "songShortcut": {
-        "y": 3,
-        "w": 2,
-        "h": 1,
-        "visible": true,
-        "x": 2
-      },
-      "quests": {
-        "y": 3,
-        "w": 1,
-        "h": 1,
-        "visible": false,
-        "x": 3
-      },
-      "achievements": {
-        "y": 4,
-        "w": 1,
-        "h": 1,
-        "visible": false,
-        "x": 1
-      },
-      "inProgress": {
-        "y": 4,
-        "w": 2,
-        "h": 1,
-        "visible": false,
-        "x": 2
-      }
-    },
     "achievement_card_styles": {
       "tier_bronze": {
         "border": "#b88746",
@@ -195,6 +128,109 @@
         "border": "#59606a",
         "fill": "#f0f2f5"
       }
+    },
+    "dashboard_version": "legacy",
+    "dashboard_layout_legacy": {
+      "hud": {
+        "x": 1,
+        "y": 1,
+        "w": 1,
+        "h": 1,
+        "visible": true
+      },
+      "timer": {
+        "x": 2,
+        "y": 1,
+        "w": 1,
+        "h": 1,
+        "visible": true
+      },
+      "progress": {
+        "x": 1,
+        "y": 2,
+        "w": 2,
+        "h": 1,
+        "visible": true
+      },
+      "nextWin": {
+        "x": 3,
+        "y": 3,
+        "w": 1,
+        "h": 1,
+        "visible": true
+      },
+      "photo": {
+        "x": 3,
+        "y": 1,
+        "w": 1,
+        "h": 2,
+        "visible": true
+      },
+      "songShortcut": {
+        "x": 2,
+        "y": 3,
+        "w": 2,
+        "h": 1,
+        "visible": true
+      },
+      "achievements": {
+        "x": 1,
+        "y": 4,
+        "w": 1,
+        "h": 1,
+        "visible": false
+      }
+    },
+    "dashboard_layout_focus": {
+      "hud": {
+        "x": 1,
+        "y": 1,
+        "w": 1,
+        "h": 1,
+        "visible": true
+      },
+      "timer": {
+        "x": 2,
+        "y": 1,
+        "w": 1,
+        "h": 1,
+        "visible": true
+      },
+      "nextWin": {
+        "x": 3,
+        "y": 4,
+        "w": 1,
+        "h": 1,
+        "visible": true
+      },
+      "progress": {
+        "x": 1,
+        "y": 2,
+        "w": 2,
+        "h": 1,
+        "visible": true
+      },
+      "photo": {
+        "x": 3,
+        "y": 1,
+        "w": 1,
+        "h": 3,
+        "visible": true
+      },
+      "songShortcut": {
+        "x": 1,
+        "y": 3,
+        "w": 2,
+        "h": 1,
+        "visible": true
+      },
+      "achievements": {
+        "x": 1,
+        "y": 4,
+        "w": 2,
+        "h": 1,
+        "visible": true
+      }
     }
   },
   "audio": {
@@ -227,7 +263,6 @@
     "nickname": "E2E Player",
     "weekly_goal_sessions": 3,
     "onboarded": true,
-    "dashboard_photo_fit": "contain",
     "dashboard_photo_anchor": "center",
     "guide_finisher_unlocked": true,
     "tutorial_state": {

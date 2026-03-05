@@ -17,15 +17,15 @@ test("E2E-09 XP layout keeps cards visible and year heatmap fills width", async 
     await expect(xpPage).toBeVisible();
 
     const performanceCard = page.locator(".xp-story-performance-card");
-    await expect(performanceCard).toContainText(/Weekly XP|주간 XP/i);
-    await expect(performanceCard).toContainText(/Monthly XP|월간 XP/i);
-    await expect(performanceCard.locator(".ghost-btn").filter({ hasText: /Edit Goals|목표 수정/i }).first()).toBeVisible();
+    await expect(performanceCard).toContainText(/Weekly XP|\uC8FC\uAC04 XP/i);
+    await expect(performanceCard).toContainText(/Monthly XP|\uC6D4\uAC04 XP/i);
+    await expect(performanceCard.locator(".ghost-btn").filter({ hasText: /Edit Goals|\uBAA9\uD45C \uC218\uC815/i }).first()).toBeVisible();
 
     const heatmapCard = page
       .locator(".xp-story-bottom-card")
-      .filter({ has: page.locator("h2", { hasText: /Practice Grass|연습 잔디/i }) })
+      .filter({ has: page.locator("h2", { hasText: /Practice Grass|\uC5F0\uC2B5 \uC794\uB514/i }) })
       .first();
-    await heatmapCard.locator(".ghost-btn").filter({ hasText: /1y|1년/i }).click();
+    await heatmapCard.locator(".ghost-btn").filter({ hasText: /1y|1\uB144/i }).click();
 
     const yearGrid = heatmapCard.locator(".xp-story-heatmap-year-grid");
     await expect(yearGrid).toBeVisible();

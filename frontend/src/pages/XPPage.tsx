@@ -1,4 +1,4 @@
-﻿import { useEffect, useState, type CSSProperties } from "react";
+﻿import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { getPlayerXP, getPlayerXPWindow, getSessions, putBasicSettings } from "../api";
 import { RecordPeriodToolbar } from "../components/records/RecordPeriodToolbar";
 import { RecordTabHeader } from "../components/records/RecordTabHeader";
@@ -132,7 +132,7 @@ function isoWeekStartDate(year: number, week: number): Date {
   return addDays(week1Monday, (week - 1) * 7);
 }
 
-function formatBarLabelParts(key: string, granularity: XPGranularityKey): BarLabelParts | null {
+function formatBarLabelParts(key: string, granularity: XPGranularityKey, lang: Lang): BarLabelParts | null {
   if (!key) return null;
   if (granularity === "day") {
     const day = parseYmd(key);
@@ -151,7 +151,17 @@ function formatBarLabelParts(key: string, granularity: XPGranularityKey): BarLab
       bottom: `W${String(parsed.week).padStart(2, "0")}`,
     };
   }
-  if (key.length >= 7) return { top: key.slice(0, 4), bottom: key.slice(5, 7) };
+  if (key.length >= 7) {
+    const year = Number(key.slice(0, 4));
+    const month = Number(key.slice(5, 7));
+    if (Number.isFinite(year) && Number.isFinite(month) && month >= 1 && month <= 12) {
+      return {
+        top: String(year),
+        bottom: lang === "ko" ? `${month}월` : shortMonthEn(new Date(year, month - 1, 1)),
+      };
+    }
+    return { top: key.slice(0, 4), bottom: key.slice(5, 7) };
+  }
   return { top: key, bottom: "" };
 }
 
@@ -455,6 +465,10 @@ export function XPPage({ lang, refreshToken, settings, onSettingsChange }: Props
   const [heatmapYear, setHeatmapYear] = useState(new Date().getFullYear());
   const [activityBreakdownMode, setActivityBreakdownMode] = useState<ActivityBreakdownMode>("overall");
   const [activityChartMode, setActivityChartMode] = useState<"bar" | "pie">("bar");
+  const lineShellRef = useRef<HTMLDivElement | null>(null);
+  const yearGridRef = useRef<HTMLDivElement | null>(null);
+  const [lineShellWidth, setLineShellWidth] = useState(0);
+  const [yearGridWidth, setYearGridWidth] = useState(0);
 
   const loadBase = async () => {
     const [next, sessionRows] = await Promise.all([getPlayerXP(), getSessions(2400).catch(() => [] as SessionItem[])]);
@@ -492,6 +506,37 @@ export function XPPage({ lang, refreshToken, settings, onSettingsChange }: Props
     }
     setHeatmap6wPage(0);
   }, [player]);
+
+  useEffect(() => {
+    const node = lineShellRef.current;
+    if (!node) return;
+    const updateWidth = () => setLineShellWidth(Math.max(0, node.clientWidth));
+    updateWidth();
+    if (typeof ResizeObserver === "undefined") {
+      window.addEventListener("resize", updateWidth);
+      return () => window.removeEventListener("resize", updateWidth);
+    }
+    const observer = new ResizeObserver(updateWidth);
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [windowData, periodState.scope, periodState.periodUnit, periodState.anchorDate, periodState.recentDays]);
+
+  useEffect(() => {
+    const node = yearGridRef.current;
+    if (!node) {
+      setYearGridWidth(0);
+      return;
+    }
+    const updateWidth = () => setYearGridWidth(Math.max(0, node.clientWidth));
+    updateWidth();
+    if (typeof ResizeObserver === "undefined") {
+      window.addEventListener("resize", updateWidth);
+      return () => window.removeEventListener("resize", updateWidth);
+    }
+    const observer = new ResizeObserver(updateWidth);
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [heatmapMode, heatmapYear, windowData]);
 
   if (!player || !windowData) return <div className="card">Loading...</div>;
 
@@ -604,8 +649,11 @@ export function XPPage({ lang, refreshToken, settings, onSettingsChange }: Props
   const rawLevelMax = Math.ceil(Math.max(...(levelRows.length ? levelRows.map((row) => row.value) : [player.hud.level + 1])));
   const levelMax = rawLevelMax <= levelMin ? levelMin + 1 : rawLevelMax;
   const levelSpan = Math.max(1, levelMax - levelMin);
+  const lineSvgWidth = Math.max(220, Math.round(lineShellWidth || 0));
+  const linePaddingX = Math.max(12, Math.min(30, Math.round(lineSvgWidth * 0.07)));
+  const linePlotWidth = Math.max(1, lineSvgWidth - linePaddingX * 2);
   const pointAt = (row: { value: number }, idx: number, length: number) => {
-    const x = length <= 1 ? 50 : 4 + (idx / (length - 1)) * 92;
+    const x = length <= 1 ? lineSvgWidth / 2 : linePaddingX + (idx / (length - 1)) * linePlotWidth;
     const y = 94 - ((row.value - levelMin) / levelSpan) * 86;
     return { x, y };
   };
@@ -619,10 +667,11 @@ export function XPPage({ lang, refreshToken, settings, onSettingsChange }: Props
 
   const lineXLabels = (() => {
     if (!levelRows.length) return [];
-    return buildSampleIndices(levelRows.length, 5)
+    const labelCount = Math.max(4, Math.min(7, Math.floor(lineSvgWidth / 120) + 1));
+    return buildSampleIndices(levelRows.length, labelCount)
       .map((idx) => {
         const point = pointAt(levelRows[idx], idx, levelRows.length);
-        return { key: levelRows[idx].key, leftPct: point.x };
+        return { key: levelRows[idx].key, leftPct: Math.max(0, Math.min(100, (point.x / lineSvgWidth) * 100)) };
       });
   })();
 
@@ -637,8 +686,6 @@ export function XPPage({ lang, refreshToken, settings, onSettingsChange }: Props
   const monthlyRangeLabel = formatDateRange(monthlyGoal.period_start_key, monthlyGoal.period_end_key, lang);
   const weeklyPrevXp = Math.max(0, weeklyGoal.prev_xp ?? 0);
   const monthlyPrevXp = Math.max(0, monthlyGoal.prev_xp ?? 0);
-  const weeklyPrevProgress = Math.max(0, weeklyGoal.prev_progress_pct ?? 0);
-  const monthlyPrevProgress = Math.max(0, monthlyGoal.prev_progress_pct ?? 0);
   const weeklyDeltaPct = calcDeltaPct(weeklyGoal.current_xp, weeklyPrevXp);
   const monthlyDeltaPct = calcDeltaPct(monthlyGoal.current_xp, monthlyPrevXp);
   const pieGradient = (() => {
@@ -675,6 +722,9 @@ export function XPPage({ lang, refreshToken, settings, onSettingsChange }: Props
   const minHistoryYear = historyStartDate.getFullYear();
   const maxHistoryYear = historyEndDate.getFullYear();
   const yearMonthGrid = buildYearMonthGrid(heatmapYear, minuteMap, xpMap, lang);
+  const yearLabelWidth = yearGridWidth >= 640 ? 36 : yearGridWidth >= 520 ? 34 : 32;
+  const approxYearCellWidth = Math.floor(Math.max(1, (Math.max(0, yearGridWidth - (yearLabelWidth + 44)) / 31)));
+  const yearCellHeight = Math.max(2, Math.min(5, approxYearCellWidth));
   const { rows: allWeekRows, maxWeeks: allWeekMaxWeeks } = buildAllYearWeekRows(minHistoryYear, maxHistoryYear, minuteMap, xpMap);
   const canOlderYear = heatmapYear > minHistoryYear;
   const canNewerYear = heatmapYear < maxHistoryYear;
@@ -748,9 +798,16 @@ export function XPPage({ lang, refreshToken, settings, onSettingsChange }: Props
       <section className="card xp-story-top-card xp-story-performance-card">
         <div className="xp-story-card-head">
           <h2>{lang === "ko" ? "이번 기간 성과" : "Range Performance"}</h2>
-          <small className={summary.delta_pct >= 0 ? "xp-story-positive" : "xp-story-negative"}>
-            {lang === "ko" ? "직전 구간 대비" : "vs Previous"} {formatSignedPct(summary.delta_pct)}
-          </small>
+          <div className="xp-story-performance-actions">
+            <small className={summary.delta_pct >= 0 ? "xp-story-positive" : "xp-story-negative"}>
+              {lang === "ko" ? "직전 구간 대비" : "vs Previous"} {formatSignedPct(summary.delta_pct)}
+            </small>
+            {!editingGoals ? (
+              <button className="ghost-btn xp-story-goal-edit-trigger" onClick={() => setEditingGoals(true)}>
+                {lang === "ko" ? "목표 수정" : "Edit Goals"}
+              </button>
+            ) : null}
+          </div>
         </div>
         <div className="xp-story-period-value">{summary.xp_total.toLocaleString()} XP</div>
 
@@ -782,8 +839,8 @@ export function XPPage({ lang, refreshToken, settings, onSettingsChange }: Props
           <div className="progress-bar"><div style={{ width: `${Math.max(2, Math.min(100, weeklyGoal.progress_pct))}%` }} /></div>
           <small className="xp-story-goal-compare">
             {lang === "ko"
-              ? `직전 ${weeklyPrevXp.toLocaleString()} XP (${weeklyPrevProgress.toFixed(1)}%) · ${formatSignedPct(weeklyDeltaPct)}`
-              : `Prev ${weeklyPrevXp.toLocaleString()} XP (${weeklyPrevProgress.toFixed(1)}%) · ${formatSignedPct(weeklyDeltaPct)}`}
+              ? `직전 ${weeklyPrevXp.toLocaleString()} XP · ${formatSignedPct(weeklyDeltaPct)}`
+              : `Prev ${weeklyPrevXp.toLocaleString()} XP · ${formatSignedPct(weeklyDeltaPct)}`}
           </small>
         </div>
 
@@ -798,8 +855,8 @@ export function XPPage({ lang, refreshToken, settings, onSettingsChange }: Props
           <div className="progress-bar"><div style={{ width: `${Math.max(2, Math.min(100, monthlyGoal.progress_pct))}%` }} /></div>
           <small className="xp-story-goal-compare">
             {lang === "ko"
-              ? `직전 ${monthlyPrevXp.toLocaleString()} XP (${monthlyPrevProgress.toFixed(1)}%) · ${formatSignedPct(monthlyDeltaPct)}`
-              : `Prev ${monthlyPrevXp.toLocaleString()} XP (${monthlyPrevProgress.toFixed(1)}%) · ${formatSignedPct(monthlyDeltaPct)}`}
+              ? `직전 ${monthlyPrevXp.toLocaleString()} XP · ${formatSignedPct(monthlyDeltaPct)}`
+              : `Prev ${monthlyPrevXp.toLocaleString()} XP · ${formatSignedPct(monthlyDeltaPct)}`}
           </small>
         </div>
 
@@ -818,13 +875,7 @@ export function XPPage({ lang, refreshToken, settings, onSettingsChange }: Props
               <button className="ghost-btn" disabled={savingGoals} onClick={() => setEditingGoals(false)}>{lang === "ko" ? "취소" : "Cancel"}</button>
             </div>
           </div>
-        ) : (
-          <div className="xp-story-chip-row">
-            <span className="achievement-chip">{lang === "ko" ? "최고 XP/일" : "Best XP/day"} {summary.best_xp_day.xp.toLocaleString()}</span>
-            <span className="achievement-chip">{lang === "ko" ? "평균/일" : "Avg/day"} {summary.avg_xp_per_day.toLocaleString()}</span>
-            <button className="ghost-btn" onClick={() => setEditingGoals(true)}>{lang === "ko" ? "목표 수정" : "Edit Goals"}</button>
-          </div>
-        )}
+        ) : null}
       </section>
 
       <section className="card xp-story-top-card xp-story-unlock-card" data-testid="xp-next-win">
@@ -873,7 +924,7 @@ export function XPPage({ lang, refreshToken, settings, onSettingsChange }: Props
                 const height = Math.max(0, Math.round((row.xp / chartMaxXp) * 100));
                 const markerLabel = barMarkerMap.get(idx);
                 const showLabel = idx === 0 || idx === xpRows.length - 1 || idx % barLabelStep === 0 || Boolean(markerLabel);
-                const labelParts = showLabel ? formatBarLabelParts(row.key, granularity) : null;
+                const labelParts = showLabel ? formatBarLabelParts(row.key, granularity, lang) : null;
                 const pointLabel = granularity === "day" ? (lang === "ko" ? "해당 일자 XP" : "XP on date") : (lang === "ko" ? "해당 구간 XP" : "XP in period");
                 return (
                   <div key={`${row.key}_${idx}`} className="xp-story-bar-item">
@@ -915,13 +966,13 @@ export function XPPage({ lang, refreshToken, settings, onSettingsChange }: Props
               <span key={`ylv_${lv}`}>{lv}</span>
             ))}
           </div>
-          <div className="xp-story-line-shell">
-            <svg viewBox="0 0 100 100" preserveAspectRatio="none">
+          <div className="xp-story-line-shell" ref={lineShellRef}>
+            <svg viewBox={`0 0 ${lineSvgWidth} 100`} preserveAspectRatio="none">
               {levelTicks.map((lv) => {
                 const y = 94 - ((lv - levelMin) / levelSpan) * 86;
                 return (
                   <g key={`lv_${lv}`}>
-                    <line x1="0" y1={y} x2="100" y2={y} className="xp-story-line-grid" />
+                    <line x1="0" y1={y} x2={lineSvgWidth} y2={y} className="xp-story-line-grid" />
                   </g>
                 );
               })}
@@ -999,15 +1050,16 @@ export function XPPage({ lang, refreshToken, settings, onSettingsChange }: Props
             ))}
           </div>
         ) : (
-          <div className="xp-story-heatmap-year-grid">
-            <div className="xp-story-heat-day-header" style={{ gridTemplateColumns: `44px repeat(${yearMonthGrid.dayHeaders.length}, minmax(0, 1fr))` }}>
-              <strong>{heatmapYear}</strong>
-              {yearMonthGrid.dayHeaders.map((day) => (
-                <small key={`dh_${heatmapYear}_${day}`}>{day}</small>
-              ))}
-            </div>
+          <div
+            className="xp-story-heatmap-year-grid"
+            ref={yearGridRef}
+            style={{
+              ["--xp-year-cell-h" as string]: `${yearCellHeight}px`,
+              ["--xp-year-label-w" as string]: `${yearLabelWidth}px`,
+            }}
+          >
             {yearMonthGrid.rows.map((row) => (
-              <div key={`ym_${yearMonthGrid.year}_${row.month}`} className="xp-story-heatmap-year-row" style={{ gridTemplateColumns: `44px repeat(${row.cells.length}, minmax(0, 1fr))` }}>
+              <div key={`ym_${yearMonthGrid.year}_${row.month}`} className="xp-story-heatmap-year-row">
                 <strong>{row.label}</strong>
                 {row.cells.map((cell) => (
                   <i
@@ -1086,5 +1138,3 @@ export function XPPage({ lang, refreshToken, settings, onSettingsChange }: Props
     </div>
   );
 }
-
-

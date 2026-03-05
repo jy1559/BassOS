@@ -6924,11 +6924,25 @@ textarea {
 
 .xp-story-level-card {
   grid-column: span 4;
+  min-width: 0;
+  min-height: 196px;
 }
 
 .xp-story-performance-card {
   grid-column: span 4;
-  gap: 4px;
+  gap: 2px;
+  min-width: 0;
+}
+
+.xp-story-performance-card .xp-story-card-head {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 4px 8px;
+}
+
+.xp-story-performance-card .xp-story-card-head h2 {
+  min-width: 0;
 }
 
 .xp-story-unlock-card {
@@ -6962,10 +6976,31 @@ textarea {
 }
 
 .xp-story-period-value {
-  font-size: clamp(24px, 2.2vw, 34px);
+  font-size: clamp(20px, 1.8vw, 28px);
   font-weight: 800;
   line-height: 1;
   letter-spacing: -0.02em;
+}
+
+.xp-story-performance-actions {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  min-width: 0;
+}
+
+.xp-story-performance-actions small {
+  font-size: 10px;
+  line-height: 1.2;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.xp-story-goal-edit-trigger {
+  white-space: nowrap;
 }
 
 .xp-story-range-label {
@@ -6984,8 +7019,9 @@ textarea {
 
 .xp-story-level-body {
   display: grid;
-  grid-template-columns: 132px 1fr;
+  grid-template-columns: minmax(0, 132px) minmax(0, 1fr);
   gap: 8px;
+  min-width: 0;
 }
 
 .xp-story-level-ring {
@@ -7029,6 +7065,7 @@ textarea {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 8px;
+  min-width: 0;
 }
 
 .xp-story-level-meta > div {
@@ -7047,11 +7084,12 @@ textarea {
 
 .xp-story-level-meta strong {
   font-size: clamp(14px, 1.2vw, 18px);
+  overflow-wrap: anywhere;
 }
 
 .xp-story-goal-row {
   display: grid;
-  gap: 4px;
+  gap: 3px;
 }
 
 .xp-story-goal-label {
@@ -7069,6 +7107,7 @@ textarea {
   flex-wrap: wrap;
   color: var(--muted);
   font-size: 12px;
+  min-width: 0;
 }
 
 .xp-story-goal-period {
@@ -7076,15 +7115,18 @@ textarea {
   font-size: 11px;
   font-weight: 500;
   white-space: nowrap;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .xp-story-goal-label strong {
-  font-size: 12px;
+  font-size: 11px;
 }
 
 .xp-story-goal-compare {
   color: var(--muted);
-  font-size: 11px;
+  font-size: 10px;
   line-height: 1.25;
   white-space: normal;
   overflow: visible;
@@ -7171,6 +7213,12 @@ textarea {
 
 .xp-story-goal-edit input {
   width: 100%;
+}
+
+.xp-story-goal-edit .switch-row {
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 6px;
 }
 
 .xp-story-next-unlock {
@@ -7344,8 +7392,8 @@ textarea {
 
 .xp-story-line-wrap {
   display: grid;
-  grid-template-columns: 30px 1fr;
-  gap: 6px;
+  grid-template-columns: 24px 1fr;
+  gap: 5px;
   align-items: stretch;
 }
 
@@ -7359,7 +7407,7 @@ textarea {
 }
 
 .xp-story-line-shell {
-  height: 142px;
+  height: 132px;
   border: 1px solid var(--border);
   border-radius: 12px;
   background: color-mix(in srgb, var(--panel) 92%, var(--accent-soft));
@@ -7367,6 +7415,7 @@ textarea {
 }
 
 .xp-story-line-shell svg {
+  display: block;
   width: 100%;
   height: 100%;
 }
@@ -7399,9 +7448,10 @@ textarea {
 
 .xp-story-line-xlabels {
   position: relative;
-  height: 20px;
-  margin-top: 3px;
+  height: 18px;
+  margin-top: 2px;
   overflow: hidden;
+  pointer-events: none;
 }
 
 .xp-story-line-xlabels small {
@@ -7409,7 +7459,7 @@ textarea {
   bottom: 0;
   transform: translateX(-50%);
   color: var(--muted);
-  font-size: 10px;
+  font-size: 9px;
   white-space: nowrap;
 }
 
@@ -7439,13 +7489,18 @@ textarea {
 }
 
 .xp-story-heatmap-year-grid {
+  --xp-year-cell-h: 4px;
+  --xp-year-label-w: 34px;
   display: grid;
-  gap: 3px;
+  gap: 1px;
   border: 1px solid var(--border);
   border-radius: 8px;
-  padding: 6px;
+  padding: 4px 5px;
   background: color-mix(in srgb, var(--panel) 90%, var(--accent-soft));
   overflow: hidden;
+  width: 100%;
+  min-width: 0;
+  max-height: 96px;
 }
 
 .xp-story-heat-day-header {
@@ -7468,19 +7523,58 @@ textarea {
 
 .xp-story-heatmap-year-row {
   display: grid;
-  gap: 2px;
+  grid-template-columns: var(--xp-year-label-w) repeat(31, minmax(0, 1fr));
+  gap: 1px;
   align-items: center;
+  min-height: 0;
 }
 
 .xp-story-heatmap-year-row strong {
-  font-size: 11px;
+  font-size: 9px;
   color: var(--muted);
+  line-height: 1;
+  white-space: nowrap;
 }
 
 .xp-story-heatmap-year-row .xp-story-heat-cell {
-  height: 8px;
+  height: var(--xp-year-cell-h);
+  min-height: 2px;
   aspect-ratio: auto;
   border-radius: 2px;
+}
+
+.xp-story-bottom-card .xp-story-chip-row {
+  gap: 4px;
+}
+
+.xp-story-bottom-card .achievement-chip {
+  font-size: 10px;
+  padding: 2px 6px;
+}
+
+@media (max-width: 1280px) {
+  .xp-story-performance-card .xp-story-period-value {
+    font-size: clamp(18px, 1.75vw, 24px);
+  }
+  .xp-story-performance-card .xp-story-mixed-kpi-item {
+    padding: 4px 6px;
+  }
+  .xp-story-performance-card .xp-story-mixed-kpi-item strong {
+    font-size: 13px;
+  }
+  .xp-story-performance-card .xp-story-goal-period {
+    display: none;
+  }
+  .xp-story-performance-card .xp-story-goal-compare {
+    font-size: 9px;
+  }
+  .xp-story-level-body {
+    grid-template-columns: minmax(0, 116px) minmax(0, 1fr);
+    gap: 6px;
+  }
+  .xp-story-level-meta {
+    gap: 6px;
+  }
 }
 
 .xp-story-heatmap-week-grid {
@@ -7639,22 +7733,21 @@ textarea {
   text-overflow: ellipsis;
 }
 
-@media (max-width: 1200px) {
+@media (max-width: 1040px) {
   .xp-story-page {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: 1fr;
     max-height: none;
     overflow: visible;
   }
   .xp-story-range-bar,
+  .xp-story-top-card,
   .xp-story-chart-main,
-  .xp-story-chart-side {
-    grid-column: 1 / -1;
-  }
+  .xp-story-chart-side,
+  .xp-story-bottom-card,
   .xp-story-level-card,
   .xp-story-performance-card,
-  .xp-story-unlock-card,
-  .xp-story-bottom-card {
-    grid-column: span 1;
+  .xp-story-unlock-card {
+    grid-column: 1 / -1;
   }
 }
 
@@ -7691,7 +7784,8 @@ textarea {
   .content.content-dashboard {
     display: grid;
     grid-template-rows: auto minmax(0, 1fr);
-    overflow: hidden;
+    overflow-x: hidden;
+    overflow-y: auto;
     padding: 6px 8px 8px;
   }
 
@@ -7700,18 +7794,18 @@ textarea {
   }
 
   .content.content-dashboard .dashboard-shell {
-    height: 100%;
+    height: auto;
     min-height: 0;
-    overflow: hidden;
+    overflow: visible;
   }
 
   .content.content-dashboard .dashboard-grid {
     width: 100%;
-    height: 100%;
+    height: auto;
     min-height: 0;
-    overflow: hidden;
-    align-content: stretch;
-    grid-auto-rows: minmax(126px, 1fr);
+    overflow: visible;
+    align-content: start;
+    grid-auto-rows: minmax(126px, auto);
     gap: 6px;
   }
 
@@ -7787,7 +7881,8 @@ textarea {
   .content.content-xp {
     display: grid;
     grid-template-rows: auto minmax(0, 1fr);
-    overflow: hidden;
+    overflow-x: hidden;
+    overflow-y: auto;
     padding: 10px 12px 12px;
   }
 
@@ -7798,7 +7893,7 @@ textarea {
   .content.content-xp .xp-story-page {
     gap: 3px;
     width: 100%;
-    height: 100%;
+    height: auto;
     min-height: 0;
     max-height: none;
     overflow: visible;

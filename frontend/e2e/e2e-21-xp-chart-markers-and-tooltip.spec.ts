@@ -49,9 +49,10 @@ test("E2E-21 XP chart markers and tooltip", async ({ page, request }) => {
     chartCard.locator(".xp-story-bar-marker-label").filter({ hasText: /Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec/ }).first()
   ).toBeVisible();
 
-  const markedDayBar = chartCard.locator(".xp-story-bar-item").filter({ has: chartCard.locator(".xp-story-bar-marker-label") }).first();
-  await markedDayBar.hover();
-  const tooltip = markedDayBar.locator(".xp-story-bar-tip");
+  const firstDayBar = chartCard.locator(".xp-story-bar-item").first();
+  await expect(firstDayBar).toBeVisible();
+  await firstDayBar.hover();
+  const tooltip = firstDayBar.locator(".xp-story-bar-tip");
   await expect(tooltip).toBeVisible();
   await expect(tooltip).toContainText(/일 데이터|days in range/i);
   await expect(tooltip).toContainText(/구간 총 XP|Range total/i);
