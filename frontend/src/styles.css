@@ -1713,9 +1713,9 @@ button:disabled {
   z-index: 28;
   right: 14px;
   bottom: 14px;
-  width: min(460px, calc(100vw - 22px));
-  min-width: 340px;
-  max-width: min(460px, calc(100vw - 22px));
+  width: min(420px, calc(100vw - 22px));
+  min-width: 300px;
+  max-width: min(420px, calc(100vw - 22px));
   border: 1px solid var(--border);
   border-radius: 14px;
   background: color-mix(in srgb, var(--panel) 94%, #000);
@@ -1732,8 +1732,8 @@ button:disabled {
 }
 
 .session-timer-pip.collapsed {
-  width: min(360px, calc(100vw - 20px));
-  min-width: 260px;
+  width: min(320px, calc(100vw - 20px));
+  min-width: 220px;
 }
 
 .session-timer-pip-drag-handle {
@@ -1787,28 +1787,6 @@ button:disabled {
   gap: 8px;
 }
 
-.session-timer-pip-video-frame {
-  width: 100%;
-  aspect-ratio: 16 / 9;
-  border-radius: 8px;
-  overflow: hidden;
-  border: 1px solid color-mix(in srgb, var(--border) 82%, transparent);
-  background: #000;
-}
-
-.session-timer-pip-video-frame iframe,
-.session-timer-pip-video-frame video {
-  width: 100%;
-  height: 100%;
-  border: 0;
-  display: block;
-  background: #000;
-}
-
-.session-timer-pip-video-frame video {
-  object-fit: cover;
-}
-
 .session-timer-pip-video-meta {
   min-width: 0;
   display: flex;
@@ -1858,13 +1836,28 @@ button:disabled {
   gap: 10px;
 }
 
+.session-timer-pip-video-controls {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.session-timer-pip-video-controls .compact-add-btn {
+  min-height: 28px;
+}
+
+.session-timer-pip-video-controls small {
+  flex: 1 1 100%;
+}
+
 .metronome-pip-panel {
   border: 1px solid var(--border);
   border-radius: 10px;
   background: color-mix(in srgb, var(--panel-2) 90%, var(--accent-soft));
-  padding: 8px;
+  padding: 9px;
   display: grid;
-  gap: 6px;
+  gap: 8px;
 }
 
 .metronome-pip-panel.inline {
@@ -1884,36 +1877,60 @@ button:disabled {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
+  gap: 10px;
 }
 
 .metronome-pip-head > strong {
-  font-size: 12px;
-  letter-spacing: 0.06em;
+  font-size: 11px;
+  letter-spacing: 0.04em;
   color: var(--muted);
 }
 
-.metronome-pip-bpm-inline {
+.metronome-pip-main {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: center;
+}
+
+.metronome-pip-transport {
+  display: grid;
+  justify-items: end;
+  gap: 4px;
+}
+
+.metronome-pip-transport .primary-btn,
+.metronome-pip-transport .danger-btn {
+  min-height: 30px;
+  padding: 5px 10px;
+}
+
+.metronome-pip-visual {
+  grid-template-columns: repeat(auto-fit, minmax(24px, 1fr));
+  gap: 8px;
+}
+
+.metronome-pip-settings {
+  display: grid;
+  gap: 6px;
+}
+
+.metronome-pip-bpm-compact {
   display: inline-flex;
   align-items: center;
   gap: 4px;
 }
 
-.metronome-pip-bpm-inline input {
-  width: 48px;
+.metronome-pip-bpm-compact input {
+  width: 52px;
   text-align: center;
   padding: 3px 5px;
   font-weight: 700;
 }
 
-.metronome-pip-bpm-inline .compact-add-btn {
+.metronome-pip-bpm-compact .compact-add-btn {
   min-height: 24px;
   padding: 3px 6px;
-}
-
-.metronome-pip-visual {
-  grid-template-columns: repeat(auto-fit, minmax(18px, 1fr));
-  gap: 6px;
 }
 
 .modal-backdrop,
@@ -7037,6 +7054,21 @@ textarea {
   align-items: center;
   justify-content: space-between;
   gap: 10px;
+  cursor: pointer;
+  transition: border-color 120ms ease, background-color 120ms ease;
+}
+
+.practice-start-collapsed:hover {
+  border-color: color-mix(in srgb, var(--accent) 45%, var(--border));
+  background: color-mix(in srgb, var(--panel) 80%, var(--accent-soft));
+}
+
+.practice-start-header-row {
+  position: relative;
+}
+
+.practice-start-title-clickable {
+  cursor: pointer;
 }
 
 .practice-start-stepper {
@@ -7328,6 +7360,8 @@ textarea {
 .metronome-inline {
   position: relative;
   align-self: flex-start;
+  display: grid;
+  gap: 8px;
 }
 
 .metronome-inline.embedded {
@@ -7345,6 +7379,7 @@ textarea {
   justify-items: start;
   gap: 2px;
   cursor: pointer;
+  text-align: left;
 }
 
 .metronome-toggle span {
@@ -7357,18 +7392,21 @@ textarea {
   color: var(--text);
 }
 
+.metronome-toggle small {
+  font-size: 11px;
+  color: var(--muted);
+}
+
 .metronome-toggle.running {
   border-color: color-mix(in srgb, var(--accent) 55%, var(--border));
 }
 
 .metronome-dock {
-  position: absolute;
-  right: 0;
-  top: calc(100% + 8px);
-  width: min(340px, 90vw);
+  position: static;
+  width: min(900px, 100%);
   z-index: 40;
   display: grid;
-  gap: 8px;
+  gap: 10px;
   background: color-mix(in srgb, var(--panel) 84%, transparent);
   backdrop-filter: blur(6px);
   box-shadow: var(--shadow);
@@ -7376,8 +7414,6 @@ textarea {
 
 .metronome-inline.embedded .metronome-dock {
   position: static;
-  right: auto;
-  top: auto;
   width: 100%;
   max-width: none;
   z-index: auto;
@@ -7387,37 +7423,107 @@ textarea {
 }
 
 .metronome-dock label {
-  margin-bottom: 6px;
+  margin-bottom: 0;
+}
+
+.metronome-dock-top {
+  align-items: center;
 }
 
 .metronome-bpm-row {
-  display: grid;
-  grid-template-columns: 1fr auto;
+  display: flex;
+  align-items: center;
   gap: 6px;
 }
 
-.metronome-mini-grid {
+.metronome-bpm-row input {
+  width: 68px;
+  text-align: center;
+}
+
+.metronome-main-row {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 8px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+}
+
+.metronome-main-actions {
+  display: grid;
+  justify-items: end;
+  gap: 6px;
+}
+
+.metronome-compact-controls {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.metronome-bpm-cluster {
+  flex: 1 1 320px;
+  min-width: 220px;
+  display: grid;
+  gap: 6px;
+}
+
+.metronome-signature-cluster {
+  flex: 1 1 220px;
+  min-width: 180px;
+  display: grid;
+  gap: 6px;
+}
+
+.metronome-signature-pills {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.metronome-signature-pills.compact .compact-add-btn {
+  min-height: 24px;
+  padding: 3px 7px;
+}
+
+.metronome-volume-inline {
+  flex: 1 1 180px;
+  min-width: 150px;
+  display: grid;
+  gap: 4px;
+}
+
+.metronome-volume-inline small {
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.metronome-volume-inline input {
+  margin: 0;
 }
 
 .metronome-visual {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(18px, 1fr));
-  gap: 7px;
+  grid-template-columns: repeat(auto-fit, minmax(22px, 1fr));
+  gap: 8px;
+}
+
+.metronome-visual-hero {
+  grid-template-columns: repeat(auto-fit, minmax(26px, 1fr));
+  min-height: 72px;
 }
 
 .metronome-light {
-  height: 14px;
-  border-radius: 8px;
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  border-radius: 999px;
   border: 1px solid var(--border);
   background: color-mix(in srgb, var(--panel) 70%, var(--border));
   transition: transform 90ms ease, box-shadow 90ms ease, background-color 90ms ease;
 }
 
 .metronome-light.accent {
-  height: 18px;
   background: color-mix(in srgb, var(--accent) 26%, var(--panel));
 }
 
@@ -7435,7 +7541,7 @@ textarea {
   border-top: 1px dashed var(--border);
   padding-top: 8px;
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 8px;
 }
 
@@ -7972,7 +8078,7 @@ textarea {
     right: 10px;
     bottom: 10px;
     min-width: 0;
-    width: min(440px, calc(100vw - 20px));
+    width: min(400px, calc(100vw - 20px));
   }
   .song-reference-dual {
     min-height: clamp(300px, 52vh, 620px);
@@ -10018,7 +10124,7 @@ textarea {
 @media (max-width: 900px) {
   .session-timer-pip {
     min-width: 0;
-    width: min(440px, calc(100vw - 20px));
+    width: min(400px, calc(100vw - 20px));
     right: 10px;
     bottom: 10px;
   }

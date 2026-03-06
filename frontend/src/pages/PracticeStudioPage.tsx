@@ -4,7 +4,7 @@ import { SessionStopModal } from "../components/session/SessionStopModal";
 import type { Lang } from "../i18n";
 import type { HudSummary, RecordPost, SessionItem, SessionStopResult } from "../types/models";
 import { formatDisplayXp } from "../utils/xpDisplay";
-import { GlobalMetronomeDock } from "../metronome";
+import { GlobalMetronomeDock, useMetronome } from "../metronome";
 
 export type SessionPipVideoPayload = {
   sessionId: string;
@@ -12,8 +12,19 @@ export type SessionPipVideoPayload = {
   targetId: string;
   title: string;
   subtitle: string;
+  sourceUrl?: string;
   embedUrl?: string;
   videoUrl?: string;
+};
+
+export type SessionPipVideoControlPayload = {
+  sessionId: string;
+  targetKind: "song";
+  targetId: string;
+  canControl: boolean;
+  isPlaying: boolean;
+  togglePlayback: () => void;
+  restart: () => void;
 };
 
 type Props = {
@@ -32,6 +43,7 @@ type Props = {
   tabSwitchPlayback: "continue" | "pause" | "pip_only";
   onPipModeChange: (mode: "mini" | "native" | "none") => void;
   onSessionPipVideoChange?: (payload: SessionPipVideoPayload | null) => void;
+  onSessionPipVideoControlChange?: (payload: SessionPipVideoControlPayload | null) => void;
   onSessionCompleted?: (result: SessionStopResult) => void;
   xpDisplayScale?: number;
 };
@@ -285,6 +297,12 @@ function isEditableTarget(target: EventTarget | null): boolean {
   return tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT";
 }
 
+function isPanelToggleBlockedTarget(target: EventTarget | null): boolean {
+  const element = target as HTMLElement | null;
+  if (!element) return false;
+  return Boolean(element.closest("button,input,select,textarea,a,label,summary,[role='button']"));
+}
+
 function isPlayableVideoUrl(url: string): boolean {
   if (!url) return false;
   const lower = url.toLowerCase();
@@ -416,9 +434,11 @@ export function PracticeStudioPage({
   tabSwitchPlayback,
   onPipModeChange,
   onSessionPipVideoChange,
+  onSessionPipVideoControlChange,
   onSessionCompleted,
   xpDisplayScale = 50,
 }: Props) {
+  const metronome = useMetronome();
   const [sessions, setSessions] = useState<SessionItem[]>([]);
   const [practiceType, setPracticeType] = useState<PracticeType>(hud.active_session?.drill_id ? "drill" : "song");
   const [songId, setSongId] = useState(hud.active_session?.song_library_id ?? "");
@@ -471,6 +491,7 @@ export function PracticeStudioPage({
   const [backingBpmMin, setBackingBpmMin] = useState("");
   const [backingBpmMax, setBackingBpmMax] = useState("");
   const activeStart = hud.active_session?.start_at ? new Date(hud.active_session.start_at).getTime() : 0;
+  const setMetronomeProfileKey = metronome.setProfileKey;
 
   useEffect(() => {
     void getSessions(1000).then(setSessions).catch(() => undefined);
@@ -526,6 +547,14 @@ export function PracticeStudioPage({
     setShowSwitchTimeEditor(false);
     setShowSwitchTimeUnderMinAlert(false);
   }, [hud.active_session?.session_id]);
+
+  useEffect(() => {
+    if (practiceType === "song" && songId) {
+      setMetronomeProfileKey(`song:${songId}`);
+      return;
+    }
+    setMetronomeProfileKey("");
+  }, [practiceType, setMetronomeProfileKey, songId]);
 
   const drillPool = useMemo(
     () => normalizeDrills(catalogs.drills, catalogs.drill_library),
@@ -1769,6 +1798,12 @@ export function PracticeStudioPage({
   const hasSelectedTarget = (practiceType === "song" && Boolean(songId)) || (practiceType === "drill" && Boolean(drillId));
   const hasActiveSession = Boolean(hud.active_session?.session_id);
   const hasSessionOrTarget = hasActiveSession || hasSelectedTarget;
+  const toggleStartPanelFromSurface = (target: EventTarget | null) => {
+    if (!hasSessionOrTarget) return;
+    if (isPanelToggleBlockedTarget(target)) return;
+    setShowStartPanel((prev) => !prev);
+    setStartStep(2);
+  };
   const activeSessionId = String(hud.active_session?.session_id || "");
   const activeSessionSongId = String(hud.active_session?.song_library_id || "");
   const activeSessionSong = useMemo(
@@ -1846,6 +1881,7 @@ export function PracticeStudioPage({
       targetId: activeSessionSongId,
       title: activeSessionSong?.title || (lang === "ko" ? "선택된 영상" : "Selected video"),
       subtitle: activeSessionSong?.artist || (lang === "ko" ? "연습 영상" : "Practice video"),
+      sourceUrl: activeSessionSongVideoSource || undefined,
       embedUrl: activeSessionSongEmbed || undefined,
       videoUrl: activeSessionSongDirectVideo || undefined,
     });
@@ -1862,14 +1898,47 @@ export function PracticeStudioPage({
     showMiniDock,
   ]);
 
+  useEffect(() => {
+    if (!onSessionPipVideoControlChange) return;
+    const isActiveSessionSongReady =
+      showMiniDock &&
+      Boolean(activeSessionId) &&
+      Boolean(activeSessionSongId) &&
+      songId === activeSessionSongId &&
+      Boolean(songDirectVideo || songEmbed);
+    if (!isActiveSessionSongReady) {
+      onSessionPipVideoControlChange(null);
+      return;
+    }
+    onSessionPipVideoControlChange({
+      sessionId: activeSessionId,
+      targetKind: "song",
+      targetId: activeSessionSongId,
+      canControl: true,
+      isPlaying: isSongVideoPlaying,
+      togglePlayback: toggleSongVideoPlayback,
+      restart: resetSongVideoToStart,
+    });
+    return () => onSessionPipVideoControlChange(null);
+  }, [
+    activeSessionId,
+    activeSessionSongId,
+    isSongVideoPlaying,
+    onSessionPipVideoControlChange,
+    showMiniDock,
+    songDirectVideo,
+    songEmbed,
+    songId,
+  ]);
+
   return (
     <div
       className={`page-grid songs-page-list practice-studio-page ${practiceType === "song" && songCover ? "with-song-background" : ""} ${isActive ? "active" : "inactive"}`}
       style={pageStyle}
     >
       <section className="card">
-        <div className="row">
-          <h2>{lang === "ko" ? "연습 시작" : "Start Practice"}</h2>
+        <div className="row practice-start-header-row" onClick={(event) => toggleStartPanelFromSurface(event.target)}>
+          <h2 className={hasSessionOrTarget ? "practice-start-title-clickable" : ""}>{lang === "ko" ? "연습 시작" : "Start Practice"}</h2>
           <div className="row">
             <button
               className={`song-round-btn ${showFilters ? "active-mini" : ""}`}
@@ -1896,7 +1965,7 @@ export function PracticeStudioPage({
         </div>
 
         {!showStartPanel && hasSessionOrTarget ? (
-          <div className="practice-start-collapsed" data-testid="practice-start-collapsed">
+          <div className="practice-start-collapsed" data-testid="practice-start-collapsed" onClick={(event) => toggleStartPanelFromSurface(event.target)}>
             <strong>
               {practiceType === "song" ? (lang === "ko" ? "선택된 곡" : "Selected Song") : (lang === "ko" ? "선택된 드릴" : "Selected Drill")}
               {" · "}
