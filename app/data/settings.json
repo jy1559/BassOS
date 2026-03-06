@@ -1,5 +1,5 @@
 {
-  "policy_version": 12,
+  "policy_version": 13,
   "app": {
     "name": "Bass Practice Game",
     "version": "1.0",
@@ -10,7 +10,6 @@
     "session": {
       "per_min": 3
     },
-    "display_scale": 4000,
     "bonus": {
       "core_warmup": 90,
       "metronome_24": 80,
@@ -36,16 +35,14 @@
     },
     "rehearsal_bonus": 320,
     "performance_bonus": 980,
-    "backfill_multiplier": 0.5
+    "backfill_multiplier": 0.5,
+    "display_scale": 50
   },
   "level_curve": {
     "type": "decade_linear",
-    "base": 220,
-    "slope": 5,
-    "step_10": 50,
-    "step_20": 110,
-    "step_30": 240,
-    "step_40": 434,
+    "a": 2500,
+    "b": 423,
+    "c": 10,
     "max_level": 50,
     "rank_thresholds": [
       {
@@ -72,7 +69,13 @@
         "rank": "Challenger",
         "min_level": 50
       }
-    ]
+    ],
+    "base": 174,
+    "slope": 4,
+    "step_10": 40,
+    "step_20": 90,
+    "step_30": 200,
+    "step_40": 347
   },
   "ui": {
     "default_theme": "studio",
@@ -101,6 +104,19 @@
       "Latin",
       "World"
     ],
+    "practice_video_pip_mode": "mini",
+    "practice_video_tab_switch_playback": "continue",
+    "session_timer_pip_corner": "bottom-right",
+    "notify_level_up": true,
+    "notify_achievement_unlock": true,
+    "notify_quest_complete": true,
+    "fx_level_up_overlay": true,
+    "fx_achievement_unlock": true,
+    "fx_quest_complete": true,
+    "fx_session_complete_normal": true,
+    "fx_session_complete_quick": false,
+    "fx_claim_achievement": true,
+    "fx_claim_quest": true,
     "dashboard_version": "focus",
     "dashboard_layout_legacy": {
       "hud": {
@@ -248,7 +264,7 @@
     "backfill_multiplier_default": 0.5,
     "max_backup_files": 3,
     "backup_min_hours": 12,
-    "achievement_xp_multiplier": 0.15,
+    "achievement_xp_multiplier": 1.0,
     "quest_xp_multiplier": 0.15,
     "session_xp_multiplier": 1.0,
     "daily_session_xp_cap": 0
@@ -319,19 +335,45 @@
         }
       }
     },
-    "guide_finisher_unlocked": false,
+    "guide_finisher_unlocked": true,
     "tutorial_state": {
       "campaign_id": "core_v1",
       "banner_seen_campaigns": [],
-      "completed_campaigns": [],
-      "reward_claimed_campaigns": [],
-      "resume_campaign_id": "core_v1",
-      "resume_step_index": 5,
-      "last_started_at": "2026-03-05T17:50:51",
-      "last_completed_at": ""
+      "completed_campaigns": [
+        "core_v1"
+      ],
+      "reward_claimed_campaigns": [
+        "core_v1"
+      ],
+      "resume_campaign_id": "",
+      "resume_step_index": 0,
+      "last_started_at": "2026-03-06T17:13:51",
+      "last_completed_at": "2026-03-06T17:13:52"
     },
     "dashboard_photo_items": [],
     "dashboard_featured_photo_id": "",
-    "journal_tag_catalog": []
+    "journal_tag_catalog": [
+      {
+        "id": "tag_1772784853222_3hie73",
+        "label": "e2e_tag_1772784852341",
+        "category": "기본",
+        "active": true,
+        "order": 0
+      },
+      {
+        "id": "tag_1772784853222_6841m7",
+        "label": "alpha",
+        "category": "기본",
+        "active": true,
+        "order": 1
+      },
+      {
+        "id": "tag_1772784853222_zol23i",
+        "label": "beta",
+        "category": "기본",
+        "active": true,
+        "order": 2
+      }
+    ]
   }
 }

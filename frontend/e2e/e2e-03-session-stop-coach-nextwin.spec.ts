@@ -1,6 +1,16 @@
 import { expect, test } from "@playwright/test";
 import { gotoCoreTab, openApp, resetRuntime } from "./helpers";
 
+async function ensureStopEditorVisible(page: import("@playwright/test").Page, prefix: "dashboard" | "studio"): Promise<void> {
+  const startAtInput = page.locator(`[data-testid='${prefix}-stop-start-at']`);
+  if (await startAtInput.isVisible()) return;
+  const setTimeBtn = page.getByRole("button", { name: /시간 지정|Set Time/i }).first();
+  if (await setTimeBtn.isVisible()) {
+    await setTimeBtn.click();
+  }
+  await expect(startAtInput).toBeVisible();
+}
+
 test("E2E-03 세션 종료 저장 + 코치 메시지 + Next Win 갱신", async ({ page, request }) => {
   await resetRuntime(request);
   await request.post("/api/session/start", {
@@ -14,6 +24,7 @@ test("E2E-03 세션 종료 저장 + 코치 메시지 + Next Win 갱신", async (
   const stopResponsePromise = page.waitForResponse(
     (res) => res.url().includes("/api/session/stop") && res.request().method() === "POST"
   );
+  await ensureStopEditorVisible(page, "dashboard");
   const startRaw = await page.locator("[data-testid='dashboard-stop-start-at']").inputValue();
   const startDate = new Date(startRaw);
   if (!Number.isNaN(startDate.getTime())) {

@@ -1,6 +1,16 @@
 import { expect, test } from "@playwright/test";
 import { gotoCoreTab, openApp, resetRuntime } from "./helpers";
 
+async function ensureStopEditorVisible(page: import("@playwright/test").Page, prefix: "dashboard" | "studio"): Promise<void> {
+  const startAtInput = page.locator(`[data-testid='${prefix}-stop-start-at']`);
+  if (await startAtInput.isVisible()) return;
+  const setTimeBtn = page.getByRole("button", { name: /시간 지정|Set Time/i }).first();
+  if (await setTimeBtn.isVisible()) {
+    await setTimeBtn.click();
+  }
+  await expect(startAtInput).toBeVisible();
+}
+
 test("E2E-08 Practice Studio session stop/save works in-place", async ({ page, request }) => {
   await resetRuntime(request);
   await request.post("/api/session/start", {
@@ -14,6 +24,7 @@ test("E2E-08 Practice Studio session stop/save works in-place", async ({ page, r
     (res) => res.url().includes("/api/session/stop") && res.request().method() === "POST"
   );
   await page.locator("[data-testid='studio-stop-session']").click();
+  await ensureStopEditorVisible(page, "studio");
   const startRaw = await page.locator("[data-testid='studio-stop-start-at']").inputValue();
   const startDate = new Date(startRaw);
   if (!Number.isNaN(startDate.getTime())) {

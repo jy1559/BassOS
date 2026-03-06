@@ -226,6 +226,8 @@ export default function App() {
   const [sessionPipVideo, setSessionPipVideo] = useState<SessionPipVideoPayload | null>(null);
   const [sessionPipPosition, setSessionPipPosition] = useState<SessionPipPosition | null>(null);
   const [sessionPipDragging, setSessionPipDragging] = useState(false);
+  const [sessionPipCollapsed, setSessionPipCollapsed] = useState(false);
+  const [sessionPipVideoOpen, setSessionPipVideoOpen] = useState(false);
 
   const signalReadyRef = useRef(false);
   const prevLevelRef = useRef(0);
@@ -242,6 +244,28 @@ export default function App() {
   const xpDisplayScale = getXpDisplayScale(settings);
   const activeSessionId = hud?.active_session?.session_id || "";
   const activeSessionStartMs = hud?.active_session?.start_at ? new Date(hud.active_session.start_at).getTime() : 0;
+  const activeSessionSongId = String(hud?.active_session?.song_library_id || "");
+
+  const handleSessionPipVideoChange = (payload: SessionPipVideoPayload | null) => {
+    if (!payload) {
+      setSessionPipVideo(null);
+      return;
+    }
+    if (!activeSessionId) {
+      setSessionPipVideo(null);
+      return;
+    }
+    if (
+      payload.sessionId !== activeSessionId ||
+      payload.targetKind !== "song" ||
+      !activeSessionSongId ||
+      payload.targetId !== activeSessionSongId
+    ) {
+      setSessionPipVideo(null);
+      return;
+    }
+    setSessionPipVideo(payload);
+  };
 
   const switchTab = (nextTab: TabId) => {
     if (tab === "practice" && contentRef.current) {
@@ -660,6 +684,8 @@ export default function App() {
       setSessionPipVideo(null);
       setSessionPipDragging(false);
       setSessionPipPosition(null);
+      setSessionPipCollapsed(false);
+      setSessionPipVideoOpen(false);
       sessionPipDragRef.current = null;
       return;
     }
@@ -668,6 +694,13 @@ export default function App() {
     const timer = window.setInterval(tick, 1000);
     return () => window.clearInterval(timer);
   }, [activeSessionId, activeSessionStartMs]);
+
+  useEffect(() => {
+    if (!activeSessionId) return;
+    setSessionPipCollapsed(false);
+    setSessionPipVideoOpen(false);
+    setSessionPipVideo(null);
+  }, [activeSessionId]);
 
   useEffect(() => {
     if (!settings) return;
@@ -1025,10 +1058,10 @@ export default function App() {
             <div className="topbar-actions" />
           </header>
 
-          {activeSessionId ? (
+          {activeSessionId && tab !== "practice" ? (
             <div
               ref={sessionPipRef}
-              className={`session-timer-pip ${sessionPipDragging ? "dragging" : ""}`}
+              className={`session-timer-pip ${sessionPipDragging ? "dragging" : ""} ${sessionPipCollapsed ? "collapsed" : ""}`}
               style={sessionPipStyle}
               data-testid="global-session-pip"
               onPointerMove={moveSessionPip}
@@ -1044,6 +1077,29 @@ export default function App() {
                   <div className="session-timer-pip-actions">
                     <button
                       type="button"
+                      className="ghost-btn compact-add-btn"
+                      onClick={() => setSessionPipCollapsed((prev) => !prev)}
+                    >
+                      {sessionPipCollapsed ? (lang === "ko" ? "펼치기" : "Expand") : (lang === "ko" ? "접기" : "Collapse")}
+                    </button>
+                    <button
+                      type="button"
+                      className="ghost-btn compact-add-btn"
+                      onClick={() => switchTab("practice")}
+                      title={lang === "ko" ? "연습 스튜디오로 이동" : "Go to practice studio"}
+                    >
+                      {lang === "ko" ? "스튜디오" : "Studio"}
+                    </button>
+                    <button
+                      type="button"
+                      className={`ghost-btn compact-add-btn ${sessionPipVideoOpen ? "active-mini" : ""}`}
+                      onClick={() => setSessionPipVideoOpen((prev) => !prev)}
+                      disabled={!sessionPipVideo}
+                    >
+                      {lang === "ko" ? "영상" : "Video"}
+                    </button>
+                    <button
+                      type="button"
                       className="danger-btn session-timer-pip-stop"
                       data-testid="global-session-pip-stop"
                       onClick={() => setShowGlobalStopModal(true)}
@@ -1053,52 +1109,48 @@ export default function App() {
                   </div>
                 </div>
               </div>
-              <MetronomePipPanel placement="inline" visible={tab !== "practice"} />
-              {sessionPipVideo ? (
-                <div
-                  className="session-timer-pip-video"
-                  data-testid="global-session-pip-video"
-                >
-                  <div className="session-timer-pip-video-frame">
-                    {sessionPipVideo.embedUrl ? (
-                      <iframe
-                        src={sessionPipVideo.embedUrl}
-                        title={`pip-video-${sessionPipVideo.title}`}
-                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                        allowFullScreen
-                      />
-                    ) : sessionPipVideo.videoUrl ? (
-                      <video src={sessionPipVideo.videoUrl} controls preload="metadata" />
+              {!sessionPipCollapsed ? (
+                <>
+                  <MetronomePipPanel placement="inline" visible forceVisible autoStartToken={activeSessionId} />
+                  {sessionPipVideoOpen ? (
+                    sessionPipVideo ? (
+                      <div className="session-timer-pip-video" data-testid="global-session-pip-video">
+                        <div className="session-timer-pip-video-frame">
+                          {sessionPipVideo.embedUrl ? (
+                            <iframe
+                              src={sessionPipVideo.embedUrl}
+                              title={`pip-video-${sessionPipVideo.title}`}
+                              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                              allowFullScreen
+                            />
+                          ) : sessionPipVideo.videoUrl ? (
+                            <video src={sessionPipVideo.videoUrl} controls preload="metadata" />
+                          ) : (
+                            <div className="session-timer-pip-video-fallback">♪</div>
+                          )}
+                        </div>
+                        <div className="session-timer-pip-video-meta">
+                          <span>
+                            <strong>{sessionPipVideo.title}</strong>
+                            <small>{sessionPipVideo.subtitle}</small>
+                          </span>
+                        </div>
+                      </div>
                     ) : (
-                      <div className="session-timer-pip-video-fallback">♪</div>
-                    )}
-                  </div>
-                  <div className="session-timer-pip-video-meta">
-                    <span>
-                      <strong>{sessionPipVideo.title}</strong>
-                      <small>{sessionPipVideo.subtitle}</small>
-                    </span>
-                    <button
-                      type="button"
-                      className="ghost-btn compact-add-btn"
-                      onClick={() => switchTab("practice")}
-                      title={lang === "ko" ? "연습 스튜디오로 이동" : "Go to practice studio"}
-                    >
-                      {lang === "ko" ? "스튜디오" : "Studio"}
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <div className="session-timer-pip-video session-timer-pip-video-empty">
-                  <div className="session-timer-pip-video-fallback">♪</div>
-                  <small className="muted">
-                    {lang === "ko" ? "연습 스튜디오에서 영상을 선택하면 여기서 바로 재생됩니다." : "Pick a video in practice studio to play it here."}
-                  </small>
-                </div>
-              )}
+                      <div className="session-timer-pip-video session-timer-pip-video-empty">
+                        <div className="session-timer-pip-video-fallback">♪</div>
+                        <small className="muted">
+                          {lang === "ko"
+                            ? "현재 세션에 연결된 영상을 찾을 수 없습니다."
+                            : "No linked video for the current session."}
+                        </small>
+                      </div>
+                    )
+                  ) : null}
+                </>
+              ) : null}
             </div>
           ) : null}
-          <MetronomePipPanel placement="floating" visible={!activeSessionId && tab !== "practice"} />
 
           {tab === "dashboard" ? (
             <DashboardPage
@@ -1130,7 +1182,7 @@ export default function App() {
               pipMode={settings.ui.practice_video_pip_mode ?? "mini"}
               tabSwitchPlayback={settings.ui.practice_video_tab_switch_playback ?? "continue"}
               onPipModeChange={(nextMode) => void patchUiSettings({ practice_video_pip_mode: nextMode })}
-              onSessionPipVideoChange={setSessionPipVideo}
+              onSessionPipVideoChange={handleSessionPipVideoChange}
               onSessionCompleted={(result) => onSessionCompleted(result, "normal")}
               xpDisplayScale={xpDisplayScale}
             />

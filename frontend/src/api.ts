@@ -105,6 +105,20 @@ export async function switchSession(input?: {
   return call("/api/session/switch", { method: "POST", body: JSON.stringify(input ?? {}) });
 }
 
+export async function retargetSession(input?: {
+  activity?: string;
+  sub_activity?: string;
+  song_library_id?: string;
+  drill_id?: string;
+  title?: string;
+  notes?: string;
+}): Promise<{
+  retargeted: boolean;
+  session: Record<string, unknown>;
+}> {
+  return call("/api/session/retarget", { method: "POST", body: JSON.stringify(input ?? {}) });
+}
+
 export async function discardSession(input?: { chain_mode?: "last" | "all" }): Promise<{
   discarded?: boolean;
   chain_mode?: string;

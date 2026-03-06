@@ -164,6 +164,100 @@ def test_session_switch_over_10_min_autosaves_and_chains(tmp_path):
     assert len(active.get("chain_saved_segments") or []) == 1
 
 
+def test_session_retarget_updates_none_session_without_restart(tmp_path):
+    root = _prepare_temp_root(tmp_path)
+    app = create_app(root)
+    client = app.test_client()
+    storage = app.config["storage"]
+
+    start_res = client.post(
+        "/api/session/start",
+        json={
+            "activity": "Etc",
+            "sub_activity": "Etc",
+            "title": "quick-start",
+        },
+    )
+    assert start_res.status_code == 200
+    started = start_res.get_json()["session"]
+    started_id = started["session_id"]
+    started_at = started["start_at"]
+
+    before_count = len(_session_events(storage))
+    retarget_res = client.post(
+        "/api/session/retarget",
+        json={
+            "activity": "Song",
+            "sub_activity": "SongPractice",
+            "song_library_id": "L0001",
+            "title": "song-a",
+        },
+    )
+    assert retarget_res.status_code == 200
+    payload = retarget_res.get_json()
+    assert payload["retargeted"] is True
+
+    active = client.get("/api/hud/summary").get_json()["summary"]["active_session"]
+    assert active.get("session_id") == started_id
+    assert active.get("start_at") == started_at
+    assert active.get("activity") == "Song"
+    assert active.get("song_library_id") == "L0001"
+    assert active.get("drill_id") == ""
+
+    after_count = len(_session_events(storage))
+    assert after_count == before_count
+
+
+def test_session_retarget_fails_without_active_session(tmp_path):
+    root = _prepare_temp_root(tmp_path)
+    app = create_app(root)
+    client = app.test_client()
+
+    res = client.post(
+        "/api/session/retarget",
+        json={
+            "activity": "Song",
+            "sub_activity": "SongPractice",
+            "song_library_id": "L0001",
+        },
+    )
+    assert res.status_code == 400
+    payload = res.get_json()
+    assert payload["ok"] is False
+    assert "No active session" in payload["message"]
+
+
+def test_session_retarget_fails_when_target_already_exists(tmp_path):
+    root = _prepare_temp_root(tmp_path)
+    app = create_app(root)
+    client = app.test_client()
+
+    start_res = client.post(
+        "/api/session/start",
+        json={
+            "activity": "Song",
+            "sub_activity": "SongPractice",
+            "song_library_id": "L0001",
+            "title": "song-a",
+        },
+    )
+    assert start_res.status_code == 200
+
+    retarget_res = client.post(
+        "/api/session/retarget",
+        json={
+            "activity": "Song",
+            "sub_activity": "SongPractice",
+            "song_library_id": "L0002",
+            "title": "song-b",
+        },
+    )
+    assert retarget_res.status_code == 400
+    payload = retarget_res.get_json()
+    assert payload["ok"] is False
+    assert payload["message"] == "use switch"
+
+
 def test_session_finalize_include_exclude_saved_events(tmp_path):
     root = _prepare_temp_root(tmp_path)
     app = create_app(root)

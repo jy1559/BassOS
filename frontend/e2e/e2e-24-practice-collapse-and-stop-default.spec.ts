@@ -1,6 +1,20 @@
 import { expect, test, type APIRequestContext } from "@playwright/test";
 import { gotoCoreTab, openApp, resetRuntime } from "./helpers";
 
+async function openStopDetails(page: import("@playwright/test").Page, prefix: "dashboard" | "studio"): Promise<void> {
+  const detailToggle = page.locator(`[data-testid='${prefix}-stop-detail-toggle']`);
+  const deadline = Date.now() + 10000;
+  while (!(await detailToggle.isVisible()) && Date.now() < deadline) {
+    const setTimeBtn = page.getByRole("button", { name: /시간 지정|Set Time/i }).first();
+    if (await setTimeBtn.isVisible()) {
+      await setTimeBtn.click();
+    }
+    await page.waitForTimeout(120);
+  }
+  await expect(detailToggle).toBeVisible();
+  await detailToggle.click();
+}
+
 async function pickTargetSession(request: APIRequestContext): Promise<{
   payload: Record<string, string>;
   expectedActivity: "Song" | "Drill";
@@ -65,7 +79,7 @@ test("E2E-24 stop modal defaults to None when session started without target", a
   await openApp(page, 1366, 768);
   await gotoCoreTab(page, "dashboard");
   await page.locator("[data-testid='dashboard-stop-session']").click();
-  await page.locator("[data-testid='dashboard-stop-detail-toggle']").click();
+  await openStopDetails(page, "dashboard");
   await expect(page.locator("[data-testid='dashboard-stop-activity']")).toHaveValue("None");
 });
 
@@ -80,6 +94,6 @@ test("E2E-24 stop modal keeps target activity default when session started with 
   await openApp(page, 1366, 768);
   await gotoCoreTab(page, "dashboard");
   await page.locator("[data-testid='dashboard-stop-session']").click();
-  await page.locator("[data-testid='dashboard-stop-detail-toggle']").click();
+  await openStopDetails(page, "dashboard");
   await expect(page.locator("[data-testid='dashboard-stop-activity']")).toHaveValue(target.expectedActivity);
 });

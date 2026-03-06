@@ -3,7 +3,8 @@ import { gotoCoreTab, openApp, resetRuntime } from "./helpers";
 
 test("E2E-25 global session pip timer is visible and draggable", async ({ page, request }) => {
   await resetRuntime(request);
-  await request.post("/api/session/start", { data: {} });
+  const startedAt = new Date(Date.now() - 15 * 60 * 1000).toISOString();
+  await request.post("/api/session/start", { data: { start_at: startedAt } });
 
   await openApp(page, 1366, 768);
   await gotoCoreTab(page, "dashboard");
@@ -11,6 +12,13 @@ test("E2E-25 global session pip timer is visible and draggable", async ({ page, 
   const pip = page.locator("[data-testid='global-session-pip']");
   await expect(pip).toBeVisible();
   await expect(page.locator("[data-testid='global-session-pip-stop']")).toBeVisible();
+  await expect(page.locator("[data-testid='global-metronome-pip-inline']")).toBeVisible();
+  await expect(page.locator("[data-testid='global-metronome-pip-floating']")).toHaveCount(0);
+
+  await page.getByRole("button", { name: /접기|collapse/i }).click();
+  await expect(page.locator("[data-testid='global-metronome-pip-inline']")).toHaveCount(0);
+  await page.getByRole("button", { name: /펼치기|expand/i }).click();
+  await expect(page.locator("[data-testid='global-metronome-pip-inline']")).toBeVisible();
 
   const beforeBox = await pip.boundingBox();
   expect(beforeBox).not.toBeNull();

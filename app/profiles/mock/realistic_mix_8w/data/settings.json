@@ -1,5 +1,5 @@
 {
-  "policy_version": 12,
+  "policy_version": 13,
   "app": {
     "name": "Bass Practice Game",
     "version": "1.0",
@@ -10,7 +10,7 @@
     "session": {
       "per_min": 3
     },
-    "display_scale": 4000,
+    "display_scale": 50,
     "bonus": {
       "core_warmup": 8,
       "metronome_24": 6,
@@ -36,12 +36,12 @@
   },
   "level_curve": {
     "type": "decade_linear",
-    "base": 220,
-    "slope": 5,
-    "step_10": 50,
-    "step_20": 110,
-    "step_30": 240,
-    "step_40": 434,
+    "base": 174,
+    "slope": 4,
+    "step_10": 40,
+    "step_20": 90,
+    "step_30": 200,
+    "step_40": 347,
     "max_level": 50,
     "rank_thresholds": [
       {
@@ -233,7 +233,20 @@
         "border": "#59606a",
         "fill": "#f0f2f5"
       }
-    }
+    },
+    "practice_video_pip_mode": "mini",
+    "practice_video_tab_switch_playback": "continue",
+    "session_timer_pip_corner": "bottom-right",
+    "notify_level_up": true,
+    "notify_achievement_unlock": true,
+    "notify_quest_complete": true,
+    "fx_level_up_overlay": true,
+    "fx_achievement_unlock": true,
+    "fx_quest_complete": true,
+    "fx_session_complete_normal": true,
+    "fx_session_complete_quick": false,
+    "fx_claim_achievement": true,
+    "fx_claim_quest": true
   },
   "audio": {
     "enabled": false,

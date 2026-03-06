@@ -91,6 +91,7 @@ export type SessionStopModalProps = {
     chain_under_min_count?: number;
   };
   testIdPrefix?: string;
+  forceShowEditor?: boolean;
   notify: (message: string, type?: "success" | "error" | "info") => void;
   onClose: () => void;
   onSaved?: (result: SessionStopResult) => Promise<void> | void;
@@ -105,6 +106,7 @@ export function SessionStopModal({
   drills,
   activeSession,
   testIdPrefix = "session",
+  forceShowEditor = false,
   notify,
   onClose,
   onSaved,
@@ -132,6 +134,8 @@ export function SessionStopModal({
   const [showDetails, setShowDetails] = useState(false);
   const [includeSavedMap, setIncludeSavedMap] = useState<Record<string, boolean>>({});
   const [includeCurrent, setIncludeCurrent] = useState(true);
+  const [showUnderMinGate, setShowUnderMinGate] = useState(false);
+  const [showUnderMinAlert, setShowUnderMinAlert] = useState(false);
   const wasOpenRef = useRef(false);
 
   const chainSavedSegments = useMemo(() => {
@@ -146,6 +150,8 @@ export function SessionStopModal({
     if (!open) {
       wasOpenRef.current = false;
       setShowDetails(false);
+      setShowUnderMinGate(false);
+      setShowUnderMinAlert(false);
       return;
     }
     if (wasOpenRef.current) return;
@@ -184,7 +190,11 @@ export function SessionStopModal({
     }
     setStartAtInput(startValue);
     setEndAtInput(toDatetimeLocalInput(undefined, endDate));
-  }, [open, activeSession]);
+    const activeStart = new Date(String(activeSession?.start_at || ""));
+    const activeElapsedMin = Number.isNaN(activeStart.getTime()) ? 0 : Math.max(0, Math.floor((Date.now() - activeStart.getTime()) / 60000));
+    setShowUnderMinGate(!forceShowEditor && activeElapsedMin < 10);
+    setShowUnderMinAlert(false);
+  }, [open, activeSession, forceShowEditor]);
 
   const sortedSongs = useMemo(
     () =>
@@ -253,6 +263,37 @@ export function SessionStopModal({
     return payload;
   };
 
+  const endWithoutSavingCurrent = async () => {
+    try {
+      setBusy(true);
+      const hasChainSavedSegments = chainSavedSegments.length > 0;
+      if (hasChainSavedSegments) {
+        const includeSavedEventIds = chainSavedSegments
+          .filter((item) => includeSavedMap[item.event_id] !== false)
+          .map((item) => item.event_id);
+        const result = await finalizeSession({
+          include_saved_event_ids: includeSavedEventIds,
+          include_current: false,
+        });
+        const totalXp = Number(result.summary?.total_xp || 0);
+        notify(
+          `${lang === "ko" ? "세션 저장 완료" : "Session saved"} (+${formatDisplayXp(totalXp, xpDisplayScale)} XP)`,
+          "success"
+        );
+        await onSaved?.(result);
+      } else {
+        await discardSession();
+        notify(lang === "ko" ? "저장하지 않고 종료했습니다." : "Session ended without saving.", "info");
+        await onDiscarded?.();
+      }
+      onClose();
+    } catch (error) {
+      notify(error instanceof Error ? error.message : "Discard failed", "error");
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const saveAndStop = async () => {
     const start = new Date(startAtInput);
     let end = new Date(endAtInput);
@@ -265,10 +306,6 @@ export function SessionStopModal({
       setEndAtInput(toDatetimeLocalInput(undefined, end));
     }
     const durationMin = Math.max(0, Math.floor((end.getTime() - start.getTime()) / 60000));
-    const underMinConfirmText =
-      lang === "ko"
-        ? "10분 미만의 세션은 저장되지 않습니다. 종료하시겠습니까?"
-        : "Sessions under 10 minutes are not saved. End this session?";
 
     try {
       setBusy(true);
@@ -277,17 +314,16 @@ export function SessionStopModal({
       payload.end_at = end.toISOString();
 
       const hasChainSavedSegments = chainSavedSegments.length > 0;
+      const includeCurrentFinal = hasChainSavedSegments ? includeCurrent : true;
+      if (includeCurrentFinal && durationMin < 10) {
+        setShowUnderMinAlert(true);
+        return;
+      }
+
       if (hasChainSavedSegments) {
         const includeSavedEventIds = chainSavedSegments
           .filter((item) => includeSavedMap[item.event_id] !== false)
           .map((item) => item.event_id);
-        let includeCurrentFinal = includeCurrent;
-
-        if (includeCurrentFinal && durationMin < 10) {
-          const go = window.confirm(underMinConfirmText);
-          if (!go) return;
-          includeCurrentFinal = false;
-        }
 
         if (includeCurrentFinal) {
           if (evidenceMode === "file" && file) {
@@ -315,16 +351,6 @@ export function SessionStopModal({
           "success"
         );
         await onSaved?.(result);
-        onClose();
-        return;
-      }
-
-      if (durationMin < 10) {
-        const go = window.confirm(underMinConfirmText);
-        if (!go) return;
-        await discardSession();
-        notify(lang === "ko" ? "저장하지 않고 종료했습니다." : "Session ended without saving.", "info");
-        await onDiscarded?.();
         onClose();
         return;
       }
@@ -360,6 +386,28 @@ export function SessionStopModal({
     if (!open) return;
     const onKeyDown = (event: KeyboardEvent) => {
       if (busy) return;
+      if (showUnderMinAlert) {
+        if (event.key === "Escape" || event.key === "Enter" || event.key === " " || event.key === "Spacebar") {
+          if (isEditableTarget(event.target)) return;
+          event.preventDefault();
+          setShowUnderMinAlert(false);
+        }
+        return;
+      }
+      if (showUnderMinGate) {
+        if (event.key === "Escape" || event.key === " " || event.key === "Spacebar") {
+          if (isEditableTarget(event.target)) return;
+          event.preventDefault();
+          onClose();
+          return;
+        }
+        if (event.key === "Enter" && !event.shiftKey) {
+          if (isEditableTarget(event.target)) return;
+          event.preventDefault();
+          void endWithoutSavingCurrent();
+        }
+        return;
+      }
       if (event.key === "Escape") {
         event.preventDefault();
         onClose();
@@ -375,19 +423,51 @@ export function SessionStopModal({
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [busy, onClose, open, saveAndStop]);
+  }, [busy, endWithoutSavingCurrent, onClose, open, saveAndStop, showUnderMinAlert, showUnderMinGate]);
 
   if (!open) return null;
 
   return (
-    <div className="modal-backdrop">
-      <div className="modal">
-        <h3>{lang === "ko" ? "종료하시겠습니까?" : "Finish session?"}</h3>
-        <small className="muted">
-          {lang === "ko" ? "Enter/Space 저장 · Esc 닫기" : "Enter/Space to save · Esc to close"}
-        </small>
+    <>
+      <div className="modal-backdrop">
+        <div className="modal">
+          <h3>{lang === "ko" ? "종료하시겠습니까?" : "Finish session?"}</h3>
+          {showUnderMinGate ? (
+            <small className="muted">
+              {lang === "ko" ? "Enter 저장하지 않고 종료 · Esc/Space 닫기" : "Enter ends without save · Esc/Space closes"}
+            </small>
+          ) : (
+            <small className="muted">
+              {lang === "ko" ? "Enter/Space 저장 · Esc 닫기" : "Enter/Space to save · Esc to close"}
+            </small>
+          )}
 
-        <div className="song-form-grid">
+          {showUnderMinGate ? (
+            <>
+              <p>{lang === "ko" ? "10분 미만의 세션은 저장되지 않습니다. 종료하시겠습니까?" : "Sessions under 10 minutes are not saved. End this session?"}</p>
+              <div className="modal-actions">
+                <button type="button" className="danger-btn" onClick={() => void endWithoutSavingCurrent()} disabled={busy}>
+                  {lang === "ko" ? "저장하지 않고 종료" : "End Without Save"}
+                </button>
+                <button
+                  type="button"
+                  className="primary-btn"
+                  onClick={() => {
+                    setShowUnderMinGate(false);
+                    setShowDetails(true);
+                  }}
+                  disabled={busy}
+                >
+                  {lang === "ko" ? "시간 지정" : "Set Time"}
+                </button>
+                <button type="button" className="ghost-btn" onClick={onClose} disabled={busy}>
+                  {lang === "ko" ? "닫기" : "Close"}
+                </button>
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="song-form-grid">
           <label>
             {lang === "ko" ? "시작 시각" : "Start Time"}
             <input
@@ -683,7 +763,22 @@ export function SessionStopModal({
             {lang === "ko" ? "닫기" : "Close"}
           </button>
         </div>
+            </>
+          )}
+        </div>
       </div>
-    </div>
+      {showUnderMinAlert ? (
+        <div className="modal-backdrop mini-alert-backdrop" onClick={() => setShowUnderMinAlert(false)}>
+          <div className="modal mini-alert-modal" onClick={(event) => event.stopPropagation()}>
+            <p>{lang === "ko" ? "10분 미만의 세션은 저장되지 않습니다." : "Sessions under 10 minutes are not saved."}</p>
+            <div className="modal-actions">
+              <button type="button" className="ghost-btn" onClick={() => setShowUnderMinAlert(false)}>
+                {lang === "ko" ? "확인" : "OK"}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+    </>
   );
 }

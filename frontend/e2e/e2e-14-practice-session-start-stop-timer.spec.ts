@@ -19,6 +19,25 @@ async function selectAnyTarget(page: import("@playwright/test").Page): Promise<v
     .toBeTruthy();
 }
 
+async function ensureStopEditorVisible(page: import("@playwright/test").Page, prefix: "dashboard" | "studio"): Promise<void> {
+  const startAtInput = page.locator(`[data-testid='${prefix}-stop-start-at']`);
+  if (await startAtInput.isVisible()) return;
+  const setTimeBtn = page.getByRole("button", { name: /시간 지정|Set Time/i }).first();
+  if (await setTimeBtn.isVisible()) {
+    await setTimeBtn.click();
+  }
+  await expect(startAtInput).toBeVisible();
+}
+
+async function discardStopModal(page: import("@playwright/test").Page): Promise<void> {
+  const gateDiscard = page.getByRole("button", { name: /저장하지 않고 종료|End Without Save/i }).first();
+  if (await gateDiscard.isVisible()) {
+    await gateDiscard.click();
+    return;
+  }
+  await page.locator("[data-testid='studio-stop-discard']").click();
+}
+
 test("E2E-14 practice session start/stop timer + stop modal actions", async ({ page, request }) => {
   await resetRuntime(request);
   await openApp(page, 1366, 768);
@@ -44,6 +63,7 @@ test("E2E-14 practice session start/stop timer + stop modal actions", async ({ p
   await page.locator("[data-testid='studio-stop-session']").click();
   const modal = page.locator(".modal");
   await expect(modal).toContainText(/종료하시겠습니까|Finish session/i);
+  await ensureStopEditorVisible(page, "studio");
   await expect(page.locator("[data-testid='studio-stop-start-at']")).toBeVisible();
   await expect(page.locator("[data-testid='studio-stop-end-at']")).toBeVisible();
   const startRaw = await page.locator("[data-testid='studio-stop-start-at']").inputValue();
@@ -70,7 +90,7 @@ test("E2E-14 practice session start/stop timer + stop modal actions", async ({ p
   await startBtn.click();
   await expect(page.locator("[data-testid='studio-stop-session']")).toBeVisible();
   await page.locator("[data-testid='studio-stop-session']").click();
-  await page.locator("[data-testid='studio-stop-discard']").click();
+  await discardStopModal(page);
   await expect(page.locator("[data-testid='studio-stop-session']")).toBeHidden();
 
   const sessionsAfterDiscard = await request.get("/api/sessions?limit=200");

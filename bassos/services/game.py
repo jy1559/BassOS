@@ -280,6 +280,61 @@ class GameService:
         self.storage.write_session_state(state)
         return state
 
+    def retarget_session(self, payload: dict[str, Any] | None = None) -> dict[str, Any]:
+        active = self._active_session_state()
+        if not active.get("session_id"):
+            raise ValueError("No active session")
+
+        has_song_target = bool(str(active.get("song_library_id") or "").strip())
+        has_drill_target = bool(str(active.get("drill_id") or "").strip())
+        if has_song_target or has_drill_target:
+            raise ValueError("use switch")
+
+        active_activity, _active_sub_activity = _canonical_session_activity(
+            str(active.get("activity") or ""),
+            str(active.get("sub_activity") or ""),
+        )
+        if active_activity != "Etc":
+            raise ValueError("use switch")
+
+        payload = payload or {}
+        next_activity, next_sub_activity = _canonical_session_activity(
+            str(payload.get("activity") or ""),
+            str(payload.get("sub_activity") or ""),
+        )
+        next_song_id = str(payload.get("song_library_id") or "").strip()
+        next_drill_id = str(payload.get("drill_id") or "").strip()
+
+        if next_activity == "Song":
+            if not next_song_id:
+                raise ValueError("song_library_id is required")
+            next_drill_id = ""
+        elif next_activity == "Drill":
+            if not next_drill_id:
+                raise ValueError("drill_id is required")
+            next_song_id = ""
+        else:
+            raise ValueError("retarget requires song or drill target")
+
+        next_state = dict(active)
+        next_state["activity"] = next_activity
+        next_state["sub_activity"] = next_sub_activity
+        next_state["song_library_id"] = next_song_id
+        next_state["drill_id"] = next_drill_id
+        if "title" in payload:
+            next_state["title"] = str(payload.get("title") or "")
+        if "notes" in payload:
+            next_state["notes"] = str(payload.get("notes") or "")
+
+        chain_saved_segments = self._coerce_chain_segments(next_state.get("chain_saved_segments"))
+        next_state["chain_saved_segments"] = chain_saved_segments
+        next_state["chain_saved_count"] = len(chain_saved_segments)
+        next_state["chain_under_min_count"] = max(0, to_int(next_state.get("chain_under_min_count"), 0))
+        next_state["chain_count"] = len(chain_saved_segments)
+
+        self.storage.write_session_state(next_state)
+        return {"retargeted": True, "session": self._active_session_state(next_state)}
+
     def discard_session(self, chain_mode: str = "last", settings: dict[str, Any] | None = None) -> dict[str, Any]:
         active = self._active_session_state()
         removed_saved_count = 0

@@ -47,6 +47,7 @@ const MetronomeContext = createContext<MetronomeContextValue | null>(null);
 
 const BPM_MIN = 30;
 const BPM_MAX = 260;
+const PIP_AUTO_START_SEEN = new Set<string>();
 
 function parseAccentBeats(raw: string, signatureTop: number): Set<number> {
   const parsed = raw
@@ -277,15 +278,30 @@ export function useMetronome(): MetronomeContextValue {
 export function MetronomePipPanel({
   placement = "inline",
   visible = true,
+  forceVisible = false,
+  autoStartToken = "",
 }: {
   placement?: "inline" | "floating";
   visible?: boolean;
+  forceVisible?: boolean;
+  autoStartToken?: string;
 }) {
   const metro = useMetronome();
   const beats = Array.from({ length: metro.signatureTop }).map((_, idx) => idx + 1);
   const accentSet = useMemo(() => parseAccentBeats(metro.accentInput, metro.signatureTop), [metro.accentInput, metro.signatureTop]);
 
-  if (!visible || (!metro.running && !metro.open)) return null;
+  useEffect(() => {
+    const token = String(autoStartToken || "").trim();
+    if (!token) return;
+    if (PIP_AUTO_START_SEEN.has(token)) return;
+    PIP_AUTO_START_SEEN.add(token);
+    if (!metro.running) {
+      void metro.start();
+    }
+  }, [autoStartToken, metro]);
+
+  if (!visible) return null;
+  if (!forceVisible && !metro.running && !metro.open) return null;
 
   const panel = (
     <div
@@ -339,33 +355,38 @@ export function MetronomePipPanel({
   return panel;
 }
 
-export function GlobalMetronomeDock() {
+export function GlobalMetronomeDock({ embedded = false }: { embedded?: boolean }) {
   const metro = useMetronome();
   const beats = Array.from({ length: metro.signatureTop }).map((_, idx) => idx + 1);
   const accentSet = useMemo(() => parseAccentBeats(metro.accentInput, metro.signatureTop), [metro.accentInput, metro.signatureTop]);
+  const showDock = embedded || metro.open;
 
   return (
-    <div className="metronome-inline">
-      <button
-        className={`metronome-toggle ${metro.running ? "running" : ""}`}
-        onClick={() => metro.setOpen(!metro.open)}
-        title={metro.open ? "메트로놈 닫기" : "메트로놈 열기"}
-      >
-        <span>메트로놈</span>
-        <strong>{metro.running ? `${metro.beat}/${metro.signatureTop}` : "OFF"}</strong>
-      </button>
+    <div className={`metronome-inline ${embedded ? "embedded" : ""}`}>
+      {!embedded ? (
+        <button
+          className={`metronome-toggle ${metro.running ? "running" : ""}`}
+          onClick={() => metro.setOpen(!metro.open)}
+          title={metro.open ? "메트로놈 닫기" : "메트로놈 열기"}
+        >
+          <span>메트로놈</span>
+          <strong>{metro.running ? `${metro.beat}/${metro.signatureTop}` : "OFF"}</strong>
+        </button>
+      ) : null}
 
-      {metro.open ? (
-        <aside className="metronome-dock card">
+      {showDock ? (
+        <aside className={`metronome-dock card ${embedded ? "embedded" : ""}`}>
           <div className="row">
             <strong>Metronome</strong>
             <div className="row">
               <button className="tiny-info" onClick={() => metro.setShowAdvanced(!metro.showAdvanced)} title="고급 설정">
                 ⚙
               </button>
-              <button className="tiny-info" onClick={() => metro.setOpen(false)} title="닫기">
-                ×
-              </button>
+              {!embedded ? (
+                <button className="tiny-info" onClick={() => metro.setOpen(false)} title="닫기">
+                  ×
+                </button>
+              ) : null}
             </div>
           </div>
 

@@ -925,6 +925,16 @@ def session_switch() -> Response:
     return jsonify({"ok": True, **result})
 
 
+@api_bp.post("/session/retarget")
+def session_retarget() -> Response:
+    payload = request.get_json(silent=True) or {}
+    try:
+        result = _game().retarget_session(payload)
+    except ValueError as exc:
+        return jsonify({"ok": False, "message": str(exc)}), 400
+    return jsonify({"ok": True, **result})
+
+
 @api_bp.post("/session/stop")
 def session_stop() -> Response:
     payload = request.get_json(silent=True) or {}
