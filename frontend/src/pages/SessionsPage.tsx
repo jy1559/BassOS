@@ -4,10 +4,12 @@ import { RecordPeriodToolbar } from "../components/records/RecordPeriodToolbar";
 import { RecordTabHeader } from "../components/records/RecordTabHeader";
 import { buildRecordPeriodWindow, createDefaultRecordPeriodState, inRecordPeriodWindow } from "../components/records/recordPeriod";
 import type { Lang } from "../i18n";
-import type { RecordPeriodState, SessionItem } from "../types/models";
+import type { RecordPeriodState, SessionItem, Settings } from "../types/models";
+import { formatDisplayXp, getXpDisplayScale } from "../utils/xpDisplay";
 
 type Props = {
   lang: Lang;
+  settings: Settings;
   notify: (message: string, type?: "success" | "error" | "info") => void;
   onRefresh: () => Promise<void>;
 };
@@ -112,7 +114,7 @@ function songOrDrillLabel(session: SessionItem): string {
   return "-";
 }
 
-export function SessionsPage({ lang, notify, onRefresh }: Props) {
+export function SessionsPage({ lang, settings, notify, onRefresh }: Props) {
   const [sessions, setSessions] = useState<SessionItem[]>([]);
   const [periodState, setPeriodState] = useState<RecordPeriodState>(() => createDefaultRecordPeriodState());
   const [activityFilter, setActivityFilter] = useState<"all" | "Song" | "Drill" | "Etc">("all");
@@ -127,6 +129,7 @@ export function SessionsPage({ lang, notify, onRefresh }: Props) {
     notes: "",
     tags: "",
   });
+  const xpDisplayScale = getXpDisplayScale(settings);
 
   const load = async () => {
     setLoading(true);
@@ -210,7 +213,7 @@ export function SessionsPage({ lang, notify, onRefresh }: Props) {
           <div><span>{lang === "ko" ? "세션" : "Sessions"}</span><strong>{summary.sessionsCount}</strong></div>
           <div><span>{lang === "ko" ? "총 시간(분)" : "Minutes"}</span><strong>{summary.totalDuration}</strong></div>
           <div><span>{lang === "ko" ? "평균 세션(분)" : "Avg"}</span><strong>{summary.avg}</strong></div>
-          <div><span>XP</span><strong>{summary.totalXp}</strong></div>
+          <div><span>XP</span><strong>{formatDisplayXp(summary.totalXp, xpDisplayScale)}</strong></div>
           <div><span>{lang === "ko" ? "노래 세션" : "Song Sessions"}</span><strong>{summary.songCount}</strong></div>
           <div><span>{lang === "ko" ? "드릴 세션" : "Drill Sessions"}</span><strong>{summary.drillCount}</strong></div>
         </div>
@@ -257,7 +260,7 @@ export function SessionsPage({ lang, notify, onRefresh }: Props) {
                     <td>{songOrDrillLabel(session)}</td>
                     <td>{paceText(session)}</td>
                     <td>{session.duration_min}</td>
-                    <td>{session.xp}</td>
+                    <td>{formatDisplayXp(session.xp, xpDisplayScale)}</td>
                     <td className="note-cell">{session.notes || "-"}</td>
                     <td>
                       <div className="row session-action-row">

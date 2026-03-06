@@ -34,7 +34,7 @@ import { DashboardPage } from "./pages/DashboardPage";
 import { DrillLibraryPage } from "./pages/DrillLibraryPage";
 import { GalleryPage } from "./pages/GalleryPage";
 import { OnboardingWizard } from "./pages/OnboardingWizard";
-import { PracticeStudioPage } from "./pages/PracticeStudioPage";
+import { PracticeStudioPage, type SessionPipVideoPayload } from "./pages/PracticeStudioPage";
 import { PracticeToolsPage } from "./pages/PracticeToolsPage";
 import { QuestsPage } from "./pages/QuestsPage";
 import { RecommendationsPage } from "./pages/RecommendationsPage";
@@ -44,6 +44,7 @@ import { SettingsPage } from "./pages/SettingsPage";
 import { SongsPage } from "./pages/SongsPage";
 import { XPPage } from "./pages/XPPage";
 import { TutorialOverlay } from "./components/tutorial/TutorialOverlay";
+import { SessionStopModal } from "./components/session/SessionStopModal";
 import { GlobalMetronomeDock, MetronomeProvider } from "./metronome";
 import { CORE_CAMPAIGN_ID, getTutorialCampaign } from "./tutorial/campaigns";
 import type { TutorialCampaign } from "./tutorial/types";
@@ -107,6 +108,7 @@ type FxOverlayPayload =
   | Omit<Extract<FxOverlayEvent, { kind: "session" }>, "id">;
 type TutorialRuntime = { campaign: TutorialCampaign; stepIndex: number };
 type FxBadgeTier = "bronze" | "silver" | "gold" | "platinum" | "diamond" | "challenger";
+type SessionPipCorner = "top-right" | "top-left" | "bottom-right" | "bottom-left";
 
 function preventBrowserReload() {
   window.addEventListener("keydown", (event) => {
@@ -153,6 +155,21 @@ function fxTierLabel(tier: FxBadgeTier, lang: Lang): string {
   return "Challenger";
 }
 
+function fmtSec(totalSec: number): string {
+  const safe = Math.max(0, totalSec);
+  const mm = String(Math.floor(safe / 60)).padStart(2, "0");
+  const ss = String(safe % 60).padStart(2, "0");
+  return `${mm}:${ss}`;
+}
+
+function activityName(activity: string | undefined, lang: Lang): string {
+  const raw = String(activity || "").trim().toLowerCase();
+  if (raw === "song") return lang === "ko" ? "곡 연습" : "Song Practice";
+  if (raw === "drill") return lang === "ko" ? "드릴 연습" : "Drill Practice";
+  if (raw === "etc") return lang === "ko" ? "기타 활동" : "Other";
+  return lang === "ko" ? "선택 없음" : "No target";
+}
+
 export default function App() {
   const [tab, setTab] = useState<TabId>("dashboard");
   const [navOpen, setNavOpen] = useState<Record<NavGroupId, boolean>>({
@@ -181,6 +198,9 @@ export default function App() {
   const [toasts, setToasts] = useState<Toast[]>([]);
   const [fxQueue, setFxQueue] = useState<FxOverlayEvent[]>([]);
   const [activeFx, setActiveFx] = useState<FxOverlayEvent | null>(null);
+  const [showGlobalStopModal, setShowGlobalStopModal] = useState(false);
+  const [sessionPipElapsedSec, setSessionPipElapsedSec] = useState(0);
+  const [sessionPipVideo, setSessionPipVideo] = useState<SessionPipVideoPayload | null>(null);
 
   const signalReadyRef = useRef(false);
   const prevLevelRef = useRef(0);
@@ -193,6 +213,9 @@ export default function App() {
 
   const lang = (settings?.ui?.language ?? "ko") as Lang;
   const xpDisplayScale = getXpDisplayScale(settings);
+  const activeSessionId = hud?.active_session?.session_id || "";
+  const activeSessionStartMs = hud?.active_session?.start_at ? new Date(hud.active_session.start_at).getTime() : 0;
+  const sessionPipCorner = ((settings?.ui?.session_timer_pip_corner as SessionPipCorner) || "bottom-right") as SessionPipCorner;
 
   const switchTab = (nextTab: TabId) => {
     if (tab === "practice" && contentRef.current) {
@@ -605,6 +628,19 @@ export default function App() {
   }, [activeFx]);
 
   useEffect(() => {
+    if (!activeSessionId || !activeSessionStartMs) {
+      setSessionPipElapsedSec(0);
+      setShowGlobalStopModal(false);
+      setSessionPipVideo(null);
+      return;
+    }
+    const tick = () => setSessionPipElapsedSec(Math.max(0, Math.floor((Date.now() - activeSessionStartMs) / 1000)));
+    tick();
+    const timer = window.setInterval(tick, 1000);
+    return () => window.clearInterval(timer);
+  }, [activeSessionId, activeSessionStartMs]);
+
+  useEffect(() => {
     if (!settings) return;
     configureGenreCatalog({
       groups: Array.isArray(settings.ui?.song_genre_groups) ? settings.ui.song_genre_groups : null,
@@ -626,6 +662,13 @@ export default function App() {
       notify(error instanceof Error ? error.message : "Failed to save setting", "error");
       void loadAll();
     }
+  };
+
+  const cycleSessionPipCorner = () => {
+    const corners: SessionPipCorner[] = ["top-right", "top-left", "bottom-left", "bottom-right"];
+    const currentIndex = corners.indexOf(sessionPipCorner);
+    const next = corners[(currentIndex + 1 + corners.length) % corners.length];
+    void patchUiSettings({ session_timer_pip_corner: next });
   };
 
   const onSessionCompleted = (result: SessionStopResult, source: "normal" | "quick") => {
@@ -742,6 +785,41 @@ export default function App() {
     [lang]
   );
 
+  const globalStopDrills = useMemo(() => {
+    if (!catalogs) return [];
+    const seen = new Set<string>();
+    return [...catalogs.drills, ...catalogs.drill_library].filter((item) => {
+      const id = String(item.drill_id || "").trim();
+      if (!id || seen.has(id)) return false;
+      seen.add(id);
+      return true;
+    });
+  }, [catalogs]);
+
+  const sessionPipTaskLabel = useMemo(() => {
+    const active = hud?.active_session;
+    if (!active?.session_id) return activityName(undefined, lang);
+    if (active.song_library_id) {
+      const song = catalogs?.song_library.find((item) => String(item.library_id || "") === String(active.song_library_id || ""));
+      return String(song?.title || active.song_library_id || activityName(active.activity, lang));
+    }
+    if (active.drill_id) {
+      const drill = [...(catalogs?.drills || []), ...(catalogs?.drill_library || [])].find(
+        (item) => String(item.drill_id || "") === String(active.drill_id || "")
+      );
+      return String(drill?.name || active.drill_id || activityName(active.activity, lang));
+    }
+    const rawActivity = String(active.activity || "").trim().toLowerCase();
+    const rawSubActivity = String(active.sub_activity || "").trim().toLowerCase();
+    if (rawActivity === "etc") {
+      if (!rawSubActivity || rawSubActivity === "etc") return activityName(undefined, lang);
+      if (rawSubActivity === "songdiscovery") return lang === "ko" ? "곡 탐색" : "Song discovery";
+      if (rawSubActivity === "community") return lang === "ko" ? "커뮤니티" : "Community";
+      if (rawSubActivity === "gear") return lang === "ko" ? "장비" : "Gear";
+    }
+    return activityName(active.activity, lang);
+  }, [catalogs, hud?.active_session, lang]);
+
   if (!settings || !hud || !catalogs) {
     return <div className="screen-center">Loading BassOS...</div>;
   }
@@ -851,6 +929,50 @@ export default function App() {
             </div>
           </header>
 
+          {activeSessionId ? (
+            <div className={`session-timer-pip ${sessionPipCorner}`} data-testid="global-session-pip">
+              <div className="session-timer-pip-title">
+                {lang === "ko" ? "세션 진행중" : "Session Active"} - {sessionPipTaskLabel}
+              </div>
+              <div className="session-timer-pip-head">
+                <strong>{fmtSec(sessionPipElapsedSec)}</strong>
+                <div className="session-timer-pip-actions">
+                  <button type="button" className="ghost-btn compact-add-btn" onClick={cycleSessionPipCorner}>
+                    {lang === "ko" ? "위치" : "Corner"}
+                  </button>
+                  <button
+                    type="button"
+                    className="danger-btn session-timer-pip-stop"
+                    data-testid="global-session-pip-stop"
+                    onClick={() => setShowGlobalStopModal(true)}
+                  >
+                    {lang === "ko" ? "종료" : "Stop"}
+                  </button>
+                </div>
+              </div>
+              {sessionPipVideo ? (
+                <button
+                  type="button"
+                  className="session-timer-pip-video"
+                  onClick={() => switchTab("practice")}
+                  title={lang === "ko" ? "연습 스튜디오로 이동" : "Go to practice studio"}
+                >
+                  {sessionPipVideo.thumb ? (
+                    <img src={sessionPipVideo.thumb} alt={sessionPipVideo.title} />
+                  ) : (
+                    <div className="session-timer-pip-video-fallback">♪</div>
+                  )}
+                  <span>
+                    <strong>{sessionPipVideo.title}</strong>
+                    <small>
+                      {sessionPipVideo.subtitle} · {sessionPipVideo.isPlaying ? (lang === "ko" ? "재생" : "Playing") : (lang === "ko" ? "일시정지" : "Paused")}
+                    </small>
+                  </span>
+                </button>
+              ) : null}
+            </div>
+          ) : null}
+
           {tab === "dashboard" ? (
             <DashboardPage
               lang={lang}
@@ -881,7 +1003,7 @@ export default function App() {
               pipMode={settings.ui.practice_video_pip_mode ?? "mini"}
               tabSwitchPlayback={settings.ui.practice_video_tab_switch_playback ?? "continue"}
               onPipModeChange={(nextMode) => void patchUiSettings({ practice_video_pip_mode: nextMode })}
-              onReturnToStudio={() => switchTab("practice")}
+              onSessionPipVideoChange={setSessionPipVideo}
               onSessionCompleted={(result) => onSessionCompleted(result, "normal")}
               xpDisplayScale={xpDisplayScale}
             />
@@ -898,7 +1020,7 @@ export default function App() {
               setMessage={(msg) => notify(msg, "success")}
             />
           ) : null}
-          {tab === "sessions" ? <SessionsPage lang={lang} notify={notify} onRefresh={loadAll} /> : null}
+          {tab === "sessions" ? <SessionsPage lang={lang} settings={settings} notify={notify} onRefresh={loadAll} /> : null}
           {tab === "review" ? (
             <ReviewPage
               lang={lang}
@@ -969,6 +1091,25 @@ export default function App() {
               onRefresh={loadAll}
             />
           ) : null}
+
+          <SessionStopModal
+            open={showGlobalStopModal}
+            lang={lang}
+            xpDisplayScale={xpDisplayScale}
+            songs={catalogs.song_library}
+            drills={globalStopDrills}
+            activeSession={hud.active_session}
+            testIdPrefix="global"
+            notify={notify}
+            onClose={() => setShowGlobalStopModal(false)}
+            onSaved={async (result) => {
+              onSessionCompleted(result, "normal");
+              await loadAll();
+            }}
+            onDiscarded={async () => {
+              await loadAll();
+            }}
+          />
 
           {tutorialRuntime ? (
             <TutorialOverlay

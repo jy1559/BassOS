@@ -1,6 +1,6 @@
 import type { Settings } from "../types/models";
 
-export const DEFAULT_XP_DISPLAY_SCALE = 4000;
+export const DEFAULT_XP_DISPLAY_SCALE = 50;
 
 export function getXpDisplayScale(settings: Settings | null | undefined): number {
   const xp = (settings?.xp as Record<string, unknown>) ?? {};

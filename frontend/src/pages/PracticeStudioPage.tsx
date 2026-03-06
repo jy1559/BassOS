@@ -1,10 +1,16 @@
 ﻿import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
-import { createPortal } from "react-dom";
 import { getRecords, getSessions, startSession } from "../api";
 import { SessionStopModal } from "../components/session/SessionStopModal";
 import type { Lang } from "../i18n";
 import type { HudSummary, RecordPost, SessionItem, SessionStopResult } from "../types/models";
 import { formatDisplayXp } from "../utils/xpDisplay";
+
+export type SessionPipVideoPayload = {
+  title: string;
+  subtitle: string;
+  thumb: string;
+  isPlaying: boolean;
+};
 
 type Props = {
   lang: Lang;
@@ -21,7 +27,7 @@ type Props = {
   pipMode: "mini" | "native" | "none";
   tabSwitchPlayback: "continue" | "pause" | "pip_only";
   onPipModeChange: (mode: "mini" | "native" | "none") => void;
-  onReturnToStudio: () => void;
+  onSessionPipVideoChange?: (payload: SessionPipVideoPayload | null) => void;
   onSessionCompleted?: (result: SessionStopResult) => void;
   xpDisplayScale?: number;
 };
@@ -373,9 +379,9 @@ export function PracticeStudioPage({
   pipMode,
   tabSwitchPlayback,
   onPipModeChange,
-  onReturnToStudio,
+  onSessionPipVideoChange,
   onSessionCompleted,
-  xpDisplayScale = 4000,
+  xpDisplayScale = 50,
 }: Props) {
   const [sessions, setSessions] = useState<SessionItem[]>([]);
   const [practiceType, setPracticeType] = useState<PracticeType>(hud.active_session?.drill_id ? "drill" : "song");
@@ -396,7 +402,7 @@ export function PracticeStudioPage({
   const [showFilters, setShowFilters] = useState(false);
   const [showLogs, setShowLogs] = useState(false);
   const [showBackingFilters, setShowBackingFilters] = useState(false);
-  const [showStartPanel, setShowStartPanel] = useState(true);
+  const [showStartPanel, setShowStartPanel] = useState(!Boolean(hud.active_session?.session_id));
   const [startStep, setStartStep] = useState<1 | 2>(1);
   const [zoomAsset, setZoomAsset] = useState<{ kind: "image" | "pdf"; url: string; title: string } | null>(null);
   const [showStopModal, setShowStopModal] = useState(false);
@@ -450,17 +456,25 @@ export function PracticeStudioPage({
   }, [songId, hud.total_xp]);
 
   useEffect(() => {
-    if (hud.active_session?.song_library_id) {
+    if (hud.active_session?.session_id && hud.active_session?.song_library_id) {
       setPracticeType("song");
       setSongId(hud.active_session.song_library_id);
       setStartStep(2);
+      setShowStartPanel(false);
+      return;
     }
-    if (hud.active_session?.drill_id) {
+    if (hud.active_session?.session_id && hud.active_session?.drill_id) {
       setPracticeType("drill");
       setDrillId(hud.active_session.drill_id);
       setStartStep(2);
+      setShowStartPanel(false);
+      return;
     }
-  }, [hud.active_session?.song_library_id, hud.active_session?.drill_id]);
+    if (hud.active_session?.session_id) {
+      setStartStep(2);
+      setShowStartPanel(false);
+    }
+  }, [hud.active_session?.session_id, hud.active_session?.song_library_id, hud.active_session?.drill_id]);
 
   const drillPool = useMemo(
     () => normalizeDrills(catalogs.drills, catalogs.drill_library),
@@ -593,9 +607,10 @@ export function PracticeStudioPage({
   }, [practiceType, useBackingTrack]);
 
   useEffect(() => {
+    if (hud.active_session?.session_id) return;
     if (practiceType === "song" && !songId) setShowStartPanel(true);
     if (practiceType === "drill" && !drillId) setShowStartPanel(true);
-  }, [practiceType, songId, drillId]);
+  }, [hud.active_session?.session_id, practiceType, songId, drillId]);
 
   const backingGenreOptions = useMemo(() => {
     return [
@@ -1426,10 +1441,11 @@ export function PracticeStudioPage({
 
   const hasSelectedTarget = (practiceType === "song" && Boolean(songId)) || (practiceType === "drill" && Boolean(drillId));
   const hasActiveSession = Boolean(hud.active_session?.session_id);
+  const hasSessionOrTarget = hasActiveSession || hasSelectedTarget;
   const targetLabel =
     practiceType === "song"
-      ? song?.title || (lang === "ko" ? "곡 미선택" : "No song selected")
-      : drill?.name || (lang === "ko" ? "드릴 미선택" : "No drill selected");
+      ? song?.title || (lang === "ko" ? "선택 곡 없음" : "No song selected")
+      : drill?.name || (lang === "ko" ? "선택 드릴 없음" : "No drill selected");
   const showMiniDock =
     !isActive &&
     practiceType === "song" &&
@@ -1471,36 +1487,20 @@ export function PracticeStudioPage({
     practiceType === "song" && songCover
       ? ({ ["--practice-song-bg" as string]: `url("${songCover.replace(/"/g, "%22")}")` } as CSSProperties)
       : undefined;
-  const miniPlayerPortal =
-    showMiniDock && typeof document !== "undefined"
-      ? createPortal(
-          <div className="studio-mini-player">
-            <div className="studio-mini-head">
-              <strong>{lang === "ko" ? "연습 스튜디오 (Mini)" : "Practice Studio (Mini)"}</strong>
-              <span>{isSongVideoPlaying ? (lang === "ko" ? "재생 중" : "Playing") : (lang === "ko" ? "일시정지" : "Paused")}</span>
-            </div>
-            <div className="studio-mini-body">
-              {miniThumb ? <img src={miniThumb} alt={song?.title || "mini-player"} /> : <div className="studio-mini-fallback">♪</div>}
-              <div className="studio-mini-meta">
-                <strong>{song?.title || (lang === "ko" ? "선택된 영상" : "Selected video")}</strong>
-                <small>{song?.artist || (lang === "ko" ? "연습 진행 중" : "Practice running")}</small>
-                <div className="row">
-                  <button type="button" className="ghost-btn compact-add-btn" onClick={toggleSongVideoPlayback}>
-                    {isSongVideoPlaying ? (lang === "ko" ? "일시정지" : "Pause") : (lang === "ko" ? "재생" : "Play")}
-                  </button>
-                  <button type="button" className="ghost-btn compact-add-btn" onClick={resetSongVideoToStart}>
-                    {lang === "ko" ? "처음으로" : "Restart"}
-                  </button>
-                </div>
-              </div>
-            </div>
-            <button type="button" className="primary-btn" onClick={onReturnToStudio}>
-              {lang === "ko" ? "연습 스튜디오로 복귀" : "Back to Studio"}
-            </button>
-          </div>,
-          document.body
-        )
-      : null;
+  useEffect(() => {
+    if (!onSessionPipVideoChange) return;
+    if (!showMiniDock) {
+      onSessionPipVideoChange(null);
+      return;
+    }
+    onSessionPipVideoChange({
+      title: song?.title || (lang === "ko" ? "선택된 영상" : "Selected video"),
+      subtitle: song?.artist || (isSongVideoPlaying ? (lang === "ko" ? "재생 중" : "Playing") : (lang === "ko" ? "일시정지" : "Paused")),
+      thumb: miniThumb,
+      isPlaying: isSongVideoPlaying,
+    });
+    return () => onSessionPipVideoChange(null);
+  }, [isSongVideoPlaying, lang, miniThumb, onSessionPipVideoChange, showMiniDock, song?.artist, song?.title]);
 
   return (
     <div
@@ -1521,7 +1521,7 @@ export function PracticeStudioPage({
                 <path d="M3 5h18l-7 8v5l-4 1v-6L3 5Z" />
               </svg>
             </button>
-            {hasSelectedTarget ? (
+            {hasSessionOrTarget ? (
               <button
                 className="ghost-btn compact-add-btn"
                 onClick={() => {
@@ -1535,7 +1535,7 @@ export function PracticeStudioPage({
           </div>
         </div>
 
-        {!showStartPanel && hasSelectedTarget ? (
+        {!showStartPanel && hasSessionOrTarget ? (
           <div className="practice-start-collapsed" data-testid="practice-start-collapsed">
             <strong>
               {practiceType === "song" ? (lang === "ko" ? "선택된 곡" : "Selected Song") : (lang === "ko" ? "선택된 드릴" : "Selected Drill")}
@@ -2153,7 +2153,6 @@ export function PracticeStudioPage({
           await onRefresh();
         }}
       />
-      {miniPlayerPortal}
     </div>
   );
 }

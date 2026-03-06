@@ -1708,6 +1708,130 @@ button:disabled {
   color: var(--muted);
 }
 
+.session-timer-pip {
+  position: fixed;
+  z-index: 28;
+  min-width: 330px;
+  max-width: min(420px, calc(100vw - 22px));
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--panel) 94%, #000);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.22);
+  padding: 10px 12px;
+  display: grid;
+  gap: 8px;
+}
+
+.session-timer-pip.top-right {
+  top: 14px;
+  right: 14px;
+}
+
+.session-timer-pip.top-left {
+  top: 14px;
+  left: calc(264px + 12px);
+}
+
+.session-timer-pip.bottom-right {
+  right: 14px;
+  bottom: 14px;
+}
+
+.session-timer-pip.bottom-left {
+  left: calc(264px + 12px);
+  bottom: 14px;
+}
+
+.session-timer-pip-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: color-mix(in srgb, var(--text) 90%, var(--accent));
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.session-timer-pip-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.session-timer-pip-head strong {
+  font-size: 20px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+}
+
+.session-timer-pip-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.session-timer-pip-stop {
+  min-height: 31px;
+  padding: 5px 10px;
+}
+
+.session-timer-pip-video {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--panel-2) 92%, var(--accent-soft));
+  padding: 6px;
+  display: grid;
+  grid-template-columns: 110px minmax(0, 1fr);
+  gap: 8px;
+  align-items: center;
+  text-align: left;
+  color: inherit;
+  cursor: pointer;
+}
+
+.session-timer-pip-video img,
+.session-timer-pip-video-fallback {
+  width: 110px;
+  height: 68px;
+  border-radius: 8px;
+}
+
+.session-timer-pip-video img {
+  object-fit: cover;
+  border: 1px solid color-mix(in srgb, var(--border) 80%, transparent);
+}
+
+.session-timer-pip-video-fallback {
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--border);
+  background: color-mix(in srgb, var(--panel) 82%, var(--accent-soft));
+  color: var(--muted);
+  font-size: 20px;
+}
+
+.session-timer-pip-video span {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+}
+
+.session-timer-pip-video span strong {
+  font-size: 13px;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.session-timer-pip-video span small {
+  color: var(--muted);
+  font-size: 11px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .modal-backdrop,
 .onboarding-overlay {
   position: fixed;
@@ -1727,6 +1851,62 @@ button:disabled {
   background: var(--panel);
   border: 1px solid var(--border);
   padding: 16px;
+}
+
+.quick-log-modal {
+  width: min(700px, 92vw);
+}
+
+.quick-log-layout {
+  display: grid;
+  gap: 12px;
+}
+
+.quick-log-time-row {
+  display: grid;
+  gap: 10px;
+}
+
+.quick-log-time-label {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.quick-log-duration-row {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  width: 100%;
+}
+
+.quick-duration-item {
+  width: 100%;
+  min-height: 34px;
+  min-width: 0;
+  padding: 6px 12px;
+  font-size: 13px;
+}
+
+.quick-log-custom-minutes {
+  width: 100%;
+}
+
+.quick-log-custom-minutes input {
+  width: 100%;
+}
+
+.quick-log-target-row {
+  grid-template-columns: 1fr 1fr;
+}
+
+@media (max-width: 720px) {
+  .quick-log-duration-row {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .quick-log-target-row {
+    grid-template-columns: 1fr;
+  }
 }
 
 .tutorial-title-chip {
@@ -7620,6 +7800,12 @@ textarea {
   .app-root {
     grid-template-columns: 230px 1fr;
   }
+  .session-timer-pip.top-left {
+    left: calc(230px + 12px);
+  }
+  .session-timer-pip.bottom-left {
+    left: calc(230px + 12px);
+  }
   .song-reference-dual {
     min-height: clamp(300px, 52vh, 620px);
   }
@@ -9662,6 +9848,35 @@ textarea {
   }
 }
 @media (max-width: 900px) {
+  .session-timer-pip {
+    min-width: 0;
+    width: min(380px, calc(100vw - 20px));
+  }
+  .session-timer-pip.top-left,
+  .session-timer-pip.bottom-left {
+    left: calc(230px + 8px);
+  }
+  .session-timer-pip.top-right,
+  .session-timer-pip.bottom-right {
+    right: 10px;
+  }
+  .session-timer-pip.top-left,
+  .session-timer-pip.top-right {
+    top: 10px;
+  }
+  .session-timer-pip.bottom-left,
+  .session-timer-pip.bottom-right {
+    bottom: 10px;
+  }
+  .session-timer-pip-video {
+    grid-template-columns: 92px minmax(0, 1fr);
+  }
+  .session-timer-pip-video img,
+  .session-timer-pip-video-fallback {
+    width: 92px;
+    height: 60px;
+  }
+
   .studio-mini-player {
     right: 10px;
     bottom: 10px;

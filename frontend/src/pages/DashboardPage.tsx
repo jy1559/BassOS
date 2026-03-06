@@ -1,4 +1,4 @@
-﻿import { useEffect, useMemo, useState, type CSSProperties, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useState, type CSSProperties, type ReactNode } from "react";
 import {
   claimQuest,
   getSessions,
@@ -48,6 +48,10 @@ type Props = {
 
 type MainActivity = "Song" | "Drill" | "Etc";
 type StartMode = "simple" | "song" | "drill";
+type QuickLogDurationPreset = "10" | "30" | "60" | "custom";
+type QuickLogTarget = "none" | "song" | "drill" | "etc";
+type DrillSubActivity = "Core" | "Funk" | "Slap" | "Theory";
+type EtcSubActivity = "SongDiscovery" | "Community" | "Gear" | "Etc";
 type BadgeTier = "bronze" | "silver" | "gold" | "platinum" | "diamond" | "challenger";
 type DashboardVersion = "legacy" | "focus";
 type DashboardWidgetKey =
@@ -167,6 +171,13 @@ function fmtSec(sec: number): string {
   const mm = String(Math.floor(sec / 60)).padStart(2, "0");
   const ss = String(sec % 60).padStart(2, "0");
   return `${mm}:${ss}`;
+}
+
+function isEditableTarget(target: EventTarget | null): boolean {
+  if (!(target instanceof HTMLElement)) return false;
+  const tag = target.tagName.toLowerCase();
+  if (tag === "input" || tag === "textarea" || tag === "select") return true;
+  return target.isContentEditable;
 }
 
 function imageUrl(item: DashboardPhotoItem | null): string {
@@ -321,6 +332,14 @@ export function DashboardPage({
   const [monthlyGoalMinutes, setMonthlyGoalMinutes] = useState(Number((settings.profile as Record<string, unknown>)?.monthly_goal_minutes ?? 420));
   const [lastCoachMessage, setLastCoachMessage] = useState("");
   const [lastNextWinHint, setLastNextWinHint] = useState("");
+  const [showQuickLogModal, setShowQuickLogModal] = useState(false);
+  const [quickLogBusy, setQuickLogBusy] = useState(false);
+  const [quickDurationPreset, setQuickDurationPreset] = useState<QuickLogDurationPreset>("10");
+  const [quickDurationCustom, setQuickDurationCustom] = useState("10");
+  const [quickTarget, setQuickTarget] = useState<QuickLogTarget>("none");
+  const [quickSongId, setQuickSongId] = useState("");
+  const [quickDrillSubActivity, setQuickDrillSubActivity] = useState<DrillSubActivity>("Core");
+  const [quickEtcSubActivity, setQuickEtcSubActivity] = useState<EtcSubActivity>("Etc");
 
   useEffect(() => {
     setWidgetLayout(normalizeWidgetLayout(activeLayoutRaw, dashboardVersion));
@@ -357,7 +376,7 @@ export function DashboardPage({
     return [
       {
         key: "favorites",
-        label: lang === "ko" ? `★ 즐겨찾기 (${favorites.length})` : `★ Favorites (${favorites.length})`,
+        label: lang === "ko" ? `즐겨찾기 (${favorites.length})` : `Favorites (${favorites.length})`,
         items: favorites,
       },
       {
@@ -373,7 +392,7 @@ export function DashboardPage({
     return [
       {
         key: "favorites",
-        label: lang === "ko" ? `★ 즐겨찾기 (${favorites.length})` : `★ Favorites (${favorites.length})`,
+        label: lang === "ko" ? `즐겨찾기 (${favorites.length})` : `Favorites (${favorites.length})`,
         items: favorites,
       },
       {
@@ -569,6 +588,165 @@ export function DashboardPage({
     onSettingsChange(updated);
   };
 
+  const quickDetailValue =
+    quickTarget === "song"
+      ? quickSongId
+      : quickTarget === "drill"
+      ? quickDrillSubActivity
+      : quickTarget === "etc"
+      ? quickEtcSubActivity
+      : "none";
+  const quickDetailOptions = useMemo(() => {
+    if (quickTarget === "none") {
+      return [{ value: "none", label: lang === "ko" ? "선택 없음" : "None" }];
+    }
+    if (quickTarget === "song") {
+      const out: Array<{ value: string; label: string }> = [{ value: "", label: lang === "ko" ? "(선택 없음)" : "(None)" }];
+      timerSongGroups.forEach((group) => {
+        group.items.forEach((song) => {
+          out.push({
+            value: song.library_id || "",
+            label: `${group.label} - ${song.title || song.library_id || "-"}`,
+          });
+        });
+      });
+      return out;
+    }
+    if (quickTarget === "drill") {
+      return [
+        { value: "Core", label: lang === "ko" ? "기본기" : "Core" },
+        { value: "Funk", label: lang === "ko" ? "펑크" : "Funk" },
+        { value: "Slap", label: lang === "ko" ? "슬랩" : "Slap" },
+        { value: "Theory", label: lang === "ko" ? "이론" : "Theory" },
+      ];
+    }
+    return [
+      { value: "SongDiscovery", label: lang === "ko" ? "곡 탐색" : "Song discovery" },
+      { value: "Community", label: lang === "ko" ? "커뮤니티" : "Community" },
+      { value: "Gear", label: lang === "ko" ? "장비" : "Gear" },
+      { value: "Etc", label: lang === "ko" ? "기타" : "Etc" },
+    ];
+  }, [lang, quickTarget, timerSongGroups]);
+
+  const setQuickDetailSelection = useCallback(
+    (value: string) => {
+      if (quickTarget === "song") {
+        setQuickSongId(value);
+        return;
+      }
+      if (quickTarget === "drill") {
+        setQuickDrillSubActivity(value as DrillSubActivity);
+        return;
+      }
+      if (quickTarget === "etc") {
+        setQuickEtcSubActivity(value as EtcSubActivity);
+      }
+    },
+    [quickTarget]
+  );
+
+  const openQuickLogModal = useCallback(() => {
+    setQuickDurationPreset("10");
+    setQuickDurationCustom("10");
+    setQuickTarget("none");
+    setQuickSongId("");
+    setQuickDrillSubActivity("Core");
+    setQuickEtcSubActivity("Etc");
+    setShowQuickLogModal(true);
+  }, []);
+
+  const closeQuickLogModal = useCallback(() => {
+    if (quickLogBusy) return;
+    setShowQuickLogModal(false);
+  }, [quickLogBusy]);
+
+  const saveQuickLog = useCallback(async () => {
+    if (quickLogBusy) return;
+
+    const durationMin =
+      quickDurationPreset === "custom"
+        ? Math.max(1, Number.parseInt(quickDurationCustom, 10) || 10)
+        : Number.parseInt(quickDurationPreset, 10);
+
+    let activity: MainActivity = "Etc";
+    let subActivity = "Etc";
+    let songLibraryId = "";
+    let drillId = "";
+    let tags = ["QUICK", "ETC"];
+
+    if (quickTarget === "song") {
+      activity = "Song";
+      subActivity = "SongPractice";
+      songLibraryId = quickSongId;
+      tags = ["QUICK", "SONG", "SONG_PRACTICE"];
+    } else if (quickTarget === "drill") {
+      activity = "Drill";
+      subActivity = quickDrillSubActivity;
+      tags = ["QUICK", "DRILL", quickDrillSubActivity.toUpperCase()];
+    } else if (quickTarget === "etc") {
+      activity = "Etc";
+      subActivity = quickEtcSubActivity;
+      tags = ["QUICK", "ETC", quickEtcSubActivity.toUpperCase()];
+    }
+
+    try {
+      setQuickLogBusy(true);
+      const result = await quickLog({
+        activity,
+        sub_activity: subActivity,
+        song_library_id: songLibraryId,
+        drill_id: drillId,
+        tags,
+        duration_min: durationMin,
+        notes: "Quick Log",
+      });
+      onSessionCompleted?.(result, "quick");
+      notify(
+        `${lang === "ko" ? "빠른 기록 저장" : "Quick log saved"} (+${formatDisplayXp(result.xp_breakdown.total_xp, xpDisplayScale)} XP)`,
+        "success"
+      );
+      setShowQuickLogModal(false);
+      await onRefresh();
+    } catch (error) {
+      notify(error instanceof Error ? error.message : "Quick log failed", "error");
+    } finally {
+      setQuickLogBusy(false);
+    }
+  }, [
+    lang,
+    notify,
+    onRefresh,
+    onSessionCompleted,
+    quickDrillSubActivity,
+    quickDurationCustom,
+    quickDurationPreset,
+    quickEtcSubActivity,
+    quickLogBusy,
+    quickSongId,
+    quickTarget,
+    xpDisplayScale,
+  ]);
+
+  useEffect(() => {
+    if (!showQuickLogModal) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        closeQuickLogModal();
+        return;
+      }
+      const isSaveKey =
+        (event.key === "Enter" && !event.shiftKey) || event.key === " " || event.key === "Spacebar";
+      if (isSaveKey) {
+        if (isEditableTarget(event.target)) return;
+        event.preventDefault();
+        void saveQuickLog();
+      }
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [closeQuickLogModal, saveQuickLog, showQuickLogModal]);
+
   const startNow = async () => {
     let activity: MainActivity | undefined;
     let sub: string | undefined;
@@ -587,7 +765,7 @@ export function DashboardPage({
 
     const payload =
       startMode === "simple"
-        ? {}
+        ? { activity: "Etc", sub_activity: "Etc" }
         : { activity, sub_activity: sub, song_library_id: songId, drill_id: drillId };
     await startSession(payload);
     notify(lang === "ko" ? "세션 시작" : "Session started", "info");
@@ -630,7 +808,7 @@ export function DashboardPage({
           <div>
             <div className="row player-name-row">
               <h2 className="player-name-big">{settings.profile.nickname || "Bassist"}</h2>
-              <button className="tiny-info" onClick={() => setShowGoalModal(true)} title={lang === "ko" ? "목표 설정" : "Goal settings"}>⚙</button>
+              <button className="tiny-info" onClick={() => setShowGoalModal(true)} title={lang === "ko" ? "목표 설정" : "Goal settings"}>...</button>
             </div>
             <small className="muted">{hud.level_title}</small>
           </div>
@@ -651,7 +829,7 @@ export function DashboardPage({
         <div className="hud-badge-ornate-row">
           <div className={`badge-core badge-${currentTier}`}>
             {Array.from({ length: Math.min(5, Math.max(1, Math.ceil(currentStep / 2))) }).map((_, idx) => (
-              <span key={idx} className="badge-star">★</span>
+              <span key={idx} className="badge-star">*</span>
             ))}
           </div>
           <small className="muted">{lang === "ko" ? "다음 배지" : "Next badge"} Lv.{nextLevel} · {tierLabel(nextTier, lang)} {nextStep}/10</small>
@@ -668,10 +846,8 @@ export function DashboardPage({
         <div className="progress-wrap">
           <div className="progress-bar huge"><div style={{ width: `${Math.max(0, Math.min(100, hud.progress_pct))}%` }} /></div>
           <small>
-            {formatDisplayXp(hud.current_level_xp, xpDisplayScale)} / {formatDisplayXp(hud.xp_to_next, xpDisplayScale)} XP ·{" "}
-            {lang === "ko"
-              ? `다음 레벨까지 ${formatDisplayXp(xpNeeded, xpDisplayScale)} XP`
-              : `${formatDisplayXp(xpNeeded, xpDisplayScale)} XP to next level`}
+            {formatDisplayXp(hud.current_level_xp, xpDisplayScale)} / {formatDisplayXp(hud.xp_to_next, xpDisplayScale)} XP {" "}
+            {lang === "ko" ? `다음 레벨까지 ${formatDisplayXp(xpNeeded, xpDisplayScale)} XP` : `${formatDisplayXp(xpNeeded, xpDisplayScale)} XP to next level`}
           </small>
         </div>
         <div className="hud-id-meta">
@@ -682,7 +858,7 @@ export function DashboardPage({
       </section>
 
       <section className="card timer-card" style={widgetStyle(widgetLayout.timer)} data-testid="tutorial-dashboard-timer">
-        <h2>SESSION TIMER</h2>
+        <h2>{lang === "ko" ? "세션 타이머" : "SESSION TIMER"}</h2>
         <div className="timer-value">{fmtSec(seconds)}</div>
         {activeSong ? (
           <div className="timer-song-panel">
@@ -702,15 +878,8 @@ export function DashboardPage({
                 </button>
                 <button
                   className="ghost-btn timer-main-action"
-                  onClick={async () => {
-                    const result = await quickLog({ activity: "Drill", sub_activity: "Core", tags: ["QUICK", "DRILL", "CORE"], duration_min: 10, notes: "Quick Log" });
-                    onSessionCompleted?.(result, "quick");
-                    notify(
-                      `${lang === "ko" ? "빠른 기록 저장" : "Quick log"} (+${formatDisplayXp(result.xp_breakdown.total_xp, xpDisplayScale)} XP)`,
-                      "success"
-                    );
-                    await onRefresh();
-                  }}
+                  data-testid="dashboard-quick-log-open"
+                  onClick={openQuickLogModal}
                 >
                   {lang === "ko" ? "빠른 기록" : "Quick Log"}
                 </button>
@@ -720,19 +889,19 @@ export function DashboardPage({
                   className={`ghost-btn timer-mode-item ${startMode === "simple" ? "active-mini" : ""}`}
                   onClick={() => setStartMode("simple")}
                 >
-                  {lang === "ko" ? "바로시작" : "Quick Start"}
+                  {lang === "ko" ? "바로 시작" : "Quick Start"}
                 </button>
                 <button
                   className={`ghost-btn timer-mode-item ${startMode === "song" ? "active-mini" : ""}`}
                   onClick={() => setStartMode("song")}
                 >
-                  {lang === "ko" ? "곡선택" : "Song"}
+                  {lang === "ko" ? "곡" : "Song"}
                 </button>
                 <button
                   className={`ghost-btn timer-mode-item ${startMode === "drill" ? "active-mini" : ""}`}
                   onClick={() => setStartMode("drill")}
                 >
-                  {lang === "ko" ? "드릴선택" : "Drill"}
+                  {lang === "ko" ? "드릴" : "Drill"}
                 </button>
               </div>
               {startMode === "song" ? (
@@ -740,7 +909,7 @@ export function DashboardPage({
                   <label>{lang === "ko" ? "시작 곡" : "Start Song"}
                     <input value={songQuery} onChange={(e) => setSongQuery(e.target.value)} placeholder={lang === "ko" ? "검색" : "Search"} />
                     <select value={startSongId} onChange={(e) => setStartSongId(e.target.value)}>
-                      <option value="">(None)</option>
+                      <option value="">{lang === "ko" ? "(선택 없음)" : "(None)"}</option>
                       {timerSongGroups.map((group) => (
                         <optgroup key={group.key} label={group.label}>
                           {group.items.map((s) => (
@@ -760,7 +929,7 @@ export function DashboardPage({
                   <label>{lang === "ko" ? "시작 드릴" : "Start Drill"}
                     <input value={drillQuery} onChange={(e) => setDrillQuery(e.target.value)} placeholder={lang === "ko" ? "검색" : "Search"} />
                     <select value={startDrillId} onChange={(e) => setStartDrillId(e.target.value)}>
-                      <option value="">(None)</option>
+                      <option value="">{lang === "ko" ? "(선택 없음)" : "(None)"}</option>
                       {timerDrillGroups.map((group) => (
                         <optgroup key={group.key} label={group.label}>
                           {group.items.map((d) => (
@@ -776,7 +945,7 @@ export function DashboardPage({
               ) : null}
 
               {startMode === "simple" ? (
-                <small className="muted">{lang === "ko" ? "목표 없이 바로 시작합니다." : "Start immediately without a target."}</small>
+                <small className="muted">{lang === "ko" ? "목표 없이 바로 시작합니다." : "You can start a session without selecting a target."}</small>
               ) : null}
             </div>
           </div>
@@ -828,7 +997,7 @@ export function DashboardPage({
 
       {widgetLayout.progress.visible ? (
         <section className="card dashboard-extra dashboard-progress-card" style={widgetStyle(widgetLayout.progress)}>
-          <div className="row progress-settings-row"><span /><button className="tiny-info" onClick={() => setShowGoalModal(true)}>⚙</button></div>
+          <div className="row progress-settings-row"><span /><button className="tiny-info" onClick={() => setShowGoalModal(true)}>...</button></div>
           <div className="stat-grid">
             <div><span>{lang === "ko" ? "주간 세션" : "Weekly Sessions"}</span><strong>{weekSessions}/{weeklyGoalSessions}</strong></div>
             <div><span>{lang === "ko" ? "주간 시간(분)" : "Weekly Min"}</span><strong>{weekMinutes}/{weeklyGoalMinutes}</strong></div>
@@ -853,9 +1022,7 @@ export function DashboardPage({
             <div className="achievement-logo-mark">ACH</div>
             <div className="achievement-overview-progress">
               <small>
-                {lang === "ko"
-                  ? `완료 ${claimedAchievementCount}/${achievements.length}`
-                  : `Completed ${claimedAchievementCount}/${achievements.length}`}
+                {lang === "ko" ? `완료 ${claimedAchievementCount}/${achievements.length}` : `Completed ${claimedAchievementCount}/${achievements.length}`}
               </small>
               <div className="progress-bar">
                 <div style={{ width: `${achievementProgressPct}%` }} />
@@ -885,7 +1052,7 @@ export function DashboardPage({
           data-testid="tutorial-dashboard-photo"
           onContextMenu={(e) => { e.preventDefault(); setShowPhotoMenu((v) => !v); }}
         >
-          <button className="tiny-info dashboard-photo-gear" onClick={() => setShowPhotoMenu((v) => !v)}>⚙</button>
+          <button className="tiny-info dashboard-photo-gear" onClick={() => setShowPhotoMenu((v) => !v)}>...</button>
           {showPhotoMenu && (
             <div className="dashboard-photo-menu">
               <label>
@@ -942,14 +1109,12 @@ export function DashboardPage({
               <label>
                 {lang === "ko" ? "맞춤 방식" : "Fit"}
                 <select value="contain" disabled>
-                  <option value="contain">{lang === "ko" ? "전체 표시(잘림 방지)" : "Contain (no crop)"}</option>
+                  <option value="contain">{lang === "ko" ? "전체 표시(크롭 없음)" : "Contain (no crop)"}</option>
                 </select>
               </label>
               {portraitPhoto ? (
                 <small className="muted">
-                  {lang === "ko"
-                    ? "세로형 이미지는 자동으로 전체 표시됩니다."
-                    : "Portrait images are always shown fully."}
+                  {lang === "ko" ? "세로 사진은 항상 전체 표시됩니다." : "Portrait images are always shown fully."}
                 </small>
               ) : null}
               <label>
@@ -963,8 +1128,8 @@ export function DashboardPage({
                   }}
                 >
                   <option value="center">{lang === "ko" ? "중앙" : "Center"}</option>
-                  <option value="top">{lang === "ko" ? "위쪽" : "Top"}</option>
-                  <option value="bottom">{lang === "ko" ? "아래쪽" : "Bottom"}</option>
+                  <option value="top">{lang === "ko" ? "위" : "Top"}</option>
+                  <option value="bottom">{lang === "ko" ? "아래" : "Bottom"}</option>
                   <option value="left">{lang === "ko" ? "왼쪽" : "Left"}</option>
                   <option value="right">{lang === "ko" ? "오른쪽" : "Right"}</option>
                 </select>
@@ -984,7 +1149,7 @@ export function DashboardPage({
               <img className="dashboard-photo" src={featuredImageUrl} alt={featuredImage.title || "featured"} />
             </div>
           ) : (
-            <p className="muted">{lang === "ko" ? "대시보드 사진을 업로드하면 표시됩니다." : "Upload dashboard photos."}</p>
+            <p className="muted">{lang === "ko" ? "대시보드 사진을 업로드하세요." : "Upload dashboard photos."}</p>
           )}
         </section>
       ) : null}
@@ -1001,7 +1166,7 @@ export function DashboardPage({
         >
           <div className="row">
             <h2 className="section-title-subtle">{lang === "ko" ? "곡 바로가기" : "Song Shortcuts"}</h2>
-            <button className="tiny-info" onClick={() => setShowShortcutMenu((v) => !v)}>⚙</button>
+            <button className="tiny-info" onClick={() => setShowShortcutMenu((v) => !v)}>...</button>
           </div>
           {showShortcutMenu ? (
             <div className="dashboard-photo-menu">
@@ -1017,7 +1182,7 @@ export function DashboardPage({
                         await saveSongShortcuts(next);
                       }}
                     >
-                      <option value="">{lang === "ko" ? "(비어있음)" : "(Empty)"}</option>
+                      <option value="">{lang === "ko" ? "(비어 있음)" : "(Empty)"}</option>
                       {catalogs.song_library.map((song) => (
                         <option key={song.library_id} value={song.library_id}>{song.title || song.library_id}</option>
                       ))}
@@ -1030,13 +1195,13 @@ export function DashboardPage({
                         await saveSongShortcuts(next);
                       }}
                     >
-                      {lang === "ko" ? "제거" : "Clear"}
+                      {lang === "ko" ? "비우기" : "Clear"}
                     </button>
                   </div>
                 </label>
               ))}
               <button className="ghost-btn" onClick={() => onNavigate("songs")}>
-                {lang === "ko" ? "곡 라이브러리로 이동" : "Open Song Library"}
+                {lang === "ko" ? "곡 라이브러리 열기" : "Open Song Library"}
               </button>
             </div>
           ) : null}
@@ -1050,11 +1215,11 @@ export function DashboardPage({
                   title={song.title || song.library_id}
                   onClick={async () => {
                     if (hud.active_session?.session_id) {
-                      const go = window.confirm(lang === "ko" ? "진행 중 세션이 있습니다. 새로 시작할까요?" : "Active session exists. Start a new one?");
+                      const go = window.confirm(lang === "ko" ? "진행 중인 세션이 있습니다. 새로 시작할까요?" : "Active session exists. Start a new one?");
                       if (!go) return;
                     }
                     await startSession({ activity: "Song", sub_activity: "SongPractice", song_library_id: song.library_id });
-                    notify(lang === "ko" ? `${song.title || song.library_id} 세션 시작` : `Started ${song.title || song.library_id}`, "info");
+                    notify(lang === "ko" ? `${song.title || song.library_id} 시작` : `${song.title || song.library_id} started`, "info");
                     onNavigate("practice");
                     await onRefresh();
                   }}
@@ -1065,12 +1230,106 @@ export function DashboardPage({
               );
             })}
             {shortcutSongs.length === 0 ? (
-              <div className="muted">{lang === "ko" ? "우클릭 또는 톱니로 곡 바로가기를 지정하세요." : "Use right-click or gear to configure song shortcuts."}</div>
+              <div className="muted">{lang === "ko" ? "우클릭 또는 톱니 버튼으로 곡 바로가기를 설정하세요." : "Use right-click or gear to configure song shortcuts."}</div>
             ) : null}
           </div>
         </section>
       ) : null}
       </DashboardView>
+
+      {showQuickLogModal ? (
+        <div className="modal-backdrop" data-testid="dashboard-quick-log-backdrop" onClick={closeQuickLogModal}>
+          <div className="modal quick-log-modal" data-testid="dashboard-quick-log-modal" onClick={(event) => event.stopPropagation()}>
+            <div className="row">
+              <h3>{lang === "ko" ? "빠른 기록" : "Quick Log"}</h3>
+              <small className="muted">{lang === "ko" ? "Enter/Space 저장 | Esc 닫기" : "Enter/Space to save | Esc to close"}</small>
+            </div>
+                        <div className="quick-log-layout">
+              <div className="quick-log-time-row">
+                <label className="quick-log-time-label">{lang === "ko" ? "시간" : "Time"}</label>
+                <div className="timer-mode-list-inline quick-log-duration-row" data-testid="dashboard-quick-log-duration-preset">
+                  {([
+                    { key: "10", labelKo: "10분", labelEn: "10m" },
+                    { key: "30", labelKo: "30분", labelEn: "30m" },
+                    { key: "60", labelKo: "1시간", labelEn: "1h" },
+                    { key: "custom", labelKo: "직접설정", labelEn: "Custom" },
+                  ] as Array<{ key: QuickLogDurationPreset; labelKo: string; labelEn: string }>).map((item) => (
+                    <button
+                      key={`quick-duration-${item.key}`}
+                      type="button"
+                      className={`ghost-btn timer-mode-item quick-duration-item ${quickDurationPreset === item.key ? "active-mini" : ""}`}
+                      data-testid={`dashboard-quick-log-duration-${item.key}`}
+                      onClick={() => setQuickDurationPreset(item.key)}
+                    >
+                      {lang === "ko" ? item.labelKo : item.labelEn}
+                    </button>
+                  ))}
+                </div>
+                {quickDurationPreset === "custom" ? (
+                  <label className="quick-log-custom-minutes">
+                    {lang === "ko" ? "직접 시간(분)" : "Custom minutes"}
+                    <input
+                      type="number"
+                      min={1}
+                      step={1}
+                      value={quickDurationCustom}
+                      data-testid="dashboard-quick-log-duration-custom"
+                      onChange={(event) => setQuickDurationCustom(event.target.value)}
+                    />
+                  </label>
+                ) : null}
+              </div>
+              <div className="song-form-grid quick-log-target-row">
+                <label>
+                  {lang === "ko" ? "유형" : "Type"}
+                  <select
+                    value={quickTarget}
+                    data-testid="dashboard-quick-log-target"
+                    onChange={(event) => setQuickTarget(event.target.value as QuickLogTarget)}
+                  >
+                    <option value="none">{lang === "ko" ? "선택 없음" : "None"}</option>
+                    <option value="song">{lang === "ko" ? "곡" : "Song"}</option>
+                    <option value="drill">{lang === "ko" ? "드릴" : "Drill"}</option>
+                    <option value="etc">{lang === "ko" ? "기타" : "Etc"}</option>
+                  </select>
+                </label>
+                <label>
+                  {lang === "ko" ? "세부 설정" : "Value"}
+                  <select
+                    value={quickDetailValue}
+                    data-testid="dashboard-quick-log-detail"
+                    onChange={(event) => setQuickDetailSelection(event.target.value)}
+                  >
+                    {quickDetailOptions.map((item) => (
+                      <option key={`quick-detail-${item.value}-${item.label}`} value={item.value}>
+                        {item.label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              </div>
+            </div>
+            <div className="modal-actions">
+              <button
+                className="primary-btn"
+                data-testid="dashboard-quick-log-save"
+                disabled={quickLogBusy}
+                onClick={() => void saveQuickLog()}
+              >
+                {lang === "ko" ? "저장" : "Add"}
+              </button>
+              <button
+                className="ghost-btn"
+                data-testid="dashboard-quick-log-cancel"
+                disabled={quickLogBusy}
+                onClick={closeQuickLogModal}
+              >
+                {lang === "ko" ? "취소" : "Cancel"}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
 
       <SessionStopModal
         open={showStopModal}
@@ -1093,7 +1352,7 @@ export function DashboardPage({
         }}
       />
 
-      {showGoalModal && <div className="modal-backdrop"><div className="modal"><h3>{lang === "ko" ? "목표 설정" : "Goal Settings"}</h3><label>{lang === "ko" ? "주간 세션 목표" : "Weekly Sessions"}<input type="number" value={weeklyGoalSessions} onChange={(e) => setWeeklyGoalSessions(Number(e.target.value || 0))} /></label><label>{lang === "ko" ? "주간 시간 목표(분)" : "Weekly Minutes"}<input type="number" value={weeklyGoalMinutes} onChange={(e) => setWeeklyGoalMinutes(Number(e.target.value || 0))} /></label><label>{lang === "ko" ? "월간 시간 목표(분)" : "Monthly Minutes"}<input type="number" value={monthlyGoalMinutes} onChange={(e) => setMonthlyGoalMinutes(Number(e.target.value || 0))} /></label><div className="modal-actions"><button className="primary-btn" onClick={async () => {
+      {showGoalModal && <div className="modal-backdrop"><div className="modal"><h3>{lang === "ko" ? "목표 설정" : "Goal Settings"}</h3><label>{lang === "ko" ? "주간 세션" : "Weekly Sessions"}<input type="number" value={weeklyGoalSessions} onChange={(e) => setWeeklyGoalSessions(Number(e.target.value || 0))} /></label><label>{lang === "ko" ? "주간 시간(분)" : "Weekly Minutes"}<input type="number" value={weeklyGoalMinutes} onChange={(e) => setWeeklyGoalMinutes(Number(e.target.value || 0))} /></label><label>{lang === "ko" ? "월간 시간(분)" : "Monthly Minutes"}<input type="number" value={monthlyGoalMinutes} onChange={(e) => setMonthlyGoalMinutes(Number(e.target.value || 0))} /></label><div className="modal-actions"><button className="primary-btn" onClick={async () => {
         const updated = await putBasicSettings({ profile: { ...settings.profile, weekly_goal_sessions: Math.max(1, weeklyGoalSessions), weekly_goal_minutes: Math.max(10, weeklyGoalMinutes), monthly_goal_minutes: Math.max(30, monthlyGoalMinutes) } });
         onSettingsChange(updated);
         setShowGoalModal(false);
@@ -1101,6 +1360,3 @@ export function DashboardPage({
     </div>
   );
 }
-
-
-

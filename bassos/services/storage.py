@@ -729,10 +729,17 @@ class Storage:
             critical["quest_xp_multiplier"] = SETTINGS_DEFAULTS["critical"]["quest_xp_multiplier"]
             xp = merged.setdefault("xp", {})
             xp["session"] = dict(XP_BALANCE_V2["session"])
-            xp["display_scale"] = int(XP_BALANCE_V2.get("display_scale", 4000))
+            xp["display_scale"] = int(XP_BALANCE_V2.get("display_scale", 50))
             level_curve = merged.setdefault("level_curve", {})
             _apply_level_curve_defaults(level_curve, overwrite=True)
             merged["policy_version"] = 12
+
+        if current_version < 13:
+            xp = merged.setdefault("xp", {})
+            xp["display_scale"] = int(XP_BALANCE_V2.get("display_scale", 50))
+            level_curve = merged.setdefault("level_curve", {})
+            _apply_level_curve_defaults(level_curve, overwrite=True)
+            merged["policy_version"] = 13
 
         merged.setdefault("critical", {}).setdefault("quest_xp_multiplier", SETTINGS_DEFAULTS["critical"]["quest_xp_multiplier"])
         merged.setdefault("critical", {}).setdefault(
@@ -750,7 +757,7 @@ class Storage:
             merged["xp"]["backfill_multiplier"] = float(
                 merged["critical"].get("backfill_multiplier_default", merged["xp"]["backfill_multiplier"])
             )
-            merged["xp"].setdefault("display_scale", int(XP_BALANCE_V2.get("display_scale", 4000)))
+            merged["xp"].setdefault("display_scale", int(XP_BALANCE_V2.get("display_scale", 50)))
 
         profile = merged.setdefault("profile", {})
         profile.setdefault("guide_finisher_unlocked", False)

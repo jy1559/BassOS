@@ -144,6 +144,33 @@ def test_custom_quest_and_session_delete(tmp_path):
     assert all(s["event_id"] != event_id for s in sessions_after)
 
 
+def test_quick_log_none_mapping_saves_as_etc(tmp_path):
+    root = _prepare_temp_root(tmp_path)
+    app = create_app(root)
+    client = app.test_client()
+
+    res = client.post(
+        "/api/session/quick-log",
+        json={
+            "activity": "Etc",
+            "sub_activity": "Etc",
+            "tags": ["QUICK", "ETC"],
+            "duration_min": 10,
+            "notes": "Quick log none mapping",
+        },
+    )
+    assert res.status_code == 200
+    payload = res.get_json()
+    assert payload["event"]["activity"] == "Etc"
+    assert payload["event"]["song_library_id"] == ""
+    assert payload["event"]["drill_id"] == ""
+
+    sessions = client.get("/api/sessions?limit=10").get_json()["sessions"]
+    assert sessions
+    assert sessions[0]["activity"] == "Etc"
+    assert sessions[0]["sub_activity"] == "Etc"
+
+
 def test_gamification_level_up_copy_endpoint(tmp_path):
     root = _prepare_temp_root(tmp_path)
     app = create_app(root)

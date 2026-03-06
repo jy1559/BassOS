@@ -192,7 +192,7 @@ DASHBOARD_LAYOUT_FOCUS_DEFAULT = {
 
 
 SETTINGS_DEFAULTS = {
-    "policy_version": 12,
+    "policy_version": 13,
     "ui": {
         "default_theme": "midnight",
         "enable_confetti": True,
@@ -200,6 +200,7 @@ SETTINGS_DEFAULTS = {
         "language": "ko",
         "practice_video_pip_mode": "mini",
         "practice_video_tab_switch_playback": "continue",
+        "session_timer_pip_corner": "bottom-right",
         "notify_level_up": True,
         "notify_achievement_unlock": True,
         "notify_quest_complete": True,
@@ -309,8 +310,8 @@ SETTINGS_DEFAULTS = {
 XP_BALANCE_V2 = {
     # Session XP is now fixed at 3 points per minute.
     "session": {"per_min": 3},
-    # Point -> display XP scale. e.g. 25,000 points = 100,000,000 XP.
-    "display_scale": 4000,
+    # Point -> display XP scale. e.g. 20,000 points = 1,000,000 XP.
+    "display_scale": 50,
     "bonus": {
         "core_warmup": 8,
         "metronome_24": 6,
@@ -333,12 +334,12 @@ XP_BALANCE_V2 = {
 # Target milestones: fast onboarding, slower late game with decade step-ups.
 LEVEL_BALANCE_V2 = {
     "type": "decade_linear",
-    "base": 220,
-    "slope": 5,
-    "step_10": 50,
-    "step_20": 110,
-    "step_30": 240,
-    "step_40": 434,
+    "base": 174,
+    "slope": 4,
+    "step_10": 40,
+    "step_20": 90,
+    "step_30": 200,
+    "step_40": 347,
     "max_level": 50,
 }
 

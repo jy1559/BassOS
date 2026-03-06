@@ -49,7 +49,7 @@ def test_migrate_v11_existing_user_defaults_to_legacy_and_cleans_removed_keys(tm
     storage.migrate_files()
     migrated = storage.read_json("settings.json")
 
-    assert int(migrated.get("policy_version", 0)) == 12
+    assert int(migrated.get("policy_version", 0)) == 13
     ui = migrated["ui"]
     profile = migrated["profile"]
 
@@ -82,7 +82,7 @@ def test_migrate_v11_existing_user_defaults_to_legacy_and_cleans_removed_keys(tm
     assert focus_layout["nextWin"]["h"] == 1
     assert focus_layout["photo"]["y"] == 1
     assert focus_layout["photo"]["h"] == 3
-    assert int(migrated.get("xp", {}).get("display_scale", 0)) == 4000
+    assert int(migrated.get("xp", {}).get("display_scale", 0)) == 50
     assert migrated.get("level_curve", {}).get("type") == "decade_linear"
 
 
@@ -106,7 +106,7 @@ def test_migrate_v11_new_user_defaults_to_focus_and_seeds_layouts(tmp_path: Path
     storage.migrate_files()
     migrated = storage.read_json("settings.json")
 
-    assert int(migrated.get("policy_version", 0)) == 12
+    assert int(migrated.get("policy_version", 0)) == 13
     ui = migrated["ui"]
     assert ui.get("dashboard_version") == "focus"
 
@@ -123,7 +123,7 @@ def test_migrate_v11_new_user_defaults_to_focus_and_seeds_layouts(tmp_path: Path
     assert focus_layout["achievements"]["y"] == 4
     assert focus_layout["achievements"]["visible"] is True
     assert focus_layout["songShortcut"]["y"] == 3
-    assert int(migrated.get("xp", {}).get("display_scale", 0)) == 4000
+    assert int(migrated.get("xp", {}).get("display_scale", 0)) == 50
 
 
 def test_existing_v11_old_focus_default_gets_photo_y_upgrade(tmp_path: Path):

@@ -4,11 +4,12 @@ import type { Lang } from "../../i18n";
 import type { SessionStopInput, SessionStopResult } from "../../types/models";
 import { formatDisplayXp } from "../../utils/xpDisplay";
 
-type MainActivity = "Song" | "Drill" | "Etc";
+type MainActivity = "None" | "Song" | "Drill" | "Etc";
 type Mode = "single" | "range";
 type EvidenceMode = "file" | "url" | "none";
 
 const subMap: Record<MainActivity, Array<{ value: string; labelKo: string; labelEn: string; tag: string }>> = {
+  None: [{ value: "Etc", labelKo: "선택 없음", labelEn: "None", tag: "ETC" }],
   Song: [
     { value: "SongCopy", labelKo: "카피", labelEn: "Copy", tag: "SONG_COPY" },
     { value: "SongLearn", labelKo: "곡 익히기", labelEn: "Learn", tag: "SONG_LEARN" },
@@ -31,8 +32,16 @@ const subMap: Record<MainActivity, Array<{ value: string; labelKo: string; label
 const speedValues = Array.from({ length: 21 }).map((_, idx) => 50 + idx * 5);
 const bpmValues = Array.from({ length: 37 }).map((_, idx) => 60 + idx * 5);
 
+function isEditableTarget(target: EventTarget | null): boolean {
+  const element = target as HTMLElement | null;
+  if (!element) return false;
+  if (element.isContentEditable) return true;
+  const tag = element.tagName;
+  return tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT";
+}
+
 function toMain(raw: string): MainActivity {
-  if (raw === "Song" || raw === "Drill" || raw === "Etc") return raw;
+  if (raw === "None" || raw === "Song" || raw === "Drill" || raw === "Etc") return raw;
   return "Song";
 }
 
@@ -86,7 +95,7 @@ export type SessionStopModalProps = {
 export function SessionStopModal({
   open,
   lang,
-  xpDisplayScale = 4000,
+  xpDisplayScale = 50,
   songs,
   drills,
   activeSession,
@@ -96,8 +105,8 @@ export function SessionStopModal({
   onSaved,
   onDiscarded,
 }: SessionStopModalProps) {
-  const [activity, setActivity] = useState<MainActivity>("Song");
-  const [subActivity, setSubActivity] = useState("SongPractice");
+  const [activity, setActivity] = useState<MainActivity>("None");
+  const [subActivity, setSubActivity] = useState("Etc");
   const [songId, setSongId] = useState("");
   const [drillId, setDrillId] = useState("");
   const [notes, setNotes] = useState("");
@@ -126,9 +135,13 @@ export function SessionStopModal({
     }
     if (wasOpenRef.current) return;
     wasOpenRef.current = true;
-    const main = toMain(String(activeSession?.activity || "Song"));
+    const hasTarget = Boolean(
+      String(activeSession?.song_library_id || "").trim() || String(activeSession?.drill_id || "").trim()
+    );
+    const sessionMain = toMain(String(activeSession?.activity || "Song"));
+    const main: MainActivity = hasTarget ? sessionMain : "None";
     setActivity(main);
-    setSubActivity(String(activeSession?.sub_activity || subMap[main][0]?.value || ""));
+    setSubActivity(main === "None" ? "Etc" : String(activeSession?.sub_activity || subMap[main][0]?.value || ""));
     setSongId(String(activeSession?.song_library_id || ""));
     setDrillId(String(activeSession?.drill_id || ""));
     setNotes(String(activeSession?.notes || ""));
@@ -158,29 +171,29 @@ export function SessionStopModal({
     [drills]
   );
 
-  if (!open) return null;
-
   const subOptions = subMap[activity];
 
   const buildPayload = (): SessionStopInput => {
     const subTag = subOptions.find((item) => item.value === subActivity)?.tag || "";
+    const mappedActivity: "Song" | "Drill" | "Etc" = activity === "None" ? "Etc" : activity;
+    const mappedSubActivity = activity === "None" ? "Etc" : subActivity;
     const payload: SessionStopInput = {
-      activity,
-      sub_activity: subActivity,
-      song_library_id: activity === "Song" ? songId : "",
-      drill_id: activity === "Drill" ? drillId : "",
-      tags: [activity.toUpperCase(), subTag].filter(Boolean),
+      activity: mappedActivity,
+      sub_activity: mappedSubActivity,
+      song_library_id: mappedActivity === "Song" ? songId : "",
+      drill_id: mappedActivity === "Drill" ? drillId : "",
+      tags: [mappedActivity.toUpperCase(), subTag].filter(Boolean),
       notes,
       start_at: toIsoIfValid(startAtInput),
       end_at: toIsoIfValid(endAtInput),
     };
-    if (activity === "Song" && payload.song_library_id) {
+    if (mappedActivity === "Song" && payload.song_library_id) {
       payload.song_speed =
         speedMode === "single"
           ? { mode: "single", single: songSpeedSingle }
           : { mode: "range", start: Math.min(songSpeedStart, songSpeedEnd), end: Math.max(songSpeedStart, songSpeedEnd) };
     }
-    if (activity === "Drill" && payload.drill_id) {
+    if (mappedActivity === "Drill" && payload.drill_id) {
       payload.drill_bpm =
         bpmMode === "single"
           ? { mode: "single", single: drillBpmSingle }
@@ -232,10 +245,36 @@ export function SessionStopModal({
     }
   };
 
+  useEffect(() => {
+    if (!open) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (busy) return;
+      if (event.key === "Escape") {
+        event.preventDefault();
+        onClose();
+        return;
+      }
+      const isSaveKey =
+        (event.key === "Enter" && !event.shiftKey) || event.key === " " || event.key === "Spacebar";
+      if (isSaveKey) {
+        if (isEditableTarget(event.target)) return;
+        event.preventDefault();
+        void saveAndStop();
+      }
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [busy, onClose, open, saveAndStop]);
+
+  if (!open) return null;
+
   return (
     <div className="modal-backdrop">
       <div className="modal">
         <h3>{lang === "ko" ? "종료하시겠습니까?" : "Finish session?"}</h3>
+        <small className="muted">
+          {lang === "ko" ? "Enter/Space 저장 · Esc 닫기" : "Enter/Space to save · Esc to close"}
+        </small>
 
         <div className="song-form-grid">
           <label>
@@ -259,12 +298,13 @@ export function SessionStopModal({
         </div>
 
         <details open={showDetails} onToggle={(event) => setShowDetails((event.target as HTMLDetailsElement).open)}>
-          <summary>{lang === "ko" ? "상세 입력(선택)" : "Detailed Input (Optional)"}</summary>
+          <summary data-testid={`${testIdPrefix}-stop-detail-toggle`}>{lang === "ko" ? "상세 입력(선택)" : "Detailed Input (Optional)"}</summary>
 
           <label>
             {lang === "ko" ? "활동" : "Activity"}
             <select
               value={activity}
+              data-testid={`${testIdPrefix}-stop-activity`}
               onChange={(event) => {
                 const next = toMain(event.target.value);
                 setActivity(next);
@@ -273,22 +313,29 @@ export function SessionStopModal({
                 if (next !== "Drill") setDrillId("");
               }}
             >
+              <option value="None">{lang === "ko" ? "선택 없음" : "None"}</option>
               <option value="Song">{lang === "ko" ? "곡" : "Song"}</option>
               <option value="Drill">{lang === "ko" ? "드릴" : "Drill"}</option>
               <option value="Etc">{lang === "ko" ? "기타" : "Etc"}</option>
             </select>
           </label>
 
-          <label>
-            {lang === "ko" ? "세부 활동" : "Sub Activity"}
-            <select value={subActivity} onChange={(event) => setSubActivity(event.target.value)}>
-              {subOptions.map((item) => (
-                <option key={item.value} value={item.value}>
-                  {lang === "ko" ? item.labelKo : item.labelEn}
-                </option>
-              ))}
-            </select>
-          </label>
+          {activity !== "None" ? (
+            <label>
+              {lang === "ko" ? "세부 활동" : "Sub Activity"}
+              <select
+                value={subActivity}
+                data-testid={`${testIdPrefix}-stop-sub-activity`}
+                onChange={(event) => setSubActivity(event.target.value)}
+              >
+                {subOptions.map((item) => (
+                  <option key={item.value} value={item.value}>
+                    {lang === "ko" ? item.labelKo : item.labelEn}
+                  </option>
+                ))}
+              </select>
+            </label>
+          ) : null}
 
           {activity === "Song" ? (
             <label>

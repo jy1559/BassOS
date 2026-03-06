@@ -38,12 +38,12 @@ def _settings():
         },
         "level_curve": {
             "type": "decade_linear",
-            "base": 220,
-            "slope": 5,
-            "step_10": 50,
-            "step_20": 110,
-            "step_30": 240,
-            "step_40": 434,
+            "base": 174,
+            "slope": 4,
+            "step_10": 40,
+            "step_20": 90,
+            "step_30": 200,
+            "step_40": 347,
             "rank_thresholds": [{"rank": "Bronze", "min_level": 1}],
         },
     }
@@ -75,7 +75,7 @@ def test_session_xp_breakdown_per_minute_constant():
 def test_decade_linear_curve_total_to_level_50():
     curve = _settings()["level_curve"]
     total = sum(xp_to_next(level, curve) for level in range(1, 50))
-    assert total == 25000
+    assert total == 20000
 
 
 def test_level_curve_progression():

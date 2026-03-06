@@ -766,9 +766,18 @@ export function XPPage({ lang, refreshToken, settings, onSettingsChange }: Props
   })();
 
   const levelTicks = (() => {
+    const desiredTickCount = Math.max(4, Math.min(7, Math.floor(lineSvgWidth / 120) + 2));
+    const roughStep = levelSpan / Math.max(1, desiredTickCount - 1);
+    const magnitude = Math.pow(10, Math.floor(Math.log10(Math.max(1, roughStep))));
+    const stepCandidates = [1, 2, 5, 10].map((factor) => factor * magnitude);
+    const step = stepCandidates.find((candidate) => candidate >= roughStep) ?? stepCandidates[stepCandidates.length - 1];
+    const start = Math.floor(levelMin / step) * step;
+    const end = Math.ceil(levelMax / step) * step;
     const out: number[] = [];
-    for (let lv = levelMin; lv <= levelMax; lv += 1) out.push(lv);
-    return out;
+    for (let lv = start; lv <= end + 0.0001; lv += step) out.push(Math.round(lv));
+    if (!out.includes(levelMin)) out.push(levelMin);
+    if (!out.includes(levelMax)) out.push(levelMax);
+    return [...new Set(out)].sort((a, b) => a - b);
   })();
   const reverseLevelTicks = [...levelTicks].reverse();
 

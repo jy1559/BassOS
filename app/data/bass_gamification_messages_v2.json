@@ -1,0 +1,1338 @@
+{
+  "meta": {
+    "name": "bass_gamification_messages",
+    "version": 2,
+    "encoding": "utf-8",
+    "line_break": "\n",
+    "message_counts": {
+      "total": 178,
+      "session_end": 128,
+      "level_up": 50,
+      "session_end_breakdown": {
+        "general": 60,
+        "long_session": 20,
+        "streak_days_mid_3plus": 12,
+        "streak_days_long_7plus": 12,
+        "streak_weeks_mid_4plus": 12,
+        "streak_weeks_long_8plus": 12
+      },
+      "level_up_breakdown": {
+        "levels": 50,
+        "tier_up_levels": 5,
+        "normal_levels": 45
+      }
+    },
+    "tier_rules": [
+      {
+        "name": "bronze",
+        "min_level": 1,
+        "max_level": 9
+      },
+      {
+        "name": "silver",
+        "min_level": 10,
+        "max_level": 19
+      },
+      {
+        "name": "gold",
+        "min_level": 20,
+        "max_level": 29
+      },
+      {
+        "name": "platinum",
+        "min_level": 30,
+        "max_level": 39
+      },
+      {
+        "name": "diamond",
+        "min_level": 40,
+        "max_level": 49
+      },
+      {
+        "name": "master",
+        "min_level": 50,
+        "max_level": 50
+      }
+    ],
+    "notes": [
+      "Strings are UTF-8 and include emoji.",
+      "Message text may contain line breaks.",
+      "Use CSV as the editing source if non-developers will revise copy.",
+      "Use this JSON as the runtime source in the app."
+    ]
+  },
+  "session_end": {
+    "general": [
+      {
+        "id": "001",
+        "ko": "🎸 세션 완료!\n오늘 손이 한 칸 더 익었습니다. 내일은 같은 프레이즈를 더 편하게 눌러보세요.",
+        "en": "🎸 Session complete!\nYour hands learned a little more today. Tomorrow, try the same phrase with less tension."
+      },
+      {
+        "id": "002",
+        "ko": "🔥 오늘 연습 클리어!\n잘한 부분은 그대로 가져가고, 꼬였던 구간만 딱 3분 더 보면 됩니다.",
+        "en": "🔥 Practice cleared!\nKeep what worked, and give the messy part just 3 extra minutes next time."
+      },
+      {
+        "id": "003",
+        "ko": "🎶 오늘도 그루브 저장 완료.\n지금은 많이 하는 것보다 자주 하는 게 더 셉니다. 이 흐름 좋습니다.",
+        "en": "🎶 Groove saved.\nRight now, frequent sessions beat long ones. This momentum is working."
+      },
+      {
+        "id": "004",
+        "ko": "⚡ 연습 끝!\n템포 욕심은 잠깐 넣어두고, 내일은 클릭에 더 착 붙어봅시다.",
+        "en": "⚡ Practice done!\nPut speed on hold for a bit—tomorrow, lock in tighter with the click."
+      },
+      {
+        "id": "005",
+        "ko": "🎮 오늘 미션 성공!\n한 번이라도 제대로 붙은 그 감각, 그게 다음 세션의 치트키입니다.",
+        "en": "🎮 Mission success!\nThat one moment where everything clicked? That’s your cheat code for next time."
+      },
+      {
+        "id": "006",
+        "ko": "🏁 세션 종료!\n오늘 만든 리듬은 안 사라집니다. 내일 다시 켜면 더 빨리 손에 붙어요.",
+        "en": "🏁 Session over!\nToday’s rhythm won’t disappear. When you come back tomorrow, it’ll return faster."
+      },
+      {
+        "id": "007",
+        "ko": "🌟 수고했어요!\n좋은 연습은 길이보다 밀도입니다. 오늘 꽤 진하게 했네요.",
+        "en": "🌟 Nice work!\nGood practice is about density, not just length. Today had some real weight."
+      },
+      {
+        "id": "008",
+        "ko": "🎯 오늘도 명중!\n다음엔 음 하나하나를 더 또렷하게 들으면서 가면 훨씬 맛있어집니다.",
+        "en": "🎯 Direct hit today!\nNext time, listen for each note more clearly and it’ll sound even better."
+      },
+      {
+        "id": "009",
+        "ko": "🚀 연습 완료!\n지금 페이스면 나중에 녹음해도 차이가 들릴 겁니다. 계속 밟아봅시다.",
+        "en": "🚀 Practice complete!\nAt this pace, even a recording later will show the difference. Keep pushing."
+      },
+      {
+        "id": "010",
+        "ko": "🎸 오늘도 베이스 출석 체크 완료.\n짧아도 좋습니다. 이어가는 사람이 결국 이깁니다.",
+        "en": "🎸 Bass attendance marked.\nShort is fine. The one who keeps showing up wins."
+      },
+      {
+        "id": "011",
+        "ko": "🕹️ 한 판 잘 끝냈습니다.\n내일은 손 힘 10%만 빼고 쳐보세요. 소리가 꽤 달라질 겁니다.",
+        "en": "🕹️ Nice run.\nTomorrow, relax your hands by 10% and hear how much the tone opens up."
+      },
+      {
+        "id": "012",
+        "ko": "🎶 오늘 연습 좋았습니다.\n박자가 살짝 흔들린 곳만 체크해두면 다음 세션이 훨씬 편해요.",
+        "en": "🎶 Solid session today.\nIf you note the shaky bars now, the next session gets way easier."
+      },
+      {
+        "id": "013",
+        "ko": "🔥 클리어!\n오늘의 승리는 완벽함보다 계속한 데 있습니다. 그게 진짜 큽니다.",
+        "en": "🔥 Cleared!\nToday’s win wasn’t perfection—it was showing up. That matters more."
+      },
+      {
+        "id": "014",
+        "ko": "🎯 오늘 한 판 제대로 했네요.\n다음엔 시작 2분만 느리게 가면 전체 퀄리티가 확 올라갑니다.",
+        "en": "🎯 That was a proper run.\nStart 2 minutes slower next time and the whole session gets cleaner."
+      },
+      {
+        "id": "015",
+        "ko": "🎸 세션 끝!\n손이 버벅인 게 아니라 성장 중이었던 겁니다. 계속 해봅시다.",
+        "en": "🎸 Session done!\nThat wasn’t clumsiness—that was growth in progress. Keep going."
+      },
+      {
+        "id": "016",
+        "ko": "⚡ 오늘도 EXP 적립 완료.\n다음엔 메트로놈이랑 더 친해져보죠. 붙기 시작하면 진짜 재밌습니다.",
+        "en": "⚡ EXP gained.\nNext time, get a little closer with the metronome. Once it clicks, it gets really fun."
+      },
+      {
+        "id": "017",
+        "ko": "🎮 연습 종료!\n오늘 한 번 잡은 감각은 생각보다 오래 갑니다. 이 타이밍 아주 좋습니다.",
+        "en": "🎮 Practice over!\nA feel you catch today lasts longer than you think. Great timing."
+      },
+      {
+        "id": "018",
+        "ko": "🌈 오늘도 한 겹 두꺼워졌네요.\n내일은 같은 라인을 더 작은 움직임으로 쳐보세요.",
+        "en": "🌈 Another layer added today.\nTomorrow, try the same line with smaller motion."
+      },
+      {
+        "id": "019",
+        "ko": "🎶 마무리 좋습니다!\n지금 필요한 건 더 세게가 아니라 더 고르게입니다.",
+        "en": "🎶 Great finish!\nWhat you need now isn’t harder—it’s steadier."
+      },
+      {
+        "id": "020",
+        "ko": "🏆 오늘도 이겼습니다.\n베이스를 잡은 순간부터 이미 반은 끝난 게임이었어요.",
+        "en": "🏆 You won today.\nThe moment you picked up the bass, half the game was already yours."
+      },
+      {
+        "id": "021",
+        "ko": "🎸 세션 완료!\n오늘 잘 붙은 구간 하나만 기억하세요. 다음에 거기서 바로 탄력 받습니다.",
+        "en": "🎸 Session complete!\nRemember one section that felt good. That’s where next time’s momentum starts."
+      },
+      {
+        "id": "022",
+        "ko": "🔥 수고 많았어요!\n지금은 손보다 귀가 더 빨리 느는 구간입니다. 소리 듣는 감각도 같이 커지고 있어요.",
+        "en": "🔥 Great job!\nRight now your ears may be improving even faster than your hands. Your listening is leveling up too."
+      },
+      {
+        "id": "023",
+        "ko": "🎯 연습 끝!\n다음엔 실수 줄이기보다 흐름 안 끊기기에 집중해보세요. 훨씬 연주 같아집니다.",
+        "en": "🎯 Practice done!\nNext time, focus less on mistakes and more on keeping the flow. It’ll feel more like music."
+      },
+      {
+        "id": "024",
+        "ko": "🚀 오늘 컨디션 좋았네요.\n이럴 때일수록 기본 패턴을 깨끗하게 다지는 게 꿀입니다.",
+        "en": "🚀 You were in good form today.\nThat’s the perfect time to polish the basic patterns."
+      },
+      {
+        "id": "025",
+        "ko": "🎶 완료!\n오늘 만든 그루브, 내일 다시 켜면 바로 이어질 가능성 높습니다.",
+        "en": "🎶 Complete!\nThere’s a good chance tomorrow’s groove will pick up right where this left off."
+      },
+      {
+        "id": "026",
+        "ko": "🪙 오늘도 코인처럼 쌓였습니다.\n큰 점프는 이렇게 생깁니다. 작아 보여도 누적이 셉니다.",
+        "en": "🪙 Another coin in the stack.\nBig jumps are built like this. Small doesn’t mean weak."
+      },
+      {
+        "id": "027",
+        "ko": "🎸 오늘 연습 굿.\n내일은 같은 루틴을 더 가볍게만 해도 충분히 이득입니다.",
+        "en": "🎸 Good session today.\nTomorrow, even a lighter version of the same routine will pay off."
+      },
+      {
+        "id": "028",
+        "ko": "⚔️ 세션 종료!\n오늘은 속도보다 생존력이 좋았습니다. 안 끊기고 간 게 진짜예요.",
+        "en": "⚔️ Session over!\nToday’s real strength was staying alive through the run. That matters."
+      },
+      {
+        "id": "029",
+        "ko": "🎮 클리어 화면 띄워도 되겠네요.\n다음엔 손가락보다 리듬을 먼저 타보세요. 훨씬 자연스러워집니다.",
+        "en": "🎮 You earned the clear screen.\nNext time, feel the rhythm before the fingers. It’ll flow better."
+      },
+      {
+        "id": "030",
+        "ko": "🌟 오늘도 잘 쌓았습니다.\n내일은 한 번만 더 느리게, 한 번만 더 또렷하게 가보죠.",
+        "en": "🌟 Nice stack today.\nTomorrow: once slower, once cleaner."
+      },
+      {
+        "id": "031",
+        "ko": "🎶 세션 완료!\n지금 단계에서는 꾸준함이 제일 사기 스탯입니다. 아주 잘 가고 있어요.",
+        "en": "🎶 Session complete!\nAt this stage, consistency is the most broken stat. You’re on a great track."
+      },
+      {
+        "id": "032",
+        "ko": "🔥 오늘도 베이스가 열일했네요.\n마무리로 스트레칭 30초만 해주면 내일 더 편합니다.",
+        "en": "🔥 Your bass put in work today.\nA quick 30-second stretch now will make tomorrow easier."
+      },
+      {
+        "id": "033",
+        "ko": "🎸 연습 끝!\n오늘은 손보다 리듬 감각이 더 좋아진 날 같네요. 이런 날이 큽니다.",
+        "en": "🎸 Practice done!\nFeels like your sense of rhythm improved even more than your fingers today. Those days matter."
+      },
+      {
+        "id": "034",
+        "ko": "🎯 클리어!\n다음엔 첫 1분만 초집중으로 가보세요. 초반 퀄리티가 전체를 끌어올립니다.",
+        "en": "🎯 Cleared!\nGo ultra-focused for the first minute next time. A clean start lifts the whole run."
+      },
+      {
+        "id": "035",
+        "ko": "🚀 오늘도 레벨 쌓였어요.\n내일은 박자 먼저, 손은 나중에 따라오게 두면 더 좋습니다.",
+        "en": "🚀 More levels added today.\nNext time, let the timing lead and the fingers follow."
+      },
+      {
+        "id": "036",
+        "ko": "🎶 잘 마쳤습니다.\n지금처럼 이어가면 어느 순간 손이 먼저 알고 연주가 따라옵니다.",
+        "en": "🎶 Nice finish.\nKeep this up and one day your hands will know before your brain does."
+      },
+      {
+        "id": "037",
+        "ko": "🛡️ 오늘 세션 방어 성공.\n바쁜 날에도 한 판 돌린 게 진짜 강합니다.",
+        "en": "🛡️ Session defended today.\nGetting a run in on a busy day is a real power move."
+      },
+      {
+        "id": "038",
+        "ko": "🎸 오늘도 굿게임.\n내일은 같은 걸 더 적은 힘으로 치는 데 도전해보세요.",
+        "en": "🎸 Good game today.\nTomorrow, try playing the same thing with less effort."
+      },
+      {
+        "id": "039",
+        "ko": "⚡ 연습 완료!\n오늘 소리가 좀 더 단단해졌습니다. 이 느낌 놓치지 말고 이어갑시다.",
+        "en": "⚡ Practice complete!\nYour sound got a little stronger today. Keep that feeling alive."
+      },
+      {
+        "id": "040",
+        "ko": "🎮 오늘의 스테이지 종료!\n실수 몇 개쯤은 괜찮습니다. 흐름을 끌고 간 게 더 중요했어요.",
+        "en": "🎮 Stage clear!\nA few mistakes are fine. Holding the groove mattered more."
+      },
+      {
+        "id": "041",
+        "ko": "🌟 수고했어요!\n내일은 템포 올리기보다 톤 정리 쪽에 보너스를 써보죠.",
+        "en": "🌟 Nice work!\nTomorrow, spend your bonus on tone before speed."
+      },
+      {
+        "id": "042",
+        "ko": "🎶 오늘도 그루브 전진.\n딱 한 마디라도 잘 붙은 순간이 있었으면 오늘은 성공입니다.",
+        "en": "🎶 Groove advanced today.\nIf even one bar really locked in, today was a success."
+      },
+      {
+        "id": "043",
+        "ko": "🔥 연습 끝!\n오늘 한 건 헛연습이 아닙니다. 몸이 조용히 기억하는 중이에요.",
+        "en": "🔥 Practice done!\nNone of that was wasted. Your body is quietly remembering it."
+      },
+      {
+        "id": "044",
+        "ko": "🎸 세션 종료!\n다음엔 어려운 부분 들어가기 전에 쉬운 패턴으로 손부터 깨워보세요.",
+        "en": "🎸 Session over!\nNext time, wake up your hands with an easier pattern before the hard part."
+      },
+      {
+        "id": "045",
+        "ko": "🎯 오늘도 체크포인트 통과.\n쫓아가지 말고 박자를 기다리는 느낌으로 가면 더 안정적입니다.",
+        "en": "🎯 Checkpoint cleared.\nTry waiting for the beat instead of chasing it. Much steadier."
+      },
+      {
+        "id": "046",
+        "ko": "🚀 오늘 페이스 좋았습니다.\n이대로만 쌓이면 나중에 합주할 때 체감이 크게 올 거예요.",
+        "en": "🚀 Great pace today.\nKeep stacking like this and you’ll really feel it in band practice later."
+      },
+      {
+        "id": "047",
+        "ko": "🎶 마무리 완료!\n지금은 짧고 자주가 최고 효율입니다. 오늘 선택 좋았습니다.",
+        "en": "🎶 Wrap complete!\nShort and frequent is peak efficiency right now. Good call today."
+      },
+      {
+        "id": "048",
+        "ko": "🎸 오늘 세션 아주 괜찮았어요.\n다음엔 같은 루프를 눈 감고 한 번 느껴보는 것도 재밌습니다.",
+        "en": "🎸 Really solid session.\nNext time, try feeling the same loop once with your eyes closed—fun and useful."
+      },
+      {
+        "id": "049",
+        "ko": "🪩 오늘도 리듬 불 켜졌네요.\n내일은 노트 사이 간격을 더 고르게 만드는 데 집중해봅시다.",
+        "en": "🪩 Your rhythm lights were on today.\nTomorrow, focus on making the spacing between notes more even."
+      },
+      {
+        "id": "050",
+        "ko": "🔥 오늘 연습 좋았습니다.\n이 정도면 손가락도 집 가는 길에 복기할 겁니다.",
+        "en": "🔥 Great session today.\nAt this point, even your fingers are replaying it on the way home."
+      },
+      {
+        "id": "051",
+        "ko": "🎮 세션 끝!\n다음엔 녹음 20초만 해보세요. 의외로 성장 포인트가 잘 보입니다.",
+        "en": "🎮 Session done!\nTry recording 20 seconds next time. Growth points show up fast."
+      },
+      {
+        "id": "052",
+        "ko": "🎸 오늘도 한 판 깔끔했습니다.\n리듬만 안 놓치면 나머지는 따라옵니다. 그 감각 좋았어요.",
+        "en": "🎸 Clean run today.\nIf the timing stays solid, the rest follows. Great feel."
+      },
+      {
+        "id": "053",
+        "ko": "⚡ 완료!\n오늘은 진도가 아니라 내공이 쌓인 날입니다. 이런 날이 무섭게 큽니다.",
+        "en": "⚡ Complete!\nToday wasn’t just progress—it was hidden power. Those days add up fast."
+      },
+      {
+        "id": "054",
+        "ko": "🎶 연습 종료!\n내일은 한 번 덜 세게, 한 번 더 정확하게. 그 조합이 꽤 좋습니다.",
+        "en": "🎶 Practice over!\nTomorrow: one notch softer, one notch cleaner. Great combo."
+      },
+      {
+        "id": "055",
+        "ko": "🎯 미션 성공!\n오늘의 핵심은 계속 이어갔다는 점. 흐름 안 끊긴 게 정말 좋았습니다.",
+        "en": "🎯 Mission success!\nThe key today was keeping it going. Not breaking the flow was huge."
+      },
+      {
+        "id": "056",
+        "ko": "🚀 오늘도 잘 달렸어요.\n다음엔 시작 전에 박수 두 번만 치고 들어가도 리듬이 훨씬 붙습니다.",
+        "en": "🚀 Nice run today.\nEven two claps before starting next time can lock your rhythm in faster."
+      },
+      {
+        "id": "057",
+        "ko": "🎸 세션 완료!\n이제 쉬세요. 회복까지 챙기는 사람이 오래 갑니다.",
+        "en": "🎸 Session complete!\nRest up now. The ones who recover well last the longest."
+      },
+      {
+        "id": "058",
+        "ko": "🌟 오늘도 충분히 해냈습니다.\n내일은 5분만 잡아도 흐름 유지 성공입니다.",
+        "en": "🌟 You did plenty today.\nEven 5 minutes tomorrow keeps the streak alive."
+      },
+      {
+        "id": "059",
+        "ko": "🎮 오늘 스테이지 클리어!\n손이 좀 꼬여도 괜찮습니다. 베이스는 그런 날까지 합산됩니다.",
+        "en": "🎮 Stage clear!\nEven if your fingers tangled a bit, it still counts. Bass adds those days too."
+      },
+      {
+        "id": "060",
+        "ko": "🎸 마무리 좋았습니다!\n오늘은 무리하지 않고도 잘 쌓은 날입니다. 이런 페이스가 오래 갑니다.",
+        "en": "🎸 Great finish!\nToday you built skill without overcooking it. That kind of pace lasts."
+      }
+    ],
+    "long_session": [
+      {
+        "id": "061",
+        "ko": "🏋️ 긴 세션 완주!\n집중력 좋았습니다. 다음엔 중간에 1분만 쉬어도 퀄리티가 더 오래 갑니다.",
+        "en": "🏋️ Long session cleared!\nGreat focus. A one-minute reset mid-run will keep quality high even longer."
+      },
+      {
+        "id": "062",
+        "ko": "🔥 오늘 꽤 길게 갔네요!\n폼 안 무너지고 버틴 게 진짜 포인트입니다. 아주 좋았습니다.",
+        "en": "🔥 That was a long one!\nThe real win was holding form through it. Nicely done."
+      },
+      {
+        "id": "063",
+        "ko": "🎸 오늘은 제대로 파고들었습니다.\n내일은 짧게만 이어도 성장 흐름이 딱 살아납니다.",
+        "en": "🎸 You really dug in today.\nA shorter follow-up tomorrow will keep the growth rolling."
+      },
+      {
+        "id": "064",
+        "ko": "🎶 롱 세션 완료!\n이럴 땐 마무리 스트레칭 30초가 다음 판 난이도를 낮춰줍니다.",
+        "en": "🎶 Long session complete!\nA quick 30-second stretch now lowers tomorrow’s difficulty."
+      },
+      {
+        "id": "065",
+        "ko": "⚡ 오늘 연습량 좋네요.\n같은 시간도 좋지만, 다음엔 마지막 5분만 더 느리게 가보세요. 훨씬 깔끔합니다.",
+        "en": "⚡ Great amount of practice today.\nSame length is fine next time—just slow down the last 5 minutes for a cleaner finish."
+      },
+      {
+        "id": "066",
+        "ko": "🛡️ 장시간 플레이 성공!\n끝까지 버틴 집중력, 이건 이미 강한 스탯입니다.",
+        "en": "🛡️ Long play success!\nThat focus all the way through is already a strong stat."
+      },
+      {
+        "id": "067",
+        "ko": "🎯 긴 세션 클리어!\n오늘은 손가락도 수고했고 귀도 수고했습니다. 둘 다 잘 일했네요.",
+        "en": "🎯 Long session cleared!\nYour fingers worked, and so did your ears. Both put in a shift today."
+      },
+      {
+        "id": "068",
+        "ko": "🚀 오늘은 성장량이 꽤 큽니다.\n이런 날 다음에 짧게 이어주면 체감이 더 빨리 와요.",
+        "en": "🚀 You gained a lot today.\nA short session after a day like this makes the progress show faster."
+      },
+      {
+        "id": "069",
+        "ko": "🎸 분량 제대로 채웠네요.\n내일은 힘 빼고 톤 정리 위주로 가면 밸런스가 아주 좋습니다.",
+        "en": "🎸 You filled the bar today.\nTomorrow, go lighter and focus on tone for a great balance."
+      },
+      {
+        "id": "070",
+        "ko": "🌟 오늘 꽤 오래 달렸습니다.\n무리해서 더 하는 것보다 여기서 잘 끝낸 게 더 멋집니다.",
+        "en": "🌟 You went long today.\nStopping at the right time is cooler than forcing more."
+      },
+      {
+        "id": "071",
+        "ko": "🔥 긴 세션 수고했어요!\n이 정도면 손도 뇌도 오늘 할 일 다 했습니다. 이제 회복 모드로 가죠.",
+        "en": "🔥 Nice long session!\nYour hands and brain both clocked in today. Time for recovery mode."
+      },
+      {
+        "id": "072",
+        "ko": "🎶 장시간 연습 완료!\n다음엔 중간중간 한 번씩 숨 고르기만 해도 훨씬 덜 지칩니다.",
+        "en": "🎶 Long practice complete!\nA couple of breathing resets next time will make it feel much lighter."
+      },
+      {
+        "id": "073",
+        "ko": "🏁 오늘은 진짜 연습한 날입니다.\n이런 날이 실력을 확 끌어올립니다. 물도 꼭 챙기세요.",
+        "en": "🏁 That was a real practice day.\nDays like this move the needle fast. Hydrate too."
+      },
+      {
+        "id": "074",
+        "ko": "🎸 끝까지 밀어붙였네요.\n폼이 살짝 흐려지기 전에서 멈춘 것도 아주 잘한 선택입니다.",
+        "en": "🎸 You pushed it through.\nStopping before your form really slipped was a smart call."
+      },
+      {
+        "id": "075",
+        "ko": "⚡ 오늘 길게 가면서도 잘 버텼어요.\n내일은 리듬만 가볍게 체크해도 충분히 이어집니다.",
+        "en": "⚡ You held up well in a long session.\nTomorrow, even a light timing check will keep it alive."
+      },
+      {
+        "id": "076",
+        "ko": "🎮 장시간 스테이지 클리어!\n오늘 같은 날은 EXP가 두툼하게 들어옵니다. 체감이 올 겁니다.",
+        "en": "🎮 Long stage cleared!\nDays like this drop a thick chunk of EXP. You’ll feel it soon."
+      },
+      {
+        "id": "077",
+        "ko": "🔥 오늘은 깊게 들어갔네요.\n이럴 때는 내일 쉬운 루프로 몸 풀기부터 해주면 정말 좋습니다.",
+        "en": "🔥 You went deep today.\nOn days like this, an easy groove to start tomorrow works wonders."
+      },
+      {
+        "id": "078",
+        "ko": "🎸 긴 세션 완료!\n손목이 살짝 뻐근하면 내일은 강약 조절 연습으로 부드럽게 이어가도 좋아요.",
+        "en": "🎸 Long session complete!\nIf your wrist feels a bit tight, use dynamics practice tomorrow for a lighter follow-up."
+      },
+      {
+        "id": "079",
+        "ko": "🎶 롱런 성공!\n오늘 이만큼 했으면 충분히 잘한 겁니다. 욕심은 다음 판에 써도 됩니다.",
+        "en": "🎶 Long run success!\nYou did more than enough today. Save the extra greed for the next run."
+      },
+      {
+        "id": "080",
+        "ko": "🌈 오늘은 성장 보너스 크게 들어온 날.\n지금은 쉬고, 내일 다시 켜면 손이 생각보다 빨리 기억합니다.",
+        "en": "🌈 Big growth bonus today.\nRest now—when you return tomorrow, your hands will remember faster than you expect."
+      }
+    ],
+    "streak_days": {
+      "mid_3plus": {
+        "min": 3,
+        "messages": [
+          {
+            "id": "081",
+            "ko": "🔁 N일 연속 연습!\n이제 몸이 연습 시간대를 기억하기 시작했습니다. 좋은 흐름이에요.",
+            "en": "🔁 N-day streak!\nYour body is starting to remember practice time. Great momentum."
+          },
+          {
+            "id": "082",
+            "ko": "🔥 N일째 출석 완료!\n여기서부터는 의지보다 루틴이 캐리합니다. 아주 좋습니다.",
+            "en": "🔥 Day N complete!\nFrom here on, routine carries more than willpower. Nice."
+          },
+          {
+            "id": "083",
+            "ko": "🎸 N일 연속 베이스!\n내일은 짧아도 괜찮습니다. 끊기지 않게만 가면 충분합니다.",
+            "en": "🎸 N days with the bass!\nTomorrow can be short. Keeping it alive is enough."
+          },
+          {
+            "id": "084",
+            "ko": "🎶 N일 연속 클리어!\n손가락보다 먼저 생활 리듬이 잡히는 중입니다. 이게 큽니다.",
+            "en": "🎶 N-day streak cleared!\nYour life rhythm is locking in before your fingers do. That’s huge."
+          },
+          {
+            "id": "085",
+            "ko": "⚡ N일째 달리는 중!\n지금은 많이보다 자주가 더 세게 먹힙니다. 완전 잘 가는 중이에요.",
+            "en": "⚡ Still rolling on day N!\nRight now, frequent sessions hit harder than long ones. You’re on a great path."
+          },
+          {
+            "id": "086",
+            "ko": "🎮 N일 연속 성공!\n베이스를 잡는 속도가 빨라진다면 이미 반은 성공입니다.",
+            "en": "🎮 N-day streak success!\nIf picking up the bass feels easier already, you’re halfway there."
+          },
+          {
+            "id": "087",
+            "ko": "🌟 N일 연속 좋습니다!\n내일은 첫 1분만 느리게 가도 전체가 훨씬 안정적일 거예요.",
+            "en": "🌟 N days straight—nice!\nEven a slow first minute tomorrow will steady the whole run."
+          },
+          {
+            "id": "088",
+            "ko": "🎯 N일 연속 적중!\n지금은 실력도 오르지만, 시작 장벽이 낮아지는 게 더 무섭습니다.",
+            "en": "🎯 N days, direct hit!\nYour skill is rising, but the lowered start barrier is even stronger."
+          },
+          {
+            "id": "089",
+            "ko": "🪙 N일 연속 적립 완료!\n이렇게 쌓인 게 나중에 곡 하나 통째로 편하게 만듭니다.",
+            "en": "🪙 N days deposited!\nStacks like this make whole songs feel easier later."
+          },
+          {
+            "id": "090",
+            "ko": "🎸 N일 연속 마무리!\n오늘 정도면 충분히 잘했습니다. 내일은 5분만 해도 승리예요.",
+            "en": "🎸 Day N wrapped up!\nToday was plenty. Even 5 minutes tomorrow is a win."
+          },
+          {
+            "id": "091",
+            "ko": "🔥 N일째 good pace!\n손가락이 아직 투덜거려도 괜찮습니다. 루틴은 이미 편을 들어주고 있어요.",
+            "en": "🔥 Good pace on day N!\nEven if your fingers complain, the routine is already on your side."
+          },
+          {
+            "id": "092",
+            "ko": "🎶 N일 연속이라니 좋네요!\n지금 흐름이면 메트로놈도 슬슬 친구 모드로 바뀔 겁니다.",
+            "en": "🎶 N days straight—love it!\nAt this rate, the metronome is about to feel more like a friend than a boss."
+          }
+        ]
+      },
+      "long_7plus": {
+        "min": 7,
+        "messages": [
+          {
+            "id": "093",
+            "ko": "🏆 N일 연속!\n이건 이미 강한 버프입니다. 손보다 습관이 먼저 레벨업했네요.",
+            "en": "🏆 N-day streak!\nThat’s a real buff. Your habit leveled up before your hands did."
+          },
+          {
+            "id": "094",
+            "ko": "🔥 N일 연속 실화냐.\n이 정도면 베이스가 먼저 반겨줄 타이밍입니다. 계속 갑시다.",
+            "en": "🔥 N days straight—seriously?\nAt this point, your bass should be greeting you first. Keep going."
+          },
+          {
+            "id": "095",
+            "ko": "🎸 N일 연속 달성!\n여기까지 왔으면 끊기기 아깝죠. 내일은 짧게라도 꼭 이어가요.",
+            "en": "🎸 N-day streak achieved!\nYou’ve come too far to break it now. Keep it alive tomorrow, even if short."
+          },
+          {
+            "id": "096",
+            "ko": "🎶 N일 연속 유지 중!\n이제는 안 하는 날이 더 어색할 정도입니다. 정말 좋습니다.",
+            "en": "🎶 N days maintained!\nAt this point, skipping feels stranger than playing. That’s great."
+          },
+          {
+            "id": "097",
+            "ko": "⚡ N일 연속 클리어!\n이 정도 흐름이면 곧 손가락이 먼저 자리 찾아갑니다.",
+            "en": "⚡ N days cleared!\nWith this kind of momentum, your fingers will start finding the notes on their own."
+          },
+          {
+            "id": "098",
+            "ko": "🎮 N일째 스테이지 연속 성공!\n리듬 감각도 꽤 단단해졌을 겁니다. 체감이 슬슬 올 거예요.",
+            "en": "🎮 N stages in a row!\nYour timing sense is probably getting much sturdier. You’ll start feeling it soon."
+          },
+          {
+            "id": "099",
+            "ko": "🌟 N일 연속 대단해요!\n이건 반짝 기세가 아니라 진짜 흐름입니다. 아주 멋집니다.",
+            "en": "🌟 N days straight—impressive!\nThis isn’t a lucky streak. This is real momentum."
+          },
+          {
+            "id": "100",
+            "ko": "🎯 N일 연속 명중!\n오늘도 한 판 돌렸으니 게임은 계속 당신 쪽입니다.",
+            "en": "🎯 Direct hit for N days!\nYou got another run in today, so the game still favors you."
+          },
+          {
+            "id": "101",
+            "ko": "🪙 N일 연속 적립 완료!\n이렇게 쌓인 날들은 나중에 톤에서 티가 납니다. 꽤 크게요.",
+            "en": "🪙 N days deposited!\nStacks like these show up in your tone later. In a big way."
+          },
+          {
+            "id": "102",
+            "ko": "🚀 N일 연속이라니 속도 붙었네요!\n지금은 대단한 걸 한 번보다, 평범한 걸 계속한 게 더 세죠.",
+            "en": "🚀 N days straight—you’ve got momentum!\nRight now, repeating the ordinary is stronger than one huge effort."
+          },
+          {
+            "id": "103",
+            "ko": "🎸 N일 연속 완료!\n여기까지 왔으면 이미 절반은 습관의 힘입니다. 아주 좋습니다.",
+            "en": "🎸 N days complete!\nYou’re already being carried by habit now. That’s a big deal."
+          },
+          {
+            "id": "104",
+            "ko": "👑 N일 연속 유지!\n이 정도면 루틴이 거의 메인 캐릭터입니다. 당신은 계속 치기만 하면 됩니다.",
+            "en": "👑 N days maintained!\nAt this point, your routine is basically the main character. You just keep playing."
+          }
+        ]
+      }
+    },
+    "streak_weeks": {
+      "mid_4plus": {
+        "min": 4,
+        "messages": [
+          {
+            "id": "105",
+            "ko": "🗓️ N주 연속 시작!\n주 단위로 이어가는 힘이 생겼습니다. 이건 꽤 큽니다.",
+            "en": "🗓️ N-week streak!\nYou’ve built real week-to-week momentum now. That’s a big deal."
+          },
+          {
+            "id": "106",
+            "ko": "🔥 N주 연속 유지 중!\n이 정도면 이번 주 첫 연습만으로도 페이스가 살아납니다.",
+            "en": "🔥 N weeks maintained!\nAt this point, the first session of the week already wakes up your pace."
+          },
+          {
+            "id": "107",
+            "ko": "🎸 N주 연속 달성!\n이 흐름이면 곡 카피 속도도 서서히 빨라질 겁니다.",
+            "en": "🎸 N weeks achieved!\nAt this rate, even learning songs will start getting faster."
+          },
+          {
+            "id": "108",
+            "ko": "🎶 N주 연속 좋습니다!\n하루 이틀보다 주 단위로 이어가는 게 훨씬 단단합니다.",
+            "en": "🎶 N weeks straight—nice!\nWeek-to-week consistency hits harder than a couple of random good days."
+          },
+          {
+            "id": "109",
+            "ko": "⚡ N주 연속 클리어!\n이제는 연습을 언제 넣어야 할지 몸이 먼저 압니다.",
+            "en": "⚡ N weeks cleared!\nYour body’s starting to know when practice belongs in the week."
+          },
+          {
+            "id": "110",
+            "ko": "🎮 N주째 달리는 중!\n이번 주도 스타트 좋습니다. 나머지는 가볍게 이어도 충분해요.",
+            "en": "🎮 Still rolling in week N!\nGreat start to the week. Light follow-ups will be enough."
+          },
+          {
+            "id": "111",
+            "ko": "🌟 N주 연속 적립 완료!\n쌓이는 속도가 조용해서 그렇지, 이런 게 진짜 무섭게 큽니다.",
+            "en": "🌟 N weeks deposited!\nThis kind of growth is quiet, but it’s the kind that gets scary good."
+          },
+          {
+            "id": "112",
+            "ko": "🎯 N주 연속 명중!\n지금은 실력보다 패턴이 자리를 잡는 게 더 중요합니다. 아주 잘 가요.",
+            "en": "🎯 Direct hit for N weeks!\nRight now, locking in the pattern matters even more than raw skill. You’re doing great."
+          },
+          {
+            "id": "113",
+            "ko": "🪙 N주 연속 좋네요!\n한 주 한 주 쌓인 게 나중에 연주 여유로 바뀝니다.",
+            "en": "🪙 N weeks—nice!\nWhat stacks week by week turns into relaxed playing later."
+          },
+          {
+            "id": "114",
+            "ko": "🎸 N주 연속 유지!\n이번 주도 첫 단추 잘 끼웠습니다. 아주 안정적인 흐름이에요.",
+            "en": "🎸 N weeks maintained!\nYou buttoned up the start of the week nicely. Very steady momentum."
+          },
+          {
+            "id": "115",
+            "ko": "🔥 N주 연속 달리는 중!\n지금은 화려함보다 출석이 세죠. 그리고 그걸 이미 하고 있습니다.",
+            "en": "🔥 N weeks in motion!\nRight now, showing up beats being flashy—and you’re already doing it."
+          },
+          {
+            "id": "116",
+            "ko": "🎶 N주 연속 완료!\n이 정도면 다음 주도 몸이 먼저 베이스 쪽으로 갈 겁니다.",
+            "en": "🎶 N weeks complete!\nAt this point, your body will probably walk toward the bass on its own next week."
+          }
+        ]
+      },
+      "long_8plus": {
+        "min": 8,
+        "messages": [
+          {
+            "id": "117",
+            "ko": "🏆 N주 연속!\n이건 거의 시즌 패스 완료급입니다. 습관이 진짜 강해졌네요.",
+            "en": "🏆 N-week streak!\nThis is almost season-pass-complete territory. Your habit is strong now."
+          },
+          {
+            "id": "118",
+            "ko": "🔥 N주 연속 실화냐.\n여기까지 오면 실력도 오르지만, 흔들리지 않는 게 더 큰 힘입니다.",
+            "en": "🔥 N weeks straight—seriously?\nAt this point, rising skill is great, but being hard to shake is even stronger."
+          },
+          {
+            "id": "119",
+            "ko": "🎸 N주 연속 달성!\n꾸준함 스탯이 이미 최상위권입니다. 이제 연주는 따라옵니다.",
+            "en": "🎸 N weeks achieved!\nYour consistency stat is already top tier. The playing follows."
+          },
+          {
+            "id": "120",
+            "ko": "🎶 N주 연속 유지 중!\n이건 반짝 페이스가 아니라 완전히 자리 잡은 흐름입니다.",
+            "en": "🎶 N weeks maintained!\nThis isn’t a hot streak anymore. It’s fully settled momentum."
+          },
+          {
+            "id": "121",
+            "ko": "⚡ N주 연속 클리어!\n이제는 연습을 쉬면 몸이 먼저 아쉬워할 레벨입니다.",
+            "en": "⚡ N weeks cleared!\nYou’ve reached the level where your body notices when you skip practice."
+          },
+          {
+            "id": "122",
+            "ko": "🎮 N주째 계속 가는 중!\n이번 시즌 MVP는 아마 당신의 캘린더일지도 모르겠네요.",
+            "en": "🎮 Still going in week N!\nAt this point, your calendar might be the real MVP of the season."
+          },
+          {
+            "id": "123",
+            "ko": "🌟 N주 연속 대단합니다!\n이 정도면 곡 하나 배울 때도 확실히 속도가 붙습니다.",
+            "en": "🌟 N weeks—amazing!\nAt this rate, even learning a new song starts speeding up."
+          },
+          {
+            "id": "124",
+            "ko": "🎯 N주 연속 적중!\n조용히 쌓인 시간이 나중에 가장 크게 들립니다. 정말 잘하고 있어요.",
+            "en": "🎯 Direct hit for N weeks!\nQuietly stacked time is what sounds the biggest later. You’re doing great."
+          },
+          {
+            "id": "125",
+            "ko": "💎 N주 연속 완료!\n여기까지 온 사람은 확실히 다릅니다. 한 주 한 주가 무기였네요.",
+            "en": "💎 N weeks complete!\nPeople who get this far are different. Every week became a weapon."
+          },
+          {
+            "id": "126",
+            "ko": "🚀 N주 연속 좋습니다!\n이쯤 되면 루틴이 밀어주고, 손가락은 거기에 올라타기만 하면 됩니다.",
+            "en": "🚀 N weeks—looking great!\nAt this point, the routine pushes and your fingers just ride the wave."
+          },
+          {
+            "id": "127",
+            "ko": "🎸 N주 연속 유지 성공!\n이건 재능보다도 무서운 타입의 성장입니다. 꾸준함이 너무 셉니다.",
+            "en": "🎸 N weeks maintained successfully!\nThis is the kind of growth that’s scarier than talent. Consistency is that strong."
+          },
+          {
+            "id": "128",
+            "ko": "👑 N주 연속!\n이 정도면 연습이 따로 밀어 넣는 일이 아니라 그냥 주간 기본값입니다.",
+            "en": "👑 N weeks straight!\nAt this point, practice isn’t something you force in—it’s just the weekly default."
+          }
+        ]
+      }
+    }
+  },
+  "level_up": {
+    "by_level": {
+      "1": {
+        "level": 1,
+        "tier": "bronze",
+        "tier_up": false,
+        "messages": [
+          {
+            "id": "129",
+            "ko": "⭐ 레벨 1 달성!\n시작 버튼 누른 것만으로도 이미 큰 일입니다. 이제 진짜 게임이 열렸어요.",
+            "en": "⭐ Level 1 reached!\nJust pressing start was already a big deal. The real game begins now."
+          }
+        ]
+      },
+      "2": {
+        "level": 2,
+        "tier": "bronze",
+        "tier_up": false,
+        "messages": [
+          {
+            "id": "130",
+            "ko": "🎸 레벨 2!\n어제보다 오늘이 낫습니다. 이 맛에 계속 가는 거죠.",
+            "en": "🎸 Level 2!\nToday beat yesterday. That’s exactly why we keep going."
+          }
+        ]
+      },
+      "3": {
+        "level": 3,
+        "tier": "bronze",
+        "tier_up": false,
+        "messages": [
+          {
+            "id": "131",
+            "ko": "🔥 레벨 3!\n초반 구간인데도 흐름 좋네요. 손이 슬슬 상황 파악 중입니다.",
+            "en": "🔥 Level 3!\nStill early, but the momentum is good. Your hands are starting to get the memo."
+          }
+        ]
+      },
+      "4": {
+        "level": 4,
+        "tier": "bronze",
+        "tier_up": false,
+        "messages": [
+          {
+            "id": "132",
+            "ko": "🎶 레벨 4!\n기본기가 차오르는 구간입니다. 눈에 안 보여도 꽤 많이 쌓였어요.",
+            "en": "🎶 Level 4!\nThis is the foundation zone. It may not look flashy, but a lot is stacking up."
+          }
+        ]
+      },
+      "5": {
+        "level": 5,
+        "tier": "bronze",
+        "tier_up": false,
+        "messages": [
+          {
+            "id": "133",
+            "ko": "⚡ 레벨 5!\n오, 이제 초반 튜토리얼은 거의 끝입니다. 슬슬 손맛이 나죠.",
+            "en": "⚡ Level 5!\nOh, the early tutorial is almost over. It’s starting to feel good now."
+          }
+        ]
+      },
+      "6": {
+        "level": 6,
+        "tier": "bronze",
+        "tier_up": false,
+        "messages": [
+          {
+            "id": "134",
+            "ko": "🕹️ 레벨 6!\n이제는 손가락이 덜 놀라고, 귀가 더 많이 캐치합니다. 좋은 변화예요.",
+            "en": "🕹️ Level 6!\nYour fingers are panicking less, and your ears are catching more. Great sign."
+          }
+        ]
+      },
+      "7": {
+        "level": 7,
+        "tier": "bronze",
+        "tier_up": false,
+        "messages": [
+          {
+            "id": "135",
+            "ko": "🎯 레벨 7!\n이 정도면 베이스도 이제 당신 패턴을 외우고 있을 겁니다.",
+            "en": "🎯 Level 7!\nAt this point, even your bass is probably memorizing your pattern."
+          }
+        ]
+      },
+      "8": {
+        "level": 8,
+        "tier": "bronze",
+        "tier_up": false,
+        "messages": [
+          {
+            "id": "136",
+            "ko": "🚀 레벨 8!\n조용히 쌓았는데 꽤 올라왔네요. 이런 타입의 성장이 오래 갑니다.",
+            "en": "🚀 Level 8!\nYou climbed quietly, but you’ve come a long way. This kind of growth lasts."
+          }
+        ]
+      },
+      "9": {
+        "level": 9,
+        "tier": "bronze",
+        "tier_up": false,
+        "messages": [
+          {
+            "id": "137",
+            "ko": "🥉 레벨 9!\n브론즈 마지막 칸입니다. 다음은 티어업, 손가락 준비하세요.",
+            "en": "🥉 Level 9!\nLast tile of Bronze. Next stop: tier up. Fingers, get ready."
+          }
+        ]
+      },
+      "10": {
+        "level": 10,
+        "tier": "silver",
+        "tier_up": true,
+        "messages": [
+          {
+            "id": "138",
+            "ko": "🥈 레벨 10! 실버 티어 달성!\n스스로 칭찬해주세요. 꾸준함이 숫자로 보이기 시작했어요.",
+            "en": "🥈 Level 10! SILVER unlocked!\nThis deserves a real celebration. Your consistency is finally showing up in numbers."
+          }
+        ]
+      },
+      "11": {
+        "level": 11,
+        "tier": "silver",
+        "tier_up": false,
+        "messages": [
+          {
+            "id": "139",
+            "ko": "🌟 레벨 11!\n실버 첫 걸음 좋습니다. 이제는 연습한 티가 슬슬 날 겁니다.",
+            "en": "🌟 Level 11!\nNice first step in Silver. Your practice is starting to show."
+          }
+        ]
+      },
+      "12": {
+        "level": 12,
+        "tier": "silver",
+        "tier_up": false,
+        "messages": [
+          {
+            "id": "140",
+            "ko": "🎸 레벨 12!\n슬슬 손이 덜 버벅이고, 라인이 더 말처럼 들리기 시작합니다.",
+            "en": "🎸 Level 12!\nYour hands are wobbling less, and your lines are starting to sound more like music."
+          }
+        ]
+      },
+      "13": {
+        "level": 13,
+        "tier": "silver",
+        "tier_up": false,
+        "messages": [
+          {
+            "id": "141",
+            "ko": "🔥 레벨 13!\n이 숫자, 괜히 세 보이죠. 실제로도 꽤 세게 성장하고 있답니다.",
+            "en": "🔥 Level 13!\nThat number already looks strong—and so does the work behind it."
+          }
+        ]
+      },
+      "14": {
+        "level": 14,
+        "tier": "silver",
+        "tier_up": false,
+        "messages": [
+          {
+            "id": "142",
+            "ko": "🎶 레벨 14!\n여기쯤부터는 실수 후 회복 속도가 빨라집니다. 실력이 늘었다는 뜻이죠.",
+            "en": "🎶 Level 14!\nAround here, your recovery after mistakes gets faster. That’s real skill."
+          }
+        ]
+      },
+      "15": {
+        "level": 15,
+        "tier": "silver",
+        "tier_up": false,
+        "messages": [
+          {
+            "id": "143",
+            "ko": "⚡ 레벨 15!\n15면 꽤 왔습니다. 손가락도 이제 일머리가 생길 시점이죠.",
+            "en": "⚡ Level 15!\nLevel 15 is no joke. Your fingers are finally starting to know the drill."
+          }
+        ]
+      },
+      "16": {
+        "level": 16,
+        "tier": "silver",
+        "tier_up": false,
+        "messages": [
+          {
+            "id": "144",
+            "ko": "🎮 레벨 16!\n좋아요, 이제 연습이 꽤 보이게 쌓였을 겁니다.",
+            "en": "🎮 Level 16!\nNice. This is where practice stops feeling tiny and starts looking real."
+          }
+        ]
+      },
+      "17": {
+        "level": 17,
+        "tier": "silver",
+        "tier_up": false,
+        "messages": [
+          {
+            "id": "145",
+            "ko": "🎯 레벨 17!\n리듬이 가끔 맞는 수준을 넘어서, 점점 기본값이 되어갑니다.",
+            "en": "🎯 Level 17!\nTiming is moving past lucky moments and becoming your default."
+          }
+        ]
+      },
+      "18": {
+        "level": 18,
+        "tier": "silver",
+        "tier_up": false,
+        "messages": [
+          {
+            "id": "146",
+            "ko": "🚀 레벨 18!\n여기까지 왔으면 이미 꽤 많이 해낸 겁니다. 손가락도 인정할 수밖에 없어요.",
+            "en": "🚀 Level 18!\nYou’ve already done a lot to get here. Even your fingers have to admit it."
+          }
+        ]
+      },
+      "19": {
+        "level": 19,
+        "tier": "silver",
+        "tier_up": false,
+        "messages": [
+          {
+            "id": "147",
+            "ko": "🥈 레벨 19!\n실버 막판입니다. 다음은 골드, 슬슬 화면 번쩍일 준비하시죠.",
+            "en": "🥈 Level 19!\nEnd of Silver. Gold is next, so get ready for the flashy screen."
+          }
+        ]
+      },
+      "20": {
+        "level": 20,
+        "tier": "gold",
+        "tier_up": true,
+        "messages": [
+          {
+            "id": "148",
+            "ko": "🥇 레벨 20! 골드 티어 달성!\n와, 여기까지는 진짜 노력 없이는 못 왔을거에요. 오늘은 좀 뿌듯해해도 됩니다.",
+            "en": "🥇 Level 20! GOLD achieved!\nWow, you don’t get here without real effort. You’re absolutely allowed to feel proud today."
+          }
+        ]
+      },
+      "21": {
+        "level": 21,
+        "tier": "gold",
+        "tier_up": false,
+        "messages": [
+          {
+            "id": "149",
+            "ko": "🌟 레벨 21!\n골드 입성 후 첫 발걸음입니다. 이제 연습한 흔적이 소리로 남아요.",
+            "en": "🌟 Level 21!\nFirst step in Gold. Your work is starting to stay in the sound."
+          }
+        ]
+      },
+      "22": {
+        "level": 22,
+        "tier": "gold",
+        "tier_up": false,
+        "messages": [
+          {
+            "id": "150",
+            "ko": "🎸 레벨 22!\n벌써 22레벨이네요. 축하합니다!\n벌써 22레벨이네요. 축하합니다!",
+            "en": "🎸 Level 22!\nAlready level 22. Just looking at the number, your fingers have clearly been putting in work."
+          }
+        ]
+      },
+      "23": {
+        "level": 23,
+        "tier": "gold",
+        "tier_up": false,
+        "messages": [
+          {
+            "id": "151",
+            "ko": "🔥 레벨 23!\n골드 구간에서 계속 오른다는 건 습관이 들였다는 뜻입니다. 좋습니다.",
+            "en": "🔥 Level 23!\nClimbing inside Gold means the work is really piling up. Love that."
+          }
+        ]
+      },
+      "24": {
+        "level": 24,
+        "tier": "gold",
+        "tier_up": false,
+        "messages": [
+          {
+            "id": "152",
+            "ko": "🎶 레벨 24!\n한 단계 한 단계 올린 게 보여요. 억지로 온 숫자가 아니라 더 멋집니다.",
+            "en": "🎶 Level 24!\nYou can feel each step behind this number. It wasn’t forced, and that makes it better."
+          }
+        ]
+      },
+      "25": {
+        "level": 25,
+        "tier": "gold",
+        "tier_up": false,
+        "messages": [
+          {
+            "id": "153",
+            "ko": "⚡ 레벨 25!\n25면 중간 보스는 넘긴 느낌이죠. 지금 페이스 아주 좋습니다.",
+            "en": "⚡ Level 25!\nLevel 25 feels like you just beat a mid-boss. Your pace is looking great."
+          }
+        ]
+      },
+      "26": {
+        "level": 26,
+        "tier": "gold",
+        "tier_up": false,
+        "messages": [
+          {
+            "id": "154",
+            "ko": "🎮 레벨 26!\n이쯤 되면 연습량이 숨지 못합니다. 성장하는게 보여요.",
+            "en": "🎮 Level 26!\nAt this point, your practice can’t hide anymore. The results are starting to show."
+          }
+        ]
+      },
+      "27": {
+        "level": 27,
+        "tier": "gold",
+        "tier_up": false,
+        "messages": [
+          {
+            "id": "155",
+            "ko": "🎯 레벨 27!\n라인이 조금 더 또렷해지고, 손은 조금 덜 급해졌습니다. 아주 좋아요.",
+            "en": "🎯 Level 27!\nYour lines are getting clearer, and your hands are rushing less. Really nice."
+          }
+        ]
+      },
+      "28": {
+        "level": 28,
+        "tier": "gold",
+        "tier_up": false,
+        "messages": [
+          {
+            "id": "156",
+            "ko": "🚀 레벨 28!\n계속 오르네요. 베이스가 이제 당신 손맛을 알아줄 겁니다.",
+            "en": "🚀 Level 28!\nStill climbing. Your bass has probably started recognizing your touch by now."
+          }
+        ]
+      },
+      "29": {
+        "level": 29,
+        "tier": "gold",
+        "tier_up": false,
+        "messages": [
+          {
+            "id": "157",
+            "ko": "🥇 레벨 29!\n골드 마지막 칸 도착. 다음은 플래티넘, 꽤 화려하게 갑니다.",
+            "en": "🥇 Level 29!\nLast tile of Gold. Platinum is next, and that’s a flashy jump."
+          }
+        ]
+      },
+      "30": {
+        "level": 30,
+        "tier": "platinum",
+        "tier_up": true,
+        "messages": [
+          {
+            "id": "158",
+            "ko": "💎 레벨 30! 플래티넘 티어 달성!\n이건 꽤 큰 업적입니다. 대충 친 시간으로는 절대 못 찍는 숫자예요.",
+            "en": "💎 Level 30! PLATINUM unlocked!\nThis is a big one. You do not land here with half-hearted practice."
+          }
+        ]
+      },
+      "31": {
+        "level": 31,
+        "tier": "platinum",
+        "tier_up": false,
+        "messages": [
+          {
+            "id": "159",
+            "ko": "🌟 레벨 31!\n플래 첫 걸음부터 좋네요. 이제는 퀄리티가 성장을 끌고 갑니다.",
+            "en": "🌟 Level 31!\nGreat first step in Platinum. Quality is driving your growth now."
+          }
+        ]
+      },
+      "32": {
+        "level": 32,
+        "tier": "platinum",
+        "tier_up": false,
+        "messages": [
+          {
+            "id": "160",
+            "ko": "🎸 레벨 32!\n손가락이 점점 덜 바쁘고 더 똑똑해집니다. 이 변화 반갑네요.",
+            "en": "🎸 Level 32!\nYour fingers are getting less frantic and more efficient. Love that change."
+          }
+        ]
+      },
+      "33": {
+        "level": 33,
+        "tier": "platinum",
+        "tier_up": false,
+        "messages": [
+          {
+            "id": "161",
+            "ko": "🔥 레벨 33!\n33까지 왔으면 이제 연습이 취미를 넘어 루틴의 힘을 받기 시작합니다.",
+            "en": "🔥 Level 33!\nOnce you hit 33, practice starts running on routine power, not just motivation."
+          }
+        ]
+      },
+      "34": {
+        "level": 34,
+        "tier": "platinum",
+        "tier_up": false,
+        "messages": [
+          {
+            "id": "162",
+            "ko": "🎶 레벨 34!\n계속 쌓은 사람만 나오는 숫자입니다. 그냥 멋있게 올라왔네요.",
+            "en": "🎶 Level 34!\nThis is the kind of number only stackers reach. Clean climb."
+          }
+        ]
+      },
+      "35": {
+        "level": 35,
+        "tier": "platinum",
+        "tier_up": false,
+        "messages": [
+          {
+            "id": "163",
+            "ko": "⚡ 레벨 35!\n여기쯤이면 손가락도 이제 팀플을 좀 합니다. 예전처럼 따로 놀지 않네요.",
+            "en": "⚡ Level 35!\nBy now, your fingers are finally cooperating like a team instead of freelancing."
+          }
+        ]
+      },
+      "36": {
+        "level": 36,
+        "tier": "platinum",
+        "tier_up": false,
+        "messages": [
+          {
+            "id": "164",
+            "ko": "🎮 레벨 36!\n이제는 잘 친 날이 가끔이 아니라 점점 기본값이 됩니다.",
+            "en": "🎮 Level 36!\nA good day is starting to become the default, not the exception."
+          }
+        ]
+      },
+      "37": {
+        "level": 37,
+        "tier": "platinum",
+        "tier_up": false,
+        "messages": [
+          {
+            "id": "165",
+            "ko": "🎯 레벨 37!\n조용히 많이 왔습니다. 이런 누적치가 제일 무섭게 셉니다.",
+            "en": "🎯 Level 37!\nYou’ve come a long way quietly. This kind of accumulation is scary strong."
+          }
+        ]
+      },
+      "38": {
+        "level": 38,
+        "tier": "platinum",
+        "tier_up": false,
+        "messages": [
+          {
+            "id": "166",
+            "ko": "🚀 레벨 38!\n실력이 한 번씩 반짝이는 단계를 넘어, 점점 꾸준히 나와줍니다.",
+            "en": "🚀 Level 38!\nYou’re moving past occasional flashes and into reliable skill."
+          }
+        ]
+      },
+      "39": {
+        "level": 39,
+        "tier": "platinum",
+        "tier_up": false,
+        "messages": [
+          {
+            "id": "167",
+            "ko": "💎 레벨 39!\n플래티넘 막판 도착. 다음은 다이아, 화면 밝기 미리 낮춰두세요.",
+            "en": "💎 Level 39!\nEnd of Platinum. Diamond is next—get ready for the flashy upgrade screen."
+          }
+        ]
+      },
+      "40": {
+        "level": 40,
+        "tier": "diamond",
+        "tier_up": true,
+        "messages": [
+          {
+            "id": "168",
+            "ko": "🔷 레벨 40! 다이아 티어 달성!\n와, 이건 진짜 크게 축하해야 합니다. 여기까지 온 건 그냥 한두 번 열심히 한 결과가 아니에요.",
+            "en": "🔷 Level 40! DIAMOND achieved!\nWow, this deserves a big celebration. You don’t get here from trying hard once or twice."
+          }
+        ]
+      },
+      "41": {
+        "level": 41,
+        "tier": "diamond",
+        "tier_up": false,
+        "messages": [
+          {
+            "id": "169",
+            "ko": "🌟 레벨 41!\n다이아 첫 걸음입니다. 이제는 디테일이 차이를 만드는 구간이에요.",
+            "en": "🌟 Level 41!\nFirst step in Diamond. This is where details start deciding everything."
+          }
+        ]
+      },
+      "42": {
+        "level": 42,
+        "tier": "diamond",
+        "tier_up": false,
+        "messages": [
+          {
+            "id": "170",
+            "ko": "🎸 레벨 42!\n42까지 왔네요. 숫자도 완성형인데, 지금 페이스도 꽤 완성형입니다.",
+            "en": "🎸 Level 42!\nYou made it to 42. It’s a complete-looking number, and your pace is looking pretty complete too."
+          }
+        ]
+      },
+      "43": {
+        "level": 43,
+        "tier": "diamond",
+        "tier_up": false,
+        "messages": [
+          {
+            "id": "171",
+            "ko": "🔥 레벨 43!\n연습한 시간이 이제 슬슬 소리의 밀도로 들립니다. 아주 좋습니다.",
+            "en": "🔥 Level 43!\nYour practice time is starting to sound like density in your tone. Very nice."
+          }
+        ]
+      },
+      "44": {
+        "level": 44,
+        "tier": "diamond",
+        "tier_up": false,
+        "messages": [
+          {
+            "id": "172",
+            "ko": "🎶 레벨 44!\n여기부터는 작은 차이가 크게 들립니다. 그만큼 잘 올라왔다는 뜻이에요.",
+            "en": "🎶 Level 44!\nFrom here, tiny differences sound big. That means you’ve climbed really well."
+          }
+        ]
+      },
+      "45": {
+        "level": 45,
+        "tier": "diamond",
+        "tier_up": false,
+        "messages": [
+          {
+            "id": "173",
+            "ko": "⚡ 레벨 45!\n45면 꽤 높은 데까지 왔습니다. 손가락한테 회식 한번 열어줘야 할 수준이에요.",
+            "en": "⚡ Level 45!\nLevel 45 is seriously high. Your fingers deserve a team dinner."
+          }
+        ]
+      },
+      "46": {
+        "level": 46,
+        "tier": "diamond",
+        "tier_up": false,
+        "messages": [
+          {
+            "id": "174",
+            "ko": "🎮 레벨 46!\n좋습니다. 이제는 많이 친 사람의 안정감이 묻어나는 구간이에요.",
+            "en": "🎮 Level 46!\nNice. This is the zone where experienced-player stability starts showing."
+          }
+        ]
+      },
+      "47": {
+        "level": 47,
+        "tier": "diamond",
+        "tier_up": false,
+        "messages": [
+          {
+            "id": "175",
+            "ko": "🎯 레벨 47!\n거의 끝이 보입니다. 여기까지 온 힘이면 남은 구간도 충분합니다.",
+            "en": "🎯 Level 47!\nYou can almost see the end now. The strength that got you here is enough for the rest."
+          }
+        ]
+      },
+      "48": {
+        "level": 48,
+        "tier": "diamond",
+        "tier_up": false,
+        "messages": [
+          {
+            "id": "176",
+            "ko": "🚀 레벨 48!\n이쯤 되면 베이스도 오늘 또 왔네 하는 표정일 겁니다. 계속 좋아요.",
+            "en": "🚀 Level 48!\nAt this point your bass is probably like, oh, you again. Love it."
+          }
+        ]
+      },
+      "49": {
+        "level": 49,
+        "tier": "diamond",
+        "tier_up": false,
+        "messages": [
+          {
+            "id": "177",
+            "ko": "🔷 레벨 49!\n다이아 최종 칸입니다. 다음은 마스터, 거의 엔딩 직전이에요.",
+            "en": "🔷 Level 49!\nFinal Diamond tile. Master is next—you’re basically at the ending."
+          }
+        ]
+      },
+      "50": {
+        "level": 50,
+        "tier": "master",
+        "tier_up": true,
+        "messages": [
+          {
+            "id": "178",
+            "ko": "👑 레벨 50! 마스터 달성!\n이건 진짜 해냈다고 말해도 됩니다. 시간, 꾸준함, 멘탈이 다 버텨줘야 찍는 숫자예요. 정말 축하합니다.",
+            "en": "👑 Level 50! MASTER achieved!\nYou absolutely earned the right to say you did it. This number takes time, consistency, and real mental stamina. Huge congratulations."
+          }
+        ]
+      }
+    }
+  }
+}

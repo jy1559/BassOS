@@ -554,6 +554,7 @@ export type Settings = {
     levelup_sound?: string;
     dashboard_glass_cards?: boolean;
     dashboard_version?: "legacy" | "focus";
+    session_timer_pip_corner?: "top-right" | "top-left" | "bottom-right" | "bottom-left";
     song_genres?: string[];
     song_genre_groups?: GenreGroup[];
     song_genre_aliases?: Record<string, string>;
