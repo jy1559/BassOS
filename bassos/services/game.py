@@ -21,7 +21,7 @@ from bassos.services.calculations import (
     total_xp_from_events,
     xp_to_next,
 )
-from bassos.services.events import create_event_row
+from bassos.services.events import create_event_row, empty_event
 from bassos.services.gamification_messages import build_session_gamification, level_up_copy as build_level_up_copy
 from bassos.services.motivation import build_session_coach_feedback
 from bassos.services.storage import Storage
@@ -115,6 +115,9 @@ def _guess_media_type(evidence_type: str, path: str, url: str) -> str:
     return "image"
 
 
+MIN_SESSION_SAVE_MIN = 10
+
+
 class GameService:
     def __init__(self, storage: Storage):
         self.storage = storage
@@ -149,6 +152,107 @@ class GameService:
         reduced = max(0, candidate - applied)
         return applied, reduced
 
+    def _coerce_chain_segments(self, raw: Any) -> list[dict[str, Any]]:
+        if not isinstance(raw, list):
+            return []
+        out: list[dict[str, Any]] = []
+        for item in raw:
+            if not isinstance(item, dict):
+                continue
+            event_id = str(item.get("event_id") or "").strip()
+            if not event_id:
+                continue
+            activity, sub_activity = _canonical_session_activity(
+                str(item.get("activity") or ""),
+                str(item.get("sub_activity") or ""),
+            )
+            out.append(
+                {
+                    "event_id": event_id,
+                    "activity": activity,
+                    "sub_activity": sub_activity,
+                    "song_library_id": str(item.get("song_library_id") or ""),
+                    "drill_id": str(item.get("drill_id") or ""),
+                    "title": str(item.get("title") or ""),
+                    "duration_min": max(0, to_int(item.get("duration_min"), 0)),
+                    "xp": max(0, to_int(item.get("xp"), 0)),
+                }
+            )
+        return out
+
+    def _chain_segment_from_event(self, event: dict[str, Any]) -> dict[str, Any]:
+        meta = parse_json(event.get("meta_json"))
+        raw_sub = meta.get("sub_activity") if isinstance(meta, dict) else ""
+        activity, sub_activity = _canonical_session_activity(str(event.get("activity") or ""), str(raw_sub or ""))
+        return {
+            "event_id": str(event.get("event_id") or ""),
+            "activity": activity,
+            "sub_activity": sub_activity,
+            "song_library_id": str(event.get("song_library_id") or ""),
+            "drill_id": str(event.get("drill_id") or ""),
+            "title": str(event.get("title") or ""),
+            "duration_min": max(0, to_int(event.get("duration_min"), 0)),
+            "xp": max(0, to_int(event.get("xp"), 0)),
+        }
+
+    def _chain_segment_key(self, segment: dict[str, Any]) -> str:
+        song_id = str(segment.get("song_library_id") or "").strip()
+        drill_id = str(segment.get("drill_id") or "").strip()
+        if song_id:
+            return f"song:{song_id}"
+        if drill_id:
+            return f"drill:{drill_id}"
+        return f"activity:{segment.get('activity', '')}:{segment.get('sub_activity', '')}:{segment.get('title', '')}"
+
+    def _build_chain_summary(self, raw_segments: list[dict[str, Any]]) -> dict[str, Any]:
+        segments = self._coerce_chain_segments(raw_segments)
+        total_duration_min = sum(max(0, to_int(item.get("duration_min"), 0)) for item in segments)
+        total_xp = sum(max(0, to_int(item.get("xp"), 0)) for item in segments)
+
+        grouped: dict[str, dict[str, Any]] = {}
+        ordered: list[str] = []
+        for segment in segments:
+            key = self._chain_segment_key(segment)
+            if key not in grouped:
+                ordered.append(key)
+                label = str(segment.get("title") or "").strip()
+                if not label:
+                    label = (
+                        str(segment.get("song_library_id") or "").strip()
+                        or str(segment.get("drill_id") or "").strip()
+                        or f"{segment.get('activity')}/{segment.get('sub_activity')}"
+                    )
+                grouped[key] = {
+                    "key": key,
+                    "label": label,
+                    "activity": str(segment.get("activity") or ""),
+                    "sub_activity": str(segment.get("sub_activity") or ""),
+                    "song_library_id": str(segment.get("song_library_id") or ""),
+                    "drill_id": str(segment.get("drill_id") or ""),
+                    "duration_min": 0,
+                    "xp": 0,
+                }
+            grouped[key]["duration_min"] += max(0, to_int(segment.get("duration_min"), 0))
+            grouped[key]["xp"] += max(0, to_int(segment.get("xp"), 0))
+
+        return {
+            "saved_count": len(segments),
+            "total_duration_min": total_duration_min,
+            "total_xp": total_xp,
+            "segments": segments,
+            "lines": [grouped[key] for key in ordered],
+        }
+
+    def _active_session_state(self, raw: dict[str, Any] | None = None) -> dict[str, Any]:
+        base = dict(raw or self.storage.read_session_state() or {})
+        chain_saved_segments = self._coerce_chain_segments(base.get("chain_saved_segments"))
+        chain_under_min_count = max(0, to_int(base.get("chain_under_min_count"), 0))
+        base["chain_saved_segments"] = chain_saved_segments
+        base["chain_saved_count"] = len(chain_saved_segments)
+        base["chain_under_min_count"] = chain_under_min_count
+        base["chain_count"] = len(chain_saved_segments)
+        return base
+
     def start_session(self, payload: dict[str, Any] | None = None) -> dict[str, Any]:
         payload = payload or {}
         started_at = parse_dt(payload.get("start_at")) or now_local()
@@ -156,6 +260,8 @@ class GameService:
             str(payload.get("activity") or "Song"),
             str(payload.get("sub_activity") or ""),
         )
+        chain_saved_segments = self._coerce_chain_segments(payload.get("chain_saved_segments"))
+        chain_under_min_count = max(0, to_int(payload.get("chain_under_min_count"), 0))
         state = {
             "session_id": payload.get("session_id") or f"S_{started_at.strftime('%Y%m%d%H%M%S')}",
             "start_at": to_iso(started_at),
@@ -166,21 +272,46 @@ class GameService:
             "drill_id": str(payload.get("drill_id") or ""),
             "title": str(payload.get("title") or ""),
             "notes": str(payload.get("notes") or ""),
+            "chain_saved_segments": chain_saved_segments,
+            "chain_saved_count": len(chain_saved_segments),
+            "chain_under_min_count": chain_under_min_count,
+            "chain_count": len(chain_saved_segments),
         }
         self.storage.write_session_state(state)
         return state
 
-    def discard_session(self) -> dict[str, Any]:
-        active = self.storage.read_session_state()
+    def discard_session(self, chain_mode: str = "last", settings: dict[str, Any] | None = None) -> dict[str, Any]:
+        active = self._active_session_state()
+        removed_saved_count = 0
+        normalized_mode = str(chain_mode or "last").strip().lower()
+        if normalized_mode not in {"last", "all"}:
+            normalized_mode = "last"
+        if normalized_mode == "all":
+            event_ids = {str(item.get("event_id") or "").strip() for item in active.get("chain_saved_segments", [])}
+            event_ids = {item for item in event_ids if item}
+            removed_saved_count = len(event_ids)
+            if event_ids:
+                rows = self.storage.read_csv("events.csv")
+                kept = [row for row in rows if str(row.get("event_id") or "") not in event_ids]
+                if len(kept) != len(rows):
+                    self.storage.write_csv("events.csv", kept, headers=self.storage.read_csv_headers("events.csv"))
+                    if settings is not None:
+                        reconcile_auto_claims(self.storage, settings, now_local())
         self.storage.clear_session_state()
-        return {"discarded": bool(active), "session": active}
+        return {
+            "discarded": bool(active),
+            "session": active,
+            "chain_mode": normalized_mode,
+            "removed_saved_count": removed_saved_count,
+        }
 
     def get_active_session(self) -> dict[str, Any]:
-        return self.storage.read_session_state()
+        return self._active_session_state()
 
     def stop_session(self, payload: dict[str, Any], settings: dict[str, Any]) -> dict[str, Any]:
         before_hud = self.hud_summary(settings)
-        active = self.storage.read_session_state()
+        active = self._active_session_state()
+        chain_saved_segments = self._coerce_chain_segments(active.get("chain_saved_segments"))
         now = now_local()
         end_at = parse_dt(payload.get("end_at")) or now
 
@@ -208,6 +339,42 @@ class GameService:
         )
         payload["activity"] = normalized_activity
         payload["sub_activity"] = normalized_sub
+
+        if duration_min < MIN_SESSION_SAVE_MIN:
+            self.storage.clear_session_state()
+            skipped_event = empty_event()
+            skipped_event["event_type"] = "SESSION"
+            skipped_event["activity"] = payload["activity"]
+            skipped_event["sub_activity"] = payload.get("sub_activity", "")
+            skipped_event["song_library_id"] = payload.get("song_library_id", "")
+            skipped_event["drill_id"] = payload.get("drill_id", "")
+            skipped_event["title"] = payload.get("title") or f"Session - {payload['activity']}"
+            skipped_event["notes"] = payload.get("notes", "")
+            skipped_event["start_at"] = to_iso(start_at)
+            skipped_event["end_at"] = to_iso(end_at)
+            skipped_event["duration_min"] = str(duration_min)
+            skipped_chain = self._build_chain_summary(chain_saved_segments)
+            return {
+                "event": skipped_event,
+                "xp_breakdown": {
+                    "base_xp": 0,
+                    "bonus_xp": 0,
+                    "bonus_breakdown": {},
+                    "pre_cap_total_xp": 0,
+                    "daily_cap_reduced": 0,
+                    "total_xp": 0,
+                },
+                "auto_granted": [],
+                "gamification": {},
+                "coach_message": "",
+                "coach_reason_tags": [],
+                "next_win_hint": "",
+                "event_saved": False,
+                "under_min_skipped_current": True,
+                "current_duration_min": duration_min,
+                "session_chain": skipped_chain,
+            }
+
         breakdown = session_xp_breakdown(payload, settings)
         applied_xp, reduced_by_cap = self._apply_daily_session_cap(
             breakdown.get("total_xp", 0),
@@ -266,6 +433,8 @@ class GameService:
         self.storage.append_csv_row("events.csv", event, self.storage.read_csv_headers("events.csv"))
         self.storage.clear_session_state()
         granted = auto_grant_claims(self.storage, settings, created_at=now)
+        chain_segments_with_current = chain_saved_segments + [self._chain_segment_from_event(event)]
+        session_chain = self._build_chain_summary(chain_segments_with_current)
         after_hud = self.hud_summary(settings)
         stats = self.stats_overview(settings)
         lang = str((settings.get("ui") or {}).get("language") or "ko").strip().lower()
@@ -304,8 +473,134 @@ class GameService:
             "xp_breakdown": breakdown,
             "auto_granted": granted,
             "gamification": gamification,
+            "event_saved": True,
+            "under_min_skipped_current": False,
+            "current_duration_min": duration_min,
+            "session_chain": session_chain,
             **feedback,
         }
+
+    def switch_session(self, payload: dict[str, Any], settings: dict[str, Any]) -> dict[str, Any]:
+        active = self._active_session_state()
+        if not active.get("session_id"):
+            session = self.start_session(payload)
+            return {
+                "switched": False,
+                "session": session,
+                "auto_saved": None,
+                "chain_count": len(session.get("chain_saved_segments", [])),
+                "under_min_skipped": False,
+            }
+
+        stop_payload = {
+            "activity": active.get("activity", "Song"),
+            "sub_activity": active.get("sub_activity", ""),
+            "song_library_id": active.get("song_library_id", ""),
+            "drill_id": active.get("drill_id", ""),
+            "title": active.get("title", ""),
+            "notes": active.get("notes", ""),
+            "start_at": active.get("start_at", ""),
+            "end_at": to_iso(now_local()),
+        }
+        auto_saved = self.stop_session(stop_payload, settings)
+        chain_saved_segments = self._coerce_chain_segments((auto_saved.get("session_chain") or {}).get("segments"))
+        chain_under_min_count = max(0, to_int(active.get("chain_under_min_count"), 0))
+        if auto_saved.get("under_min_skipped_current"):
+            chain_under_min_count += 1
+        next_session = self.start_session(
+            {
+                **payload,
+                "chain_saved_segments": chain_saved_segments,
+                "chain_under_min_count": chain_under_min_count,
+            }
+        )
+        return {
+            "switched": True,
+            "session": next_session,
+            "auto_saved": auto_saved,
+            "chain_count": len(chain_saved_segments),
+            "under_min_skipped": bool(auto_saved.get("under_min_skipped_current")),
+        }
+
+    def finalize_session_chain(self, payload: dict[str, Any], settings: dict[str, Any]) -> dict[str, Any]:
+        active = self._active_session_state()
+        chain_saved_segments = self._coerce_chain_segments(active.get("chain_saved_segments"))
+
+        include_raw = payload.get("include_saved_event_ids")
+        if isinstance(include_raw, list):
+            include_saved_event_ids = {str(item or "").strip() for item in include_raw if str(item or "").strip()}
+        else:
+            include_saved_event_ids = {str(item.get("event_id") or "").strip() for item in chain_saved_segments if str(item.get("event_id") or "").strip()}
+
+        kept_sessions = [item for item in chain_saved_segments if str(item.get("event_id") or "") in include_saved_event_ids]
+        removed_sessions = [item for item in chain_saved_segments if str(item.get("event_id") or "") not in include_saved_event_ids]
+        removed_event_ids = {str(item.get("event_id") or "").strip() for item in removed_sessions if str(item.get("event_id") or "").strip()}
+
+        if removed_event_ids:
+            rows = self.storage.read_csv("events.csv")
+            kept_rows = [row for row in rows if str(row.get("event_id") or "") not in removed_event_ids]
+            if len(kept_rows) != len(rows):
+                self.storage.write_csv("events.csv", kept_rows, headers=self.storage.read_csv_headers("events.csv"))
+                reconcile_auto_claims(self.storage, settings, now_local())
+
+        include_current = bool(payload.get("include_current", True))
+        current_stop_payload = payload.get("current_stop_payload")
+        if not isinstance(current_stop_payload, dict):
+            current_stop_payload = {}
+
+        current_result: dict[str, Any] | None = None
+        current_saved = False
+        current_skipped_under_min = False
+
+        if include_current and active.get("session_id"):
+            active_for_save = dict(active)
+            active_for_save["chain_saved_segments"] = kept_sessions
+            active_for_save["chain_saved_count"] = len(kept_sessions)
+            active_for_save["chain_count"] = len(kept_sessions)
+            self.storage.write_session_state(active_for_save)
+            current_result = self.stop_session(current_stop_payload, settings)
+            current_saved = bool(current_result.get("event_saved"))
+            current_skipped_under_min = bool(current_result.get("under_min_skipped_current"))
+        else:
+            current_result = {
+                "event": empty_event(),
+                "xp_breakdown": {
+                    "base_xp": 0,
+                    "bonus_xp": 0,
+                    "bonus_breakdown": {},
+                    "pre_cap_total_xp": 0,
+                    "daily_cap_reduced": 0,
+                    "total_xp": 0,
+                },
+                "auto_granted": [],
+                "gamification": {},
+                "coach_message": "",
+                "coach_reason_tags": [],
+                "next_win_hint": "",
+                "event_saved": False,
+                "under_min_skipped_current": False,
+                "current_duration_min": 0,
+                "session_chain": self._build_chain_summary(kept_sessions),
+            }
+
+        if current_saved:
+            final_segments = self._coerce_chain_segments((current_result.get("session_chain") or {}).get("segments"))
+            if not final_segments:
+                final_segments = kept_sessions + [self._chain_segment_from_event(current_result.get("event") or {})]
+        else:
+            final_segments = kept_sessions
+
+        summary = self._build_chain_summary(final_segments)
+        self.storage.clear_session_state()
+
+        result = dict(current_result or {})
+        result["kept_sessions"] = kept_sessions
+        result["removed_sessions"] = removed_sessions
+        result["summary"] = summary
+        result["current_saved"] = current_saved
+        result["current_skipped_under_min"] = current_skipped_under_min
+        result["session_chain"] = summary
+        return result
 
     def quick_log(self, payload: dict[str, Any], settings: dict[str, Any]) -> dict[str, Any]:
         payload = dict(payload)
@@ -365,6 +660,7 @@ class GameService:
             elif not next_unlock:
                 next_unlock = item
 
+        active_session = self._active_session_state()
         return {
             "total_xp": level.total_xp,
             "level": level.level,
@@ -375,7 +671,7 @@ class GameService:
             "current_level_xp": level.current_level_xp,
             "today_xp": today_xp,
             "week_xp": week_xp,
-            "active_session": self.storage.read_session_state(),
+            "active_session": active_session,
             "unlocked_count": len(unlocked),
             "next_unlock": next_unlock,
             "badge": self.badge_for_level(level.level),

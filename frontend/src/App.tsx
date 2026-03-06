@@ -45,7 +45,7 @@ import { SongsPage } from "./pages/SongsPage";
 import { XPPage } from "./pages/XPPage";
 import { TutorialOverlay } from "./components/tutorial/TutorialOverlay";
 import { SessionStopModal } from "./components/session/SessionStopModal";
-import { GlobalMetronomeDock, MetronomeProvider } from "./metronome";
+import { MetronomePipPanel, MetronomeProvider } from "./metronome";
 import { CORE_CAMPAIGN_ID, getTutorialCampaign } from "./tutorial/campaigns";
 import type { TutorialCampaign } from "./tutorial/types";
 import { configureGenreCatalog } from "./genreCatalog";
@@ -675,11 +675,15 @@ export default function App() {
     const ui = (settings?.ui ?? {}) as Settings["ui"];
     const levelNotifyOn = ui.notify_level_up !== false;
     const levelFxOn = ui.fx_level_up_overlay ?? ui.enable_confetti ?? true;
+    const summaryLike = (result as SessionStopResult & { summary?: { total_duration_min?: number; total_xp?: number } }).summary;
+    const chainSummary = result.session_chain || null;
+    const summarizedDuration = Number(summaryLike?.total_duration_min ?? chainSummary?.total_duration_min ?? 0);
+    const summarizedXp = Number(summaryLike?.total_xp ?? chainSummary?.total_xp ?? 0);
     const durationMin = Math.max(
       0,
-      Number(result.event?.duration_min || (source === "quick" ? 10 : 0))
+      summarizedDuration || Number(result.event?.duration_min || (source === "quick" ? 10 : 0))
     );
-    const gainedXp = Number(result.xp_breakdown?.total_xp || 0);
+    const gainedXp = summarizedXp || Number(result.xp_breakdown?.total_xp || 0);
     const beforeLevel = Math.max(1, Number(result.before_level || 1));
     const afterLevel = Math.max(1, Number(result.after_level || beforeLevel));
     const gamification = result.gamification || {};
@@ -720,6 +724,7 @@ export default function App() {
     }
     const isQuick = durationMin <= 10 || source === "quick";
     const shouldFx = isQuick ? ui.fx_session_complete_quick === true : ui.fx_session_complete_normal !== false;
+    if (durationMin <= 0 && gainedXp <= 0) return;
     if (!shouldFx) return;
     enqueueFx({
       kind: "session",
@@ -924,9 +929,7 @@ export default function App() {
                 </small>
               ) : null}
             </div>
-            <div className="topbar-actions">
-              <GlobalMetronomeDock />
-            </div>
+            <div className="topbar-actions" />
           </header>
 
           {activeSessionId ? (
@@ -950,6 +953,7 @@ export default function App() {
                   </button>
                 </div>
               </div>
+              <MetronomePipPanel placement="inline" visible={tab !== "practice"} />
               {sessionPipVideo ? (
                 <button
                   type="button"
@@ -972,6 +976,7 @@ export default function App() {
               ) : null}
             </div>
           ) : null}
+          <MetronomePipPanel placement="floating" visible={!activeSessionId && tab !== "practice"} />
 
           {tab === "dashboard" ? (
             <DashboardPage

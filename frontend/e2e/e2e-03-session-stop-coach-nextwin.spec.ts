@@ -17,7 +17,7 @@ test("E2E-03 세션 종료 저장 + 코치 메시지 + Next Win 갱신", async (
   const startRaw = await page.locator("[data-testid='dashboard-stop-start-at']").inputValue();
   const startDate = new Date(startRaw);
   if (!Number.isNaN(startDate.getTime())) {
-    const endDate = new Date(startDate.getTime() + 2 * 60 * 1000);
+    const endDate = new Date(startDate.getTime() + 12 * 60 * 1000);
     const yyyy = endDate.getFullYear();
     const mm = String(endDate.getMonth() + 1).padStart(2, "0");
     const dd = String(endDate.getDate()).padStart(2, "0");

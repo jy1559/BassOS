@@ -46,6 +46,17 @@ test("E2E-14 practice session start/stop timer + stop modal actions", async ({ p
   await expect(modal).toContainText(/종료하시겠습니까|Finish session/i);
   await expect(page.locator("[data-testid='studio-stop-start-at']")).toBeVisible();
   await expect(page.locator("[data-testid='studio-stop-end-at']")).toBeVisible();
+  const startRaw = await page.locator("[data-testid='studio-stop-start-at']").inputValue();
+  const startDate = new Date(startRaw);
+  if (!Number.isNaN(startDate.getTime())) {
+    const endDate = new Date(startDate.getTime() + 12 * 60 * 1000);
+    const yyyy = endDate.getFullYear();
+    const mm = String(endDate.getMonth() + 1).padStart(2, "0");
+    const dd = String(endDate.getDate()).padStart(2, "0");
+    const hh = String(endDate.getHours()).padStart(2, "0");
+    const mi = String(endDate.getMinutes()).padStart(2, "0");
+    await page.locator("[data-testid='studio-stop-end-at']").fill(`${yyyy}-${mm}-${dd}T${hh}:${mi}`);
+  }
 
   await page.locator("[data-testid='studio-stop-save']").click();
   await expect(modal).toBeHidden();

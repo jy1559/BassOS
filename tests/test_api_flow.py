@@ -19,6 +19,10 @@ def _prepare_temp_root(tmp_path: Path) -> Path:
     return tmp_path
 
 
+def _session_events(storage) -> list[dict[str, str]]:
+    return [row for row in storage.read_csv("events.csv") if str(row.get("event_type") or "").upper() == "SESSION"]
+
+
 def test_session_stop_updates_hud(tmp_path):
     root = _prepare_temp_root(tmp_path)
     app = create_app(root)
@@ -69,6 +73,226 @@ def test_core_api_smoke(tmp_path):
         ).status_code
         == 200
     )
+
+
+def test_session_switch_under_10_min_skips_save(tmp_path):
+    root = _prepare_temp_root(tmp_path)
+    app = create_app(root)
+    client = app.test_client()
+    storage = app.config["storage"]
+
+    before_count = len(_session_events(storage))
+    now = now_local()
+    start_at = (now - timedelta(minutes=5)).isoformat()
+
+    start_res = client.post(
+        "/api/session/start",
+        json={
+            "activity": "Song",
+            "sub_activity": "SongPractice",
+            "song_library_id": "L0001",
+            "title": "song-a",
+            "start_at": start_at,
+        },
+    )
+    assert start_res.status_code == 200
+
+    switch_res = client.post(
+        "/api/session/switch",
+        json={
+            "activity": "Drill",
+            "sub_activity": "Core",
+            "drill_id": "DL0001",
+            "title": "drill-a",
+        },
+    )
+    assert switch_res.status_code == 200
+    payload = switch_res.get_json()
+    assert payload["under_min_skipped"] is True
+    assert payload["auto_saved"]["event_saved"] is False
+
+    after_count = len(_session_events(storage))
+    assert after_count == before_count
+
+    active = client.get("/api/hud/summary").get_json()["summary"]["active_session"]
+    assert active.get("drill_id") == "DL0001"
+    assert active.get("song_library_id") == ""
+
+
+def test_session_switch_over_10_min_autosaves_and_chains(tmp_path):
+    root = _prepare_temp_root(tmp_path)
+    app = create_app(root)
+    client = app.test_client()
+    storage = app.config["storage"]
+
+    before_count = len(_session_events(storage))
+    now = now_local()
+    start_at = (now - timedelta(minutes=14)).isoformat()
+
+    start_res = client.post(
+        "/api/session/start",
+        json={
+            "activity": "Song",
+            "sub_activity": "SongPractice",
+            "song_library_id": "L0001",
+            "title": "song-a",
+            "start_at": start_at,
+        },
+    )
+    assert start_res.status_code == 200
+
+    switch_res = client.post(
+        "/api/session/switch",
+        json={
+            "activity": "Song",
+            "sub_activity": "SongPractice",
+            "song_library_id": "L0002",
+            "title": "song-b",
+            "start_at": (now - timedelta(minutes=12)).isoformat(),
+        },
+    )
+    assert switch_res.status_code == 200
+    payload = switch_res.get_json()
+    assert payload["under_min_skipped"] is False
+    assert payload["auto_saved"]["event_saved"] is True
+
+    after_count = len(_session_events(storage))
+    assert after_count == before_count + 1
+
+    active = client.get("/api/hud/summary").get_json()["summary"]["active_session"]
+    assert active.get("song_library_id") == "L0002"
+    assert len(active.get("chain_saved_segments") or []) == 1
+
+
+def test_session_finalize_include_exclude_saved_events(tmp_path):
+    root = _prepare_temp_root(tmp_path)
+    app = create_app(root)
+    client = app.test_client()
+    storage = app.config["storage"]
+    now = now_local()
+
+    start_res = client.post(
+        "/api/session/start",
+        json={
+            "activity": "Song",
+            "sub_activity": "SongPractice",
+            "song_library_id": "L0001",
+            "title": "song-a",
+            "start_at": (now - timedelta(minutes=40)).isoformat(),
+        },
+    )
+    assert start_res.status_code == 200
+
+    first_switch = client.post(
+        "/api/session/switch",
+        json={
+            "activity": "Song",
+            "sub_activity": "SongPractice",
+            "song_library_id": "L0002",
+            "title": "song-b",
+            "start_at": (now - timedelta(minutes=24)).isoformat(),
+        },
+    )
+    assert first_switch.status_code == 200
+    assert first_switch.get_json()["auto_saved"]["event_saved"] is True
+
+    second_switch = client.post(
+        "/api/session/switch",
+        json={
+            "activity": "Song",
+            "sub_activity": "SongPractice",
+            "song_library_id": "L0003",
+            "title": "song-c",
+            "start_at": (now - timedelta(minutes=5)).isoformat(),
+        },
+    )
+    assert second_switch.status_code == 200
+    assert second_switch.get_json()["auto_saved"]["event_saved"] is True
+
+    active = client.get("/api/hud/summary").get_json()["summary"]["active_session"]
+    saved_segments = active.get("chain_saved_segments") or []
+    assert len(saved_segments) == 2
+    keep_id = saved_segments[0]["event_id"]
+    remove_id = saved_segments[1]["event_id"]
+
+    finalize_res = client.post(
+        "/api/session/finalize",
+        json={
+            "include_saved_event_ids": [keep_id],
+            "include_current": False,
+        },
+    )
+    assert finalize_res.status_code == 200
+    payload = finalize_res.get_json()
+    assert payload["current_saved"] is False
+    assert len(payload["kept_sessions"]) == 1
+    assert len(payload["removed_sessions"]) == 1
+    assert payload["removed_sessions"][0]["event_id"] == remove_id
+
+    ids_after = {row.get("event_id") for row in _session_events(storage)}
+    assert keep_id in ids_after
+    assert remove_id not in ids_after
+
+    active_after = client.get("/api/hud/summary").get_json()["summary"]["active_session"]
+    assert not active_after.get("session_id")
+
+
+def test_session_finalize_current_on_under_10_skips_current_save(tmp_path):
+    root = _prepare_temp_root(tmp_path)
+    app = create_app(root)
+    client = app.test_client()
+    storage = app.config["storage"]
+    now = now_local()
+
+    start_res = client.post(
+        "/api/session/start",
+        json={
+            "activity": "Song",
+            "sub_activity": "SongPractice",
+            "song_library_id": "L0001",
+            "title": "song-a",
+            "start_at": (now - timedelta(minutes=22)).isoformat(),
+        },
+    )
+    assert start_res.status_code == 200
+
+    switch_res = client.post(
+        "/api/session/switch",
+        json={
+            "activity": "Song",
+            "sub_activity": "SongPractice",
+            "song_library_id": "L0002",
+            "title": "song-b",
+            "start_at": (now - timedelta(minutes=5)).isoformat(),
+        },
+    )
+    assert switch_res.status_code == 200
+    assert switch_res.get_json()["auto_saved"]["event_saved"] is True
+
+    before_ids = {row.get("event_id") for row in _session_events(storage)}
+
+    finalize_res = client.post(
+        "/api/session/finalize",
+        json={
+            "include_saved_event_ids": list(before_ids),
+            "include_current": True,
+            "current_stop_payload": {
+                "activity": "Song",
+                "sub_activity": "SongPractice",
+                "song_library_id": "L0002",
+                "start_at": (now - timedelta(minutes=5)).isoformat(),
+                "end_at": now.isoformat(),
+                "tags": ["SONG", "SONG_PRACTICE"],
+            },
+        },
+    )
+    assert finalize_res.status_code == 200
+    payload = finalize_res.get_json()
+    assert payload["current_saved"] is False
+    assert payload["current_skipped_under_min"] is True
+
+    after_ids = {row.get("event_id") for row in _session_events(storage)}
+    assert after_ids == before_ids
 
 
 def test_quest_claim_path(tmp_path):

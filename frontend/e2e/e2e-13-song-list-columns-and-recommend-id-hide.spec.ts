@@ -32,7 +32,7 @@ test("E2E-13 song list columns and recommendation table hides ID column", async 
   await openApp(page, 1366, 768);
   await openLibrarySongs(page);
 
-  await page.locator(".song-round-btn").first().click();
+  await page.locator(".songs-page-list:not(.practice-studio-page) .song-round-btn").first().click();
   await page.locator(".song-toolbar-popover .ghost-btn").filter({ hasText: /리스트|List/i }).click();
 
   const songListTable = page.locator(".song-list-table");
@@ -48,4 +48,3 @@ test("E2E-13 song list columns and recommendation table hides ID column", async 
   const recommendHeaders = page.locator(".recommend-table thead th");
   await expect(recommendHeaders.filter({ hasText: /^ID$/ })).toHaveCount(0);
 });
-

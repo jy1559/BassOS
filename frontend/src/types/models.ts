@@ -18,6 +18,34 @@ export type SessionStopInput = {
   feelings?: string[];
 };
 
+export type ChainSavedSegment = {
+  event_id: string;
+  activity: string;
+  sub_activity?: string;
+  song_library_id?: string;
+  drill_id?: string;
+  title?: string;
+  duration_min: number;
+  xp: number;
+};
+
+export type SessionChainSummary = {
+  saved_count: number;
+  total_duration_min: number;
+  total_xp: number;
+  segments: ChainSavedSegment[];
+  lines: Array<{
+    key: string;
+    label: string;
+    activity: string;
+    sub_activity?: string;
+    song_library_id?: string;
+    drill_id?: string;
+    duration_min: number;
+    xp: number;
+  }>;
+};
+
 export type LevelUpCopy = {
   line: string;
   tier_up: boolean;
@@ -64,6 +92,24 @@ export type SessionStopResult = {
   coach_reason_tags?: string[];
   next_win_hint?: string;
   gamification?: SessionGamification;
+  event_saved?: boolean;
+  under_min_skipped_current?: boolean;
+  current_duration_min?: number;
+  session_chain?: SessionChainSummary;
+};
+
+export type SessionFinalizeInput = {
+  include_saved_event_ids: string[];
+  include_current: boolean;
+  current_stop_payload?: SessionStopInput;
+};
+
+export type SessionFinalizeResult = SessionStopResult & {
+  kept_sessions: ChainSavedSegment[];
+  removed_sessions: ChainSavedSegment[];
+  summary: SessionChainSummary;
+  current_saved: boolean;
+  current_skipped_under_min: boolean;
 };
 
 export type HudSummary = {
@@ -85,6 +131,10 @@ export type HudSummary = {
     drill_id?: string;
     title?: string;
     notes?: string;
+    chain_saved_segments?: ChainSavedSegment[];
+    chain_saved_count?: number;
+    chain_under_min_count?: number;
+    chain_count?: number;
   };
   unlocked_count: number;
   badge?: { id: string; name: string; style: string; asset?: string; tier_step?: string };

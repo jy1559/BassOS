@@ -14,6 +14,17 @@ test("E2E-08 Practice Studio session stop/save works in-place", async ({ page, r
     (res) => res.url().includes("/api/session/stop") && res.request().method() === "POST"
   );
   await page.locator("[data-testid='studio-stop-session']").click();
+  const startRaw = await page.locator("[data-testid='studio-stop-start-at']").inputValue();
+  const startDate = new Date(startRaw);
+  if (!Number.isNaN(startDate.getTime())) {
+    const endDate = new Date(startDate.getTime() + 12 * 60 * 1000);
+    const yyyy = endDate.getFullYear();
+    const mm = String(endDate.getMonth() + 1).padStart(2, "0");
+    const dd = String(endDate.getDate()).padStart(2, "0");
+    const hh = String(endDate.getHours()).padStart(2, "0");
+    const mi = String(endDate.getMinutes()).padStart(2, "0");
+    await page.locator("[data-testid='studio-stop-end-at']").fill(`${yyyy}-${mm}-${dd}T${hh}:${mi}`);
+  }
   await page.locator("[data-testid='studio-stop-save']").click();
   const stopRes = await stopResponsePromise;
   const payload = await stopRes.json();
@@ -22,4 +33,3 @@ test("E2E-08 Practice Studio session stop/save works in-place", async ({ page, r
   expect(payload.event?.event_type).toBe("SESSION");
   await expect(page.locator(".practice-studio-page")).toBeVisible();
 });
-

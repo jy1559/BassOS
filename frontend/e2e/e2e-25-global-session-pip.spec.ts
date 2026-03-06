@@ -13,7 +13,7 @@ test("E2E-25 global session pip timer is visible and corner can change", async (
   await expect(page.locator("[data-testid='global-session-pip-stop']")).toBeVisible();
 
   const beforeClass = await pip.getAttribute("class");
-  await pip.locator(".session-timer-pip-head button").click();
+  await pip.getByRole("button", { name: /위치|Corner/i }).click();
   await expect
     .poll(async () => await pip.getAttribute("class"))
     .not.toBe(beforeClass);
@@ -21,4 +21,3 @@ test("E2E-25 global session pip timer is visible and corner can change", async (
   await page.locator("[data-testid='global-session-pip-stop']").click();
   await expect(page.locator("[data-testid='global-stop-save']")).toBeVisible();
 });
-

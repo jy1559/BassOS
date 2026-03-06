@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { discardSession, stopSession, uploadEvidenceFile } from "../../api";
+import { discardSession, finalizeSession, stopSession, uploadEvidenceFile } from "../../api";
 import type { Lang } from "../../i18n";
-import type { SessionStopInput, SessionStopResult } from "../../types/models";
+import type { ChainSavedSegment, SessionStopInput, SessionStopResult } from "../../types/models";
 import { formatDisplayXp } from "../../utils/xpDisplay";
 
 type MainActivity = "None" | "Song" | "Drill" | "Etc";
@@ -78,12 +78,17 @@ export type SessionStopModalProps = {
   songs: Array<Record<string, string>>;
   drills: Array<Record<string, string>>;
   activeSession?: {
+    session_id?: string;
     activity?: string;
     sub_activity?: string;
     song_library_id?: string;
     drill_id?: string;
+    title?: string;
     notes?: string;
     start_at?: string;
+    chain_saved_segments?: ChainSavedSegment[];
+    chain_saved_count?: number;
+    chain_under_min_count?: number;
   };
   testIdPrefix?: string;
   notify: (message: string, type?: "success" | "error" | "info") => void;
@@ -125,7 +130,17 @@ export function SessionStopModal({
   const [endAtInput, setEndAtInput] = useState("");
   const [busy, setBusy] = useState(false);
   const [showDetails, setShowDetails] = useState(false);
+  const [includeSavedMap, setIncludeSavedMap] = useState<Record<string, boolean>>({});
+  const [includeCurrent, setIncludeCurrent] = useState(true);
   const wasOpenRef = useRef(false);
+
+  const chainSavedSegments = useMemo(() => {
+    const raw = activeSession?.chain_saved_segments;
+    if (!Array.isArray(raw)) return [] as ChainSavedSegment[];
+    return raw.filter((item): item is ChainSavedSegment => Boolean(item && item.event_id));
+  }, [activeSession?.chain_saved_segments]);
+
+  const chainUnderMinCount = Math.max(0, Number(activeSession?.chain_under_min_count || 0));
 
   useEffect(() => {
     if (!open) {
@@ -148,6 +163,17 @@ export function SessionStopModal({
     setEvidenceMode("file");
     setEvidenceUrl("");
     setFile(null);
+    setIncludeCurrent(true);
+    setIncludeSavedMap(() => {
+      const next: Record<string, boolean> = {};
+      const rawSegments = Array.isArray(activeSession?.chain_saved_segments) ? activeSession.chain_saved_segments : [];
+      rawSegments.forEach((item) => {
+        const eventId = String(item?.event_id || "").trim();
+        if (!eventId) return;
+        next[eventId] = true;
+      });
+      return next;
+    });
     const now = new Date();
     const startValue = toDatetimeLocalInput(activeSession?.start_at, new Date(now.getTime() - 10 * 60 * 1000));
     const startDate = new Date(startValue);
@@ -172,6 +198,31 @@ export function SessionStopModal({
   );
 
   const subOptions = subMap[activity];
+
+  const currentDurationMin = useMemo(() => {
+    const start = new Date(startAtInput);
+    const end = new Date(endAtInput);
+    if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) return 0;
+    return Math.max(0, Math.floor((end.getTime() - start.getTime()) / 60000));
+  }, [startAtInput, endAtInput]);
+
+  const segmentLabel = (item: {
+    song_library_id?: string;
+    drill_id?: string;
+    title?: string;
+    activity?: string;
+    sub_activity?: string;
+  }): string => {
+    if (item.song_library_id) {
+      const song = songs.find((row) => row.library_id === item.song_library_id);
+      return song?.title || item.title || item.song_library_id;
+    }
+    if (item.drill_id) {
+      const drill = drills.find((row) => row.drill_id === item.drill_id);
+      return drill?.name || item.title || item.drill_id;
+    }
+    return item.title || `${item.activity || "Session"}${item.sub_activity ? `/${item.sub_activity}` : ""}`;
+  };
 
   const buildPayload = (): SessionStopInput => {
     const subTag = subOptions.find((item) => item.value === subActivity)?.tag || "";
@@ -213,12 +264,71 @@ export function SessionStopModal({
       end = new Date(start.getTime() + 60 * 1000);
       setEndAtInput(toDatetimeLocalInput(undefined, end));
     }
+    const durationMin = Math.max(0, Math.floor((end.getTime() - start.getTime()) / 60000));
+    const underMinConfirmText =
+      lang === "ko"
+        ? "10분 미만의 세션은 저장되지 않습니다. 종료하시겠습니까?"
+        : "Sessions under 10 minutes are not saved. End this session?";
 
     try {
       setBusy(true);
       const payload = buildPayload();
       payload.start_at = start.toISOString();
       payload.end_at = end.toISOString();
+
+      const hasChainSavedSegments = chainSavedSegments.length > 0;
+      if (hasChainSavedSegments) {
+        const includeSavedEventIds = chainSavedSegments
+          .filter((item) => includeSavedMap[item.event_id] !== false)
+          .map((item) => item.event_id);
+        let includeCurrentFinal = includeCurrent;
+
+        if (includeCurrentFinal && durationMin < 10) {
+          const go = window.confirm(underMinConfirmText);
+          if (!go) return;
+          includeCurrentFinal = false;
+        }
+
+        if (includeCurrentFinal) {
+          if (evidenceMode === "file" && file) {
+            const mediaType = file.type.startsWith("video") ? "video" : "audio";
+            const uploaded = await uploadEvidenceFile(file, mediaType);
+            payload.evidence_path = uploaded.path;
+            payload.evidence_type = "file";
+          } else if (evidenceMode === "url" && evidenceUrl.trim()) {
+            payload.evidence_type = "url";
+            payload.evidence_url = evidenceUrl.trim();
+          } else {
+            payload.evidence_type = undefined;
+            payload.evidence_url = "";
+          }
+        }
+
+        const result = await finalizeSession({
+          include_saved_event_ids: includeSavedEventIds,
+          include_current: includeCurrentFinal,
+          current_stop_payload: includeCurrentFinal ? payload : undefined,
+        });
+        const totalXp = Number(result.summary?.total_xp || 0);
+        notify(
+          `${lang === "ko" ? "세션 저장 완료" : "Session saved"} (+${formatDisplayXp(totalXp, xpDisplayScale)} XP)`,
+          "success"
+        );
+        await onSaved?.(result);
+        onClose();
+        return;
+      }
+
+      if (durationMin < 10) {
+        const go = window.confirm(underMinConfirmText);
+        if (!go) return;
+        await discardSession();
+        notify(lang === "ko" ? "저장하지 않고 종료했습니다." : "Session ended without saving.", "info");
+        await onDiscarded?.();
+        onClose();
+        return;
+      }
+
       if (evidenceMode === "file" && file) {
         const mediaType = file.type.startsWith("video") ? "video" : "audio";
         const uploaded = await uploadEvidenceFile(file, mediaType);
@@ -231,6 +341,7 @@ export function SessionStopModal({
         payload.evidence_type = undefined;
         payload.evidence_url = "";
       }
+
       const result = await stopSession(payload);
       notify(
         `${lang === "ko" ? "세션 저장 완료" : "Session saved"} (+${formatDisplayXp(result.xp_breakdown.total_xp, xpDisplayScale)} XP)`,
@@ -296,6 +407,61 @@ export function SessionStopModal({
             />
           </label>
         </div>
+
+        {chainSavedSegments.length > 0 ? (
+          <div className="session-chain-finalize-block">
+            <strong>{lang === "ko" ? "세션별 저장" : "Per-session save"}</strong>
+            {chainUnderMinCount > 0 ? (
+              <small className="muted">
+                {lang === "ko" ? "10분 미만 진행된 곡은 저장되지 않습니다." : "Segments under 10 minutes are not saved."}
+              </small>
+            ) : null}
+            <div className="session-chain-finalize-list">
+              {chainSavedSegments.map((item) => {
+                const included = includeSavedMap[item.event_id] !== false;
+                return (
+                  <div key={item.event_id} className={`session-chain-finalize-row ${included ? "" : "excluded"}`}>
+                    <span>
+                      <strong>{segmentLabel(item)}</strong>
+                      <small className="muted">
+                        {Math.max(0, Number(item.duration_min || 0))}m · +{formatDisplayXp(Math.max(0, Number(item.xp || 0)), xpDisplayScale)} XP
+                      </small>
+                    </span>
+                    <button
+                      type="button"
+                      className={`ghost-btn compact-add-btn ${included ? "active-mini" : "danger-border"}`}
+                      onClick={() => setIncludeSavedMap((prev) => ({ ...prev, [item.event_id]: !included }))}
+                    >
+                      {included ? (lang === "ko" ? "저장" : "Keep") : (lang === "ko" ? "제외" : "Exclude")}
+                    </button>
+                  </div>
+                );
+              })}
+              <div className={`session-chain-finalize-row ${includeCurrent ? "" : "excluded"}`}>
+                <span>
+                  <strong>{lang === "ko" ? "현재 세션" : "Current session"}</strong>
+                  <small className="muted">
+                    {segmentLabel({
+                      song_library_id: activeSession?.song_library_id,
+                      drill_id: activeSession?.drill_id,
+                      title: activeSession?.title || "",
+                      activity: activeSession?.activity,
+                      sub_activity: activeSession?.sub_activity,
+                    })}{" "}
+                    · {Math.max(0, currentDurationMin)}m
+                  </small>
+                </span>
+                <button
+                  type="button"
+                  className={`ghost-btn compact-add-btn ${includeCurrent ? "active-mini" : "danger-border"}`}
+                  onClick={() => setIncludeCurrent((prev) => !prev)}
+                >
+                  {includeCurrent ? (lang === "ko" ? "저장" : "Keep") : (lang === "ko" ? "제외" : "Exclude")}
+                </button>
+              </div>
+            </div>
+          </div>
+        ) : null}
 
         <details open={showDetails} onToggle={(event) => setShowDetails((event.target as HTMLDetailsElement).open)}>
           <summary data-testid={`${testIdPrefix}-stop-detail-toggle`}>{lang === "ko" ? "상세 입력(선택)" : "Detailed Input (Optional)"}</summary>
@@ -500,7 +666,7 @@ export function SessionStopModal({
             onClick={async () => {
               try {
                 setBusy(true);
-                await discardSession();
+                await discardSession({ chain_mode: chainSavedSegments.length > 0 ? "all" : "last" });
                 notify(lang === "ko" ? "저장하지 않고 종료했습니다." : "Session ended without saving.", "info");
                 await onDiscarded?.();
                 onClose();

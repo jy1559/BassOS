@@ -1,5 +1,7 @@
 ﻿import { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
 
+import { createPortal } from "react-dom";
+
 type WaveKey = OscillatorType;
 
 type MetronomeContextValue = {
@@ -270,6 +272,71 @@ export function useMetronome(): MetronomeContextValue {
   const context = useContext(MetronomeContext);
   if (!context) throw new Error("useMetronome must be used inside MetronomeProvider");
   return context;
+}
+
+export function MetronomePipPanel({
+  placement = "inline",
+  visible = true,
+}: {
+  placement?: "inline" | "floating";
+  visible?: boolean;
+}) {
+  const metro = useMetronome();
+  const beats = Array.from({ length: metro.signatureTop }).map((_, idx) => idx + 1);
+  const accentSet = useMemo(() => parseAccentBeats(metro.accentInput, metro.signatureTop), [metro.accentInput, metro.signatureTop]);
+
+  if (!visible || (!metro.running && !metro.open)) return null;
+
+  const panel = (
+    <div
+      className={`metronome-pip-panel ${placement}`}
+      data-testid={placement === "inline" ? "global-metronome-pip-inline" : "global-metronome-pip-floating"}
+    >
+      <div className="metronome-pip-head">
+        <strong>METRO</strong>
+        <div className="metronome-pip-bpm-inline">
+          <button type="button" className="ghost-btn compact-add-btn" onClick={() => metro.setBpmValue(Math.max(BPM_MIN, metro.bpm - 1))}>
+            -
+          </button>
+          <input
+            value={metro.bpmInput}
+            inputMode="numeric"
+            onChange={(event) => metro.setBpmInput(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === "Enter") metro.applyBpmInput();
+            }}
+            onBlur={() => {
+              if (metro.bpmInput.trim()) metro.applyBpmInput();
+            }}
+            aria-label="Metronome BPM"
+          />
+          <button type="button" className="ghost-btn compact-add-btn" onClick={() => metro.setBpmValue(Math.min(BPM_MAX, metro.bpm + 1))}>
+            +
+          </button>
+        </div>
+        <button
+          type="button"
+          className={metro.running ? "danger-btn" : "primary-btn"}
+          onClick={() => void metro.toggle()}
+        >
+          {metro.running ? "정지" : "시작"}
+        </button>
+      </div>
+      <div className="metronome-visual metronome-pip-visual">
+        {beats.map((value) => {
+          const active = value === metro.beat;
+          const accent = accentSet.has(value);
+          return <span key={`pip_beat_${value}`} className={`metronome-light ${active ? "active" : ""} ${accent ? "accent" : ""}`} />;
+        })}
+      </div>
+      {metro.error ? <small className="danger-text">{metro.error}</small> : null}
+    </div>
+  );
+
+  if (placement === "floating" && typeof document !== "undefined") {
+    return createPortal(panel, document.body);
+  }
+  return panel;
 }
 
 export function GlobalMetronomeDock() {

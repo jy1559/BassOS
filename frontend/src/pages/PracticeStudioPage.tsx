@@ -1,9 +1,10 @@
 ﻿import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
-import { getRecords, getSessions, startSession } from "../api";
+import { getRecords, getSessions, startSession, switchSession } from "../api";
 import { SessionStopModal } from "../components/session/SessionStopModal";
 import type { Lang } from "../i18n";
 import type { HudSummary, RecordPost, SessionItem, SessionStopResult } from "../types/models";
 import { formatDisplayXp } from "../utils/xpDisplay";
+import { GlobalMetronomeDock } from "../metronome";
 
 export type SessionPipVideoPayload = {
   title: string;
@@ -798,9 +799,91 @@ export function PracticeStudioPage({
     return { totalSessions, totalMinutes, totalXp, firstAt, lastAt };
   }, [targetLogs]);
 
+  const restoreActiveSelection = () => {
+    const activeSongId = String(hud.active_session?.song_library_id || "");
+    const activeDrillId = String(hud.active_session?.drill_id || "");
+    if (activeSongId) {
+      setPracticeType("song");
+      setSongId(activeSongId);
+      return;
+    }
+    if (activeDrillId) {
+      setPracticeType("drill");
+      setDrillId(activeDrillId);
+    }
+  };
+
+  const buildTargetPayload = (nextType: PracticeType, nextId: string) => {
+    if (nextType === "song") {
+      const nextSong = catalogs.song_library.find((item) => item.library_id === nextId) ?? null;
+      return {
+        activity: "Song",
+        sub_activity: "SongPractice",
+        song_library_id: nextId,
+        title: nextSong?.title || "",
+      };
+    }
+    const nextDrill = drillPool.find((item) => item.drill_id === nextId) ?? null;
+    return {
+      activity: "Drill",
+      sub_activity: drillSubActivity(nextDrill),
+      drill_id: nextId,
+      title: nextDrill?.name || "",
+    };
+  };
+
+  const requestTargetSwitch = async (nextType: PracticeType, nextId: string): Promise<boolean> => {
+    if (!hud.active_session?.session_id) return false;
+    if (!nextId) {
+      restoreActiveSelection();
+      return false;
+    }
+    const activeSongId = String(hud.active_session.song_library_id || "");
+    const activeDrillId = String(hud.active_session.drill_id || "");
+    const sameTarget = nextType === "song" ? activeSongId === nextId : activeDrillId === nextId;
+    if (sameTarget && (activeSongId || activeDrillId)) {
+      if (nextType === "song") setSongId(nextId);
+      else setDrillId(nextId);
+      return true;
+    }
+
+    const underMin = elapsedSec < 10 * 60;
+    const switchMessage = underMin
+      ? (lang === "ko"
+          ? "10분 미만의 세션은 저장되지 않습니다. 종료하시겠습니까?"
+          : "Sessions under 10 minutes are not saved. End this segment?")
+      : (lang === "ko"
+          ? "곡 바꾸시겠습니까? 세션이 재시작됩니다\n이전 세션은 자동으로 저장됩니다"
+          : "Switch target? Session will restart and the previous segment is auto-saved.");
+    if (!window.confirm(switchMessage)) {
+      restoreActiveSelection();
+      return false;
+    }
+
+    const switched = await switchSession(buildTargetPayload(nextType, nextId));
+    if (switched.under_min_skipped) {
+      notify(lang === "ko" ? "10분 미만 세션은 저장되지 않았습니다." : "The under-10-minute segment was skipped.", "info");
+    }
+    notify(lang === "ko" ? "세션 전환 완료" : "Session switched", "success");
+    if (nextType === "song") {
+      setPracticeType("song");
+      setSongId(nextId);
+      setDrillId("");
+    } else {
+      setPracticeType("drill");
+      setDrillId(nextId);
+      setSongId("");
+    }
+    setShowStartPanel(false);
+    await onRefresh();
+    return true;
+  };
+
   const startTargetSession = async () => {
-    if (hud.active_session?.session_id) {
-      notify(lang === "ko" ? "이미 진행 중인 세션이 있습니다." : "A session is already running.", "info");
+    const hasActive = Boolean(hud.active_session?.session_id);
+    const nextId = practiceType === "song" ? songId : drillId;
+    if (hasActive) {
+      await requestTargetSwitch(practiceType, nextId);
       return;
     }
     if (practiceType === "song") {
@@ -1650,10 +1733,17 @@ export function PracticeStudioPage({
                   <button
                     key={`quick_song_${item.library_id}`}
                     className={`quick-pick-btn ${isActive ? "active" : ""}`}
-                    onClick={() => {
-                      setSongId(item.library_id || "");
-                      setShowStartPanel(false);
-                    }}
+                    onClick={() =>
+                      void (async () => {
+                        const nextId = item.library_id || "";
+                        if (hud.active_session?.session_id) {
+                          await requestTargetSwitch("song", nextId);
+                          return;
+                        }
+                        setSongId(nextId);
+                        setShowStartPanel(false);
+                      })()
+                    }
                     title={item.title || item.library_id}
                   >
                     {cover ? <img src={cover} alt={item.title || item.library_id} /> : <span className="quick-pick-fallback">♪</span>}
@@ -1673,10 +1763,17 @@ export function PracticeStudioPage({
               />
               <select
                 value={songId}
-                onChange={(event) => {
-                  setSongId(event.target.value);
-                  if (event.target.value) setShowStartPanel(false);
-                }}
+                onChange={(event) =>
+                  void (async () => {
+                    const nextId = event.target.value;
+                    if (hud.active_session?.session_id) {
+                      await requestTargetSwitch("song", nextId);
+                      return;
+                    }
+                    setSongId(nextId);
+                    if (nextId) setShowStartPanel(false);
+                  })()
+                }
               >
                 <option value="">{lang === "ko" ? "(선택 없음)" : "(None)"}</option>
                 {songOptionGroups.map((group) => (
@@ -1703,10 +1800,17 @@ export function PracticeStudioPage({
                     <button
                       key={`quick_drill_${item.drill_id}`}
                       className={`quick-pick-btn ${isActive ? "active" : ""}`}
-                      onClick={() => {
-                        setDrillId(item.drill_id || "");
-                        setShowStartPanel(false);
-                      }}
+                      onClick={() =>
+                        void (async () => {
+                          const nextId = item.drill_id || "";
+                          if (hud.active_session?.session_id) {
+                            await requestTargetSwitch("drill", nextId);
+                            return;
+                          }
+                          setDrillId(nextId);
+                          setShowStartPanel(false);
+                        })()
+                      }
                       title={item.name || item.drill_id}
                     >
                       {cover ? <img src={cover} alt={item.name || item.drill_id} /> : <span className="quick-pick-fallback">D</span>}
@@ -1726,10 +1830,17 @@ export function PracticeStudioPage({
                 />
                 <select
                   value={drillId}
-                  onChange={(event) => {
-                    setDrillId(event.target.value);
-                    if (event.target.value) setShowStartPanel(false);
-                  }}
+                  onChange={(event) =>
+                    void (async () => {
+                      const nextId = event.target.value;
+                      if (hud.active_session?.session_id) {
+                        await requestTargetSwitch("drill", nextId);
+                        return;
+                      }
+                      setDrillId(nextId);
+                      if (nextId) setShowStartPanel(false);
+                    })()
+                  }
                 >
                   <option value="">{lang === "ko" ? "(선택 없음)" : "(None)"}</option>
                   {drillOptionGroups.map((group) => (
@@ -1757,6 +1868,14 @@ export function PracticeStudioPage({
         ) : null}
           </>
         )}
+      </section>
+
+      <section className="card">
+        <div className="row">
+          <h2>{lang === "ko" ? "메트로놈" : "Metronome"}</h2>
+          <small className="muted">{lang === "ko" ? "탭 이동 시 PiP로 유지됩니다." : "Stays active as PiP across tabs."}</small>
+        </div>
+        <GlobalMetronomeDock />
       </section>
 
       <section className="card">

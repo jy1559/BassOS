@@ -1832,6 +1832,64 @@ button:disabled {
   text-overflow: ellipsis;
 }
 
+.metronome-pip-panel {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--panel-2) 90%, var(--accent-soft));
+  padding: 8px;
+  display: grid;
+  gap: 6px;
+}
+
+.metronome-pip-panel.inline {
+  width: 100%;
+}
+
+.metronome-pip-panel.floating {
+  position: fixed;
+  right: 14px;
+  bottom: 14px;
+  z-index: 27;
+  width: min(320px, calc(100vw - 28px));
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.2);
+}
+
+.metronome-pip-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.metronome-pip-head > strong {
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+}
+
+.metronome-pip-bpm-inline {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.metronome-pip-bpm-inline input {
+  width: 58px;
+  text-align: center;
+  padding: 4px 6px;
+  font-weight: 700;
+}
+
+.metronome-pip-bpm-inline .compact-add-btn {
+  min-height: 28px;
+  padding: 4px 8px;
+}
+
+.metronome-pip-visual {
+  grid-template-columns: repeat(auto-fit, minmax(14px, 1fr));
+  gap: 5px;
+}
+
 .modal-backdrop,
 .onboarding-overlay {
   position: fixed;
@@ -2072,6 +2130,49 @@ textarea {
   display: flex;
   gap: 14px;
   align-items: center;
+}
+
+.session-chain-finalize-block {
+  border: 1px dashed color-mix(in srgb, var(--border) 80%, var(--accent));
+  border-radius: 10px;
+  padding: 10px;
+  display: grid;
+  gap: 8px;
+  background: color-mix(in srgb, var(--panel-2) 84%, var(--accent-soft));
+}
+
+.session-chain-finalize-list {
+  display: grid;
+  gap: 6px;
+}
+
+.session-chain-finalize-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 10px;
+  background: color-mix(in srgb, var(--panel) 86%, #fff);
+}
+
+.session-chain-finalize-row.excluded {
+  opacity: 0.65;
+  background: color-mix(in srgb, var(--panel) 76%, #f2f2f2);
+}
+
+.session-chain-finalize-row span {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.session-chain-finalize-row span strong,
+.session-chain-finalize-row span small {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .modal-actions {

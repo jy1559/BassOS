@@ -912,7 +912,16 @@ def session_start() -> Response:
 
 @api_bp.post("/session/discard")
 def session_discard() -> Response:
-    result = _game().discard_session()
+    payload = request.get_json(silent=True) or {}
+    chain_mode = str(payload.get("chain_mode") or "last")
+    result = _game().discard_session(chain_mode=chain_mode, settings=_settings())
+    return jsonify({"ok": True, **result})
+
+
+@api_bp.post("/session/switch")
+def session_switch() -> Response:
+    payload = request.get_json(silent=True) or {}
+    result = _game().switch_session(payload, _settings())
     return jsonify({"ok": True, **result})
 
 
@@ -922,6 +931,21 @@ def session_stop() -> Response:
     settings = _settings()
     before = _game().hud_summary(settings)
     result = _game().stop_session(payload, settings)
+    after = _game().hud_summary(settings)
+    achievement_rows = {row.get("achievement_id"): row.get("name", "") for row in _storage().read_csv("achievements_master.csv")}
+    result["auto_granted_names"] = [achievement_rows.get(item, item) for item in result.get("auto_granted", [])]
+    result["level_up"] = after.get("level", 1) > before.get("level", 1)
+    result["before_level"] = before.get("level", 1)
+    result["after_level"] = after.get("level", 1)
+    return jsonify({"ok": True, **result})
+
+
+@api_bp.post("/session/finalize")
+def session_finalize() -> Response:
+    payload = request.get_json(silent=True) or {}
+    settings = _settings()
+    before = _game().hud_summary(settings)
+    result = _game().finalize_session_chain(payload, settings)
     after = _game().hud_summary(settings)
     achievement_rows = {row.get("achievement_id"): row.get("name", "") for row in _storage().read_csv("achievements_master.csv")}
     result["auto_granted_names"] = [achievement_rows.get(item, item) for item in result.get("auto_granted", [])]

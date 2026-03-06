@@ -17,6 +17,8 @@ import type {
   RecordAttachment,
   RecordPost,
   SessionItem,
+  SessionFinalizeInput,
+  SessionFinalizeResult,
   SessionStopInput,
   SessionStopResult,
   SessionUpdateInput,
@@ -86,14 +88,42 @@ export async function startSession(input?: {
   await call("/api/session/start", { method: "POST", body: JSON.stringify(input ?? {}) });
 }
 
-export async function discardSession(): Promise<void> {
-  await call("/api/session/discard", { method: "POST", body: JSON.stringify({}) });
+export async function switchSession(input?: {
+  activity?: string;
+  sub_activity?: string;
+  song_library_id?: string;
+  drill_id?: string;
+  title?: string;
+  notes?: string;
+}): Promise<{
+  switched: boolean;
+  session: Record<string, unknown>;
+  auto_saved?: SessionStopResult | null;
+  chain_count?: number;
+  under_min_skipped?: boolean;
+}> {
+  return call("/api/session/switch", { method: "POST", body: JSON.stringify(input ?? {}) });
+}
+
+export async function discardSession(input?: { chain_mode?: "last" | "all" }): Promise<{
+  discarded?: boolean;
+  chain_mode?: string;
+  removed_saved_count?: number;
+}> {
+  return call("/api/session/discard", { method: "POST", body: JSON.stringify(input ?? {}) });
 }
 
 export async function stopSession(input: SessionStopInput): Promise<SessionStopResult> {
   return call<SessionStopResult & { ok: true }>("/api/session/stop", {
     method: "POST",
     body: JSON.stringify(input)
+  });
+}
+
+export async function finalizeSession(input: SessionFinalizeInput): Promise<SessionFinalizeResult> {
+  return call<SessionFinalizeResult & { ok: true }>("/api/session/finalize", {
+    method: "POST",
+    body: JSON.stringify(input),
   });
 }
 

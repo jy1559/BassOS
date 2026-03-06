@@ -22,6 +22,16 @@ test("E2E-20 journal tag catalog management + free tags merge", async ({ page, r
 
   const composer = page.locator("[data-testid='tutorial-journal-composer']");
   await expect(composer).toBeVisible();
+  const showTagsBtn = composer.getByRole("button", { name: /태그 열기|Show Tags/i });
+  if (await showTagsBtn.count()) {
+    await showTagsBtn.first().click();
+  }
+  await composer.evaluate((root) => {
+    const toggles = Array.from(root.querySelectorAll<HTMLButtonElement>(".journal-tag-category-toggle"));
+    toggles.forEach((button) => {
+      if (button.textContent?.includes("▸")) button.click();
+    });
+  });
   const createdChip = page.locator(".journal-select-tag", { hasText: tagName });
   await expect(createdChip).toBeVisible();
   await createdChip.click();
