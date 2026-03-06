@@ -9,8 +9,8 @@ import { GlobalMetronomeDock } from "../metronome";
 export type SessionPipVideoPayload = {
   title: string;
   subtitle: string;
-  thumb: string;
-  isPlaying: boolean;
+  embedUrl?: string;
+  videoUrl?: string;
 };
 
 type Props = {
@@ -1535,11 +1535,6 @@ export function PracticeStudioPage({
     Boolean(selectedSongLink) &&
     tabSwitchPlayback !== "pause" &&
     (pipMode === "mini" || nativePipFallback);
-  const miniThumb =
-    toYoutubeThumb(selectedSongLink) ||
-    (songDirectVideo ? songCover : "") ||
-    songCover ||
-    "";
   const renderSessionControls = () => (
     <div className="practice-session-controls">
       {hasActiveSession ? (
@@ -1578,12 +1573,12 @@ export function PracticeStudioPage({
     }
     onSessionPipVideoChange({
       title: song?.title || (lang === "ko" ? "선택된 영상" : "Selected video"),
-      subtitle: song?.artist || (isSongVideoPlaying ? (lang === "ko" ? "재생 중" : "Playing") : (lang === "ko" ? "일시정지" : "Paused")),
-      thumb: miniThumb,
-      isPlaying: isSongVideoPlaying,
+      subtitle: song?.artist || (lang === "ko" ? "연습 영상" : "Practice video"),
+      embedUrl: songEmbed || undefined,
+      videoUrl: songDirectVideo || undefined,
     });
     return () => onSessionPipVideoChange(null);
-  }, [isSongVideoPlaying, lang, miniThumb, onSessionPipVideoChange, showMiniDock, song?.artist, song?.title]);
+  }, [lang, onSessionPipVideoChange, showMiniDock, song?.artist, song?.title, songDirectVideo, songEmbed]);
 
   return (
     <div

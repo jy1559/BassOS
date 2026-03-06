@@ -17,7 +17,7 @@ import {
   saveTutorialProgress,
   startTutorial,
 } from "./api";
-import type { CSSProperties } from "react";
+import type { CSSProperties, PointerEvent as ReactPointerEvent } from "react";
 import { t, type Lang } from "./i18n";
 import type {
   Achievement,
@@ -108,7 +108,14 @@ type FxOverlayPayload =
   | Omit<Extract<FxOverlayEvent, { kind: "session" }>, "id">;
 type TutorialRuntime = { campaign: TutorialCampaign; stepIndex: number };
 type FxBadgeTier = "bronze" | "silver" | "gold" | "platinum" | "diamond" | "challenger";
-type SessionPipCorner = "top-right" | "top-left" | "bottom-right" | "bottom-left";
+type SessionPipPosition = { left: number; top: number };
+type SessionPipDragState = {
+  pointerId: number;
+  offsetX: number;
+  offsetY: number;
+  width: number;
+  height: number;
+};
 
 function preventBrowserReload() {
   window.addEventListener("keydown", (event) => {
@@ -170,6 +177,22 @@ function activityName(activity: string | undefined, lang: Lang): string {
   return lang === "ko" ? "선택 없음" : "No target";
 }
 
+function isPipDragBlockedTarget(target: EventTarget | null): boolean {
+  const node = target as HTMLElement | null;
+  if (!node) return false;
+  return Boolean(node.closest("button,input,select,textarea,video,iframe,a,label,summary,[role='button']"));
+}
+
+function clampPipPosition(position: SessionPipPosition, width: number, height: number): SessionPipPosition {
+  const margin = 8;
+  const maxLeft = Math.max(margin, window.innerWidth - width - margin);
+  const maxTop = Math.max(margin, window.innerHeight - height - margin);
+  return {
+    left: Math.round(Math.max(margin, Math.min(position.left, maxLeft))),
+    top: Math.round(Math.max(margin, Math.min(position.top, maxTop))),
+  };
+}
+
 export default function App() {
   const [tab, setTab] = useState<TabId>("dashboard");
   const [navOpen, setNavOpen] = useState<Record<NavGroupId, boolean>>({
@@ -201,6 +224,8 @@ export default function App() {
   const [showGlobalStopModal, setShowGlobalStopModal] = useState(false);
   const [sessionPipElapsedSec, setSessionPipElapsedSec] = useState(0);
   const [sessionPipVideo, setSessionPipVideo] = useState<SessionPipVideoPayload | null>(null);
+  const [sessionPipPosition, setSessionPipPosition] = useState<SessionPipPosition | null>(null);
+  const [sessionPipDragging, setSessionPipDragging] = useState(false);
 
   const signalReadyRef = useRef(false);
   const prevLevelRef = useRef(0);
@@ -210,12 +235,13 @@ export default function App() {
   const prevTabRef = useRef<TabId>("dashboard");
   const practiceScrollTopRef = useRef(0);
   const isPracticeScrollRestoringRef = useRef(false);
+  const sessionPipRef = useRef<HTMLDivElement | null>(null);
+  const sessionPipDragRef = useRef<SessionPipDragState | null>(null);
 
   const lang = (settings?.ui?.language ?? "ko") as Lang;
   const xpDisplayScale = getXpDisplayScale(settings);
   const activeSessionId = hud?.active_session?.session_id || "";
   const activeSessionStartMs = hud?.active_session?.start_at ? new Date(hud.active_session.start_at).getTime() : 0;
-  const sessionPipCorner = ((settings?.ui?.session_timer_pip_corner as SessionPipCorner) || "bottom-right") as SessionPipCorner;
 
   const switchTab = (nextTab: TabId) => {
     if (tab === "practice" && contentRef.current) {
@@ -632,6 +658,9 @@ export default function App() {
       setSessionPipElapsedSec(0);
       setShowGlobalStopModal(false);
       setSessionPipVideo(null);
+      setSessionPipDragging(false);
+      setSessionPipPosition(null);
+      sessionPipDragRef.current = null;
       return;
     }
     const tick = () => setSessionPipElapsedSec(Math.max(0, Math.floor((Date.now() - activeSessionStartMs) / 1000)));
@@ -651,6 +680,21 @@ export default function App() {
     });
   }, [settings?.ui?.song_genre_groups, settings?.ui?.song_genre_aliases, settings]);
 
+  useEffect(() => {
+    if (!activeSessionId) return;
+    const onResize = () => {
+      const node = sessionPipRef.current;
+      if (!node) return;
+      setSessionPipPosition((prev) => {
+        if (!prev) return prev;
+        const rect = node.getBoundingClientRect();
+        return clampPipPosition(prev, rect.width || node.offsetWidth || 0, rect.height || node.offsetHeight || 0);
+      });
+    };
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, [activeSessionId]);
+
   const patchUiSettings = async (patch: Partial<Settings["ui"]>) => {
     setSettings((prev) => (prev ? { ...prev, ui: { ...prev.ui, ...patch } } : prev));
     try {
@@ -662,13 +706,6 @@ export default function App() {
       notify(error instanceof Error ? error.message : "Failed to save setting", "error");
       void loadAll();
     }
-  };
-
-  const cycleSessionPipCorner = () => {
-    const corners: SessionPipCorner[] = ["top-right", "top-left", "bottom-left", "bottom-right"];
-    const currentIndex = corners.indexOf(sessionPipCorner);
-    const next = corners[(currentIndex + 1 + corners.length) % corners.length];
-    void patchUiSettings({ session_timer_pip_corner: next });
   };
 
   const onSessionCompleted = (result: SessionStopResult, source: "normal" | "quick") => {
@@ -825,6 +862,62 @@ export default function App() {
     return activityName(active.activity, lang);
   }, [catalogs, hud?.active_session, lang]);
 
+  const beginSessionPipDrag = (event: ReactPointerEvent<HTMLDivElement>) => {
+    if (!activeSessionId) return;
+    if (isPipDragBlockedTarget(event.target)) return;
+    const node = sessionPipRef.current;
+    if (!node) return;
+    const rect = node.getBoundingClientRect();
+    const offsetX = event.clientX - rect.left;
+    const offsetY = event.clientY - rect.top;
+    const nextPosition = clampPipPosition(
+      { left: rect.left, top: rect.top },
+      rect.width || node.offsetWidth || 0,
+      rect.height || node.offsetHeight || 0
+    );
+    setSessionPipPosition(nextPosition);
+    sessionPipDragRef.current = {
+      pointerId: event.pointerId,
+      offsetX,
+      offsetY,
+      width: rect.width || node.offsetWidth || 0,
+      height: rect.height || node.offsetHeight || 0,
+    };
+    setSessionPipDragging(true);
+    node.setPointerCapture(event.pointerId);
+    event.preventDefault();
+  };
+
+  const moveSessionPip = (event: ReactPointerEvent<HTMLDivElement>) => {
+    const drag = sessionPipDragRef.current;
+    if (!drag || drag.pointerId !== event.pointerId) return;
+    const next = clampPipPosition(
+      { left: event.clientX - drag.offsetX, top: event.clientY - drag.offsetY },
+      drag.width,
+      drag.height
+    );
+    setSessionPipPosition(next);
+  };
+
+  const endSessionPipDrag = (event: ReactPointerEvent<HTMLDivElement>) => {
+    const drag = sessionPipDragRef.current;
+    if (!drag || drag.pointerId !== event.pointerId) return;
+    sessionPipDragRef.current = null;
+    setSessionPipDragging(false);
+    if (sessionPipRef.current?.hasPointerCapture(event.pointerId)) {
+      sessionPipRef.current.releasePointerCapture(event.pointerId);
+    }
+  };
+
+  const sessionPipStyle: CSSProperties | undefined = sessionPipPosition
+    ? {
+        left: `${sessionPipPosition.left}px`,
+        top: `${sessionPipPosition.top}px`,
+        right: "auto",
+        bottom: "auto",
+      }
+    : undefined;
+
   if (!settings || !hud || !catalogs) {
     return <div className="screen-center">Loading BassOS...</div>;
   }
@@ -933,47 +1026,76 @@ export default function App() {
           </header>
 
           {activeSessionId ? (
-            <div className={`session-timer-pip ${sessionPipCorner}`} data-testid="global-session-pip">
-              <div className="session-timer-pip-title">
-                {lang === "ko" ? "세션 진행중" : "Session Active"} - {sessionPipTaskLabel}
-              </div>
-              <div className="session-timer-pip-head">
-                <strong>{fmtSec(sessionPipElapsedSec)}</strong>
-                <div className="session-timer-pip-actions">
-                  <button type="button" className="ghost-btn compact-add-btn" onClick={cycleSessionPipCorner}>
-                    {lang === "ko" ? "위치" : "Corner"}
-                  </button>
-                  <button
-                    type="button"
-                    className="danger-btn session-timer-pip-stop"
-                    data-testid="global-session-pip-stop"
-                    onClick={() => setShowGlobalStopModal(true)}
-                  >
-                    {lang === "ko" ? "종료" : "Stop"}
-                  </button>
+            <div
+              ref={sessionPipRef}
+              className={`session-timer-pip ${sessionPipDragging ? "dragging" : ""}`}
+              style={sessionPipStyle}
+              data-testid="global-session-pip"
+              onPointerMove={moveSessionPip}
+              onPointerUp={endSessionPipDrag}
+              onPointerCancel={endSessionPipDrag}
+            >
+              <div className="session-timer-pip-drag-handle" onPointerDown={beginSessionPipDrag}>
+                <div className="session-timer-pip-title">
+                  {lang === "ko" ? "세션 진행중" : "Session Active"} - {sessionPipTaskLabel}
+                </div>
+                <div className="session-timer-pip-head">
+                  <strong>{fmtSec(sessionPipElapsedSec)}</strong>
+                  <div className="session-timer-pip-actions">
+                    <button
+                      type="button"
+                      className="danger-btn session-timer-pip-stop"
+                      data-testid="global-session-pip-stop"
+                      onClick={() => setShowGlobalStopModal(true)}
+                    >
+                      {lang === "ko" ? "종료" : "Stop"}
+                    </button>
+                  </div>
                 </div>
               </div>
               <MetronomePipPanel placement="inline" visible={tab !== "practice"} />
               {sessionPipVideo ? (
-                <button
-                  type="button"
+                <div
                   className="session-timer-pip-video"
-                  onClick={() => switchTab("practice")}
-                  title={lang === "ko" ? "연습 스튜디오로 이동" : "Go to practice studio"}
+                  data-testid="global-session-pip-video"
                 >
-                  {sessionPipVideo.thumb ? (
-                    <img src={sessionPipVideo.thumb} alt={sessionPipVideo.title} />
-                  ) : (
-                    <div className="session-timer-pip-video-fallback">♪</div>
-                  )}
-                  <span>
-                    <strong>{sessionPipVideo.title}</strong>
-                    <small>
-                      {sessionPipVideo.subtitle} · {sessionPipVideo.isPlaying ? (lang === "ko" ? "재생" : "Playing") : (lang === "ko" ? "일시정지" : "Paused")}
-                    </small>
-                  </span>
-                </button>
-              ) : null}
+                  <div className="session-timer-pip-video-frame">
+                    {sessionPipVideo.embedUrl ? (
+                      <iframe
+                        src={sessionPipVideo.embedUrl}
+                        title={`pip-video-${sessionPipVideo.title}`}
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                        allowFullScreen
+                      />
+                    ) : sessionPipVideo.videoUrl ? (
+                      <video src={sessionPipVideo.videoUrl} controls preload="metadata" />
+                    ) : (
+                      <div className="session-timer-pip-video-fallback">♪</div>
+                    )}
+                  </div>
+                  <div className="session-timer-pip-video-meta">
+                    <span>
+                      <strong>{sessionPipVideo.title}</strong>
+                      <small>{sessionPipVideo.subtitle}</small>
+                    </span>
+                    <button
+                      type="button"
+                      className="ghost-btn compact-add-btn"
+                      onClick={() => switchTab("practice")}
+                      title={lang === "ko" ? "연습 스튜디오로 이동" : "Go to practice studio"}
+                    >
+                      {lang === "ko" ? "스튜디오" : "Studio"}
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="session-timer-pip-video session-timer-pip-video-empty">
+                  <div className="session-timer-pip-video-fallback">♪</div>
+                  <small className="muted">
+                    {lang === "ko" ? "연습 스튜디오에서 영상을 선택하면 여기서 바로 재생됩니다." : "Pick a video in practice studio to play it here."}
+                  </small>
+                </div>
+              )}
             </div>
           ) : null}
           <MetronomePipPanel placement="floating" visible={!activeSessionId && tab !== "practice"} />
