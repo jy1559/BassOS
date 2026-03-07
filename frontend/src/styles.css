@@ -6969,13 +6969,14 @@ textarea {
 
 .journal-upload-card {
   display: grid;
-  gap: 6px;
+  gap: 4px;
   align-content: start;
   min-width: 0;
-  padding: 6px;
+  padding: 5px;
   border: 1px solid color-mix(in srgb, var(--border) 90%, transparent);
   border-radius: 12px;
   background: color-mix(in srgb, var(--panel) 96%, var(--accent-soft));
+  overflow: hidden;
 }
 
 .journal-upload-card-preview {
@@ -6983,17 +6984,19 @@ textarea {
   border-radius: 10px;
   border: 1px solid var(--border);
   background: color-mix(in srgb, var(--panel) 92%, var(--accent-soft));
-  aspect-ratio: 4 / 3;
+  height: 62px;
 }
 
 .journal-upload-card-preview .journal-upload-preview,
 .journal-upload-card-preview video {
+  display: block;
   width: 100%;
   height: 100%;
   max-height: none;
   border: none;
   border-radius: 0;
   background: transparent;
+  aspect-ratio: auto;
   object-fit: cover;
 }
 
@@ -7009,12 +7012,13 @@ textarea {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 11px;
+  font-size: 10px;
 }
 
 .journal-upload-card-head .compact-add-btn {
-  padding: 4px 6px;
-  font-size: 11px;
+  min-height: 24px;
+  padding: 3px 6px;
+  font-size: 10px;
 }
 
 .journal-upload-card-meta {
@@ -7029,35 +7033,44 @@ textarea {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 10px;
+  font-size: 9px;
 }
 
 .journal-upload-type-pill {
   flex: none;
   border: 1px solid color-mix(in srgb, var(--border) 86%, transparent);
   border-radius: 999px;
-  padding: 2px 7px;
+  padding: 1px 6px;
   background: color-mix(in srgb, var(--panel) 84%, var(--accent-soft));
   color: var(--muted);
-  font-size: 10px;
+  font-size: 9px;
   font-weight: 700;
   letter-spacing: 0.04em;
 }
 
 .journal-upload-card .journal-upload-insert-actions {
   justify-content: space-between;
+  gap: 4px;
+}
+
+.journal-upload-card .journal-upload-insert-actions .compact-add-btn {
+  min-height: 26px;
+  min-width: 0;
+  padding: 2px 0;
+  font-size: 10px;
+  flex: 1 1 0;
 }
 
 .journal-upload-preview-stack {
   position: relative;
-  display: grid;
   width: 100%;
   height: 100%;
+  min-width: 0;
+  overflow: hidden;
 }
 
 .journal-upload-preview-stack-youtube {
-  align-items: center;
-  padding: 8px;
+  padding: 4px;
   background:
     linear-gradient(180deg, color-mix(in srgb, var(--panel) 96%, transparent), color-mix(in srgb, var(--accent-soft) 76%, var(--panel))),
     radial-gradient(circle at top left, color-mix(in srgb, #ff4e45 18%, transparent), transparent 58%);
@@ -7065,12 +7078,12 @@ textarea {
 
 .journal-upload-preview-youtube-frame {
   width: 100%;
-  aspect-ratio: 16 / 9;
-  align-self: center;
+  height: 100%;
+  min-width: 0;
   overflow: hidden;
   border-radius: 8px;
   border: 1px solid color-mix(in srgb, var(--border) 82%, transparent);
-  box-shadow: 0 6px 16px rgba(15, 20, 24, 0.12);
+  box-shadow: 0 4px 10px rgba(15, 20, 24, 0.1);
   background: #10151a;
 }
 
@@ -7095,8 +7108,8 @@ textarea {
 }
 
 .journal-upload-preview-badge-youtube {
-  right: 8px;
-  bottom: 8px;
+  right: 6px;
+  bottom: 6px;
   background: rgba(188, 28, 28, 0.92);
 }
 
