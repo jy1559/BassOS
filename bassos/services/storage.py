@@ -863,7 +863,7 @@ class Storage:
             ui["fx_level_up_overlay"] = bool(ui.get("fx_level_up_overlay", ui_defaults["enable_confetti"]))
         ui["fx_level_up_overlay"] = bool(ui.get("fx_level_up_overlay"))
         ui["enable_confetti"] = bool(ui["fx_level_up_overlay"])
-        if str(ui.get("practice_video_pip_mode") or "").strip().lower() not in {"mini", "native", "none"}:
+        if str(ui.get("practice_video_pip_mode") or "").strip().lower() not in {"mini", "none"}:
             ui["practice_video_pip_mode"] = ui_defaults["practice_video_pip_mode"]
         if str(ui.get("practice_video_tab_switch_playback") or "").strip().lower() not in {"continue", "pause", "pip_only"}:
             ui["practice_video_tab_switch_playback"] = ui_defaults["practice_video_tab_switch_playback"]

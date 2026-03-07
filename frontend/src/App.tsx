@@ -1174,10 +1174,24 @@ export default function App() {
                           <button
                             type="button"
                             className="ghost-btn compact-add-btn"
-                            onClick={() => sessionPipVideoControls?.restart()}
+                            onClick={() =>
+                              sessionPipVideoControls?.hasPin
+                                ? sessionPipVideoControls?.jumpToPin()
+                                : sessionPipVideoControls?.restart()
+                            }
                             disabled={!sessionPipVideoControls?.canControl}
                           >
-                            {lang === "ko" ? "처음으로" : "Restart"}
+                            {sessionPipVideoControls?.hasPin
+                              ? (lang === "ko" ? "핀으로" : "To Pin")
+                              : (lang === "ko" ? "처음으로" : "Restart")}
+                          </button>
+                          <button
+                            type="button"
+                            className="ghost-btn compact-add-btn"
+                            onClick={() => sessionPipVideoControls?.savePinAtCurrent()}
+                            disabled={!sessionPipVideoControls?.canControl}
+                          >
+                            {lang === "ko" ? "핀 저장" : "Pin"}
                           </button>
                           {!sessionPipVideoControls?.canControl ? (
                             <small className="muted">

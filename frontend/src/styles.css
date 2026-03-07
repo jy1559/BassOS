@@ -1855,9 +1855,9 @@ button:disabled {
   border: 1px solid var(--border);
   border-radius: 10px;
   background: color-mix(in srgb, var(--panel-2) 90%, var(--accent-soft));
-  padding: 9px;
+  padding: 8px;
   display: grid;
-  gap: 8px;
+  gap: 6px;
 }
 
 .metronome-pip-panel.inline {
@@ -1888,40 +1888,57 @@ button:disabled {
 
 .metronome-pip-main {
   display: flex;
-  align-items: center;
-  gap: 10px;
-  min-height: 36px;
+  align-items: stretch;
+  gap: 8px;
+  min-height: 50px;
 }
 
 .metronome-pip-main .metronome-pip-visual {
-  flex: 1 1 auto;
+  flex: 1 1 0;
   min-width: 0;
 }
 
-.metronome-pip-transport {
+.metronome-pip-side {
+  flex: 0 0 auto;
+  min-width: 96px;
   display: grid;
+  align-content: center;
   justify-items: end;
+  gap: 6px;
+}
+
+.metronome-pip-readout {
+  font-size: 11px;
+  color: var(--muted);
+  letter-spacing: 0.03em;
+  text-align: right;
+}
+
+.metronome-pip-side-actions {
+  display: inline-flex;
+  align-items: center;
   gap: 4px;
 }
 
-.metronome-pip-transport .primary-btn,
-.metronome-pip-transport .danger-btn {
+.metronome-pip-side-actions .primary-btn,
+.metronome-pip-side-actions .danger-btn {
   min-height: 30px;
   padding: 5px 10px;
 }
 
 .metronome-pip-visual {
-  display: flex;
-  align-items: center;
-  flex-wrap: nowrap;
-  gap: 10px;
+  display: flex !important;
+  align-items: center !important;
+  flex-wrap: nowrap !important;
+  gap: 11px;
   overflow: hidden;
-  padding: 2px 0;
+  padding: 4px 2px;
+  justify-content: flex-start;
 }
 
 .metronome-pip-visual .metronome-light {
-  flex: 0 0 14px;
-  width: 14px;
+  flex: 0 0 15px;
+  width: 15px;
 }
 
 .metronome-pip-settings {
@@ -6720,6 +6737,11 @@ textarea {
   gap: 6px;
 }
 
+.song-video-pin-row {
+  display: grid;
+  gap: 6px;
+}
+
 .song-video-shortcut-row {
   display: flex;
   flex-wrap: wrap;
@@ -7471,20 +7493,20 @@ textarea {
 .metronome-compact-controls {
   display: flex;
   align-items: flex-end;
-  gap: 10px;
+  gap: 12px;
   flex-wrap: wrap;
 }
 
 .metronome-bpm-cluster {
-  flex: 1 1 320px;
+  flex: 2 1 300px;
   min-width: 220px;
   display: grid;
   gap: 6px;
 }
 
 .metronome-signature-cluster {
-  flex: 1 1 220px;
-  min-width: 180px;
+  flex: 1 1 170px;
+  min-width: 150px;
   display: grid;
   gap: 6px;
 }
@@ -7502,8 +7524,8 @@ textarea {
 }
 
 .metronome-volume-inline {
-  flex: 1 1 180px;
-  min-width: 150px;
+  flex: 1 1 140px;
+  min-width: 120px;
   display: grid;
   gap: 4px;
 }
@@ -7517,6 +7539,16 @@ textarea {
   margin: 0;
 }
 
+.metronome-subdivision-toggle {
+  align-self: end;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+  font-size: 12px;
+  color: var(--muted);
+}
+
 .metronome-visual {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(22px, 1fr));
@@ -7527,16 +7559,16 @@ textarea {
   display: flex;
   align-items: center;
   flex-wrap: nowrap;
-  gap: 12px;
-  min-height: 42px;
+  gap: 14px;
+  min-height: 52px;
   overflow-x: auto;
   overflow-y: hidden;
-  padding: 3px 2px;
+  padding: 5px 4px;
 }
 
 .metronome-visual-hero .metronome-light {
-  flex: 0 0 12px;
-  width: 12px;
+  flex: 0 0 18px;
+  width: 18px;
 }
 
 .metronome-light {
@@ -7560,6 +7592,23 @@ textarea {
 
 .metronome-light.active.accent {
   background: linear-gradient(120deg, #ffbd4d, #ff8c3f);
+}
+
+.metronome-sub-light {
+  flex: 0 0 7px;
+  width: 7px;
+  aspect-ratio: 1 / 1;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--border) 80%, transparent);
+  background: color-mix(in srgb, var(--panel) 66%, var(--border));
+  opacity: 0.82;
+  transition: transform 90ms ease, background-color 90ms ease, box-shadow 90ms ease;
+}
+
+.metronome-sub-light.active {
+  transform: scale(1.15);
+  background: color-mix(in srgb, var(--accent) 54%, #ffffff);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 20%, transparent);
 }
 
 .metronome-advanced {

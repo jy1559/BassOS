@@ -49,11 +49,37 @@ async function call<T>(url: string, init?: RequestInit): Promise<T> {
     ...init,
     headers
   });
-  const body = await response.json();
-  if (!response.ok || body.ok === false) {
-    throw new Error(body.message ?? "Request failed");
+  const raw = await response.text();
+  const trimmed = raw.trim();
+  let body: unknown = null;
+  if (trimmed) {
+    try {
+      body = JSON.parse(trimmed);
+    } catch {
+      body = null;
+    }
   }
-  return body as T;
+  const bodyObject = body && typeof body === "object" ? (body as Record<string, unknown>) : null;
+  const contentType = String(response.headers.get("content-type") || "").toLowerCase();
+  const isHtml = trimmed.startsWith("<!doctype") || trimmed.startsWith("<html");
+  if (!response.ok || bodyObject?.ok === false) {
+    const message =
+      (typeof bodyObject?.message === "string" && bodyObject.message) ||
+      (isHtml ? `Server returned HTML instead of JSON (${response.status}).` : "") ||
+      trimmed.replace(/\s+/g, " ").slice(0, 180) ||
+      `${response.status} ${response.statusText || "Request failed"}`;
+    throw new Error(message);
+  }
+  if (body !== null) {
+    return body as T;
+  }
+  if (!trimmed) {
+    return {} as T;
+  }
+  if (contentType.includes("text/plain")) {
+    return trimmed as unknown as T;
+  }
+  throw new Error("Invalid JSON response");
 }
 
 export async function getSettings(): Promise<Settings> {

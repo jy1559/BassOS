@@ -4,7 +4,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from flask import Flask, current_app, jsonify, send_from_directory
+from flask import Flask, current_app, jsonify, request, send_from_directory
+from werkzeug.exceptions import HTTPException
 
 from bassos.api import api_bp
 from bassos.constants import ACHIEVEMENT_HEADERS, QUEST_HEADERS
@@ -58,6 +59,21 @@ def create_app(project_root: Path | None = None) -> Flask:
     app.config["game_service"] = GameService(storage)
     app.config["runtime_profile_manager"] = runtime_profiles
     app.register_blueprint(api_bp)
+
+    @app.errorhandler(HTTPException)
+    def handle_http_exception(exc: HTTPException):
+        if request.path.startswith("/api/"):
+            message = str(exc.description or exc.name or "HTTP error")
+            return jsonify({"ok": False, "message": message}), int(exc.code or 500)
+        return exc
+
+    @app.errorhandler(Exception)
+    def handle_unexpected_exception(exc: Exception):
+        if request.path.startswith("/api/"):
+            app.logger.exception("Unhandled API exception")
+            message = str(exc).strip() or "Internal server error"
+            return jsonify({"ok": False, "message": message}), 500
+        raise exc
 
     @app.get("/media/<path:subpath>")
     def media_static(subpath: str):

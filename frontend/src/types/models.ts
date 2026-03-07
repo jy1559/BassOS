@@ -589,7 +589,7 @@ export type Settings = {
     language: "ko" | "en";
     animation_intensity: "adaptive" | "low" | "high";
     enable_confetti?: boolean;
-    practice_video_pip_mode?: "mini" | "native" | "none";
+    practice_video_pip_mode?: "mini" | "none";
     practice_video_tab_switch_playback?: "continue" | "pause" | "pip_only";
     notify_level_up?: boolean;
     notify_achievement_unlock?: boolean;

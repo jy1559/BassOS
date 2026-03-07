@@ -1558,7 +1558,7 @@ export function SettingsPage({ lang, settings, hud, unlockables, onSettingsChang
                     void applyBasicPatch(
                       {
                         ui: {
-                          practice_video_pip_mode: event.target.value as "mini" | "native" | "none",
+                          practice_video_pip_mode: event.target.value as "mini" | "none",
                         } as Partial<Settings["ui"]>,
                       },
                       lang === "ko" ? "PIP 기본 모드 저장 완료" : "PIP default mode saved"
@@ -1566,7 +1566,6 @@ export function SettingsPage({ lang, settings, hud, unlockables, onSettingsChang
                   }}
                 >
                   <option value="mini">Mini</option>
-                  <option value="native">Native</option>
                   <option value="none">{lang === "ko" ? "사용 안 함" : "Off"}</option>
                 </select>
               </label>

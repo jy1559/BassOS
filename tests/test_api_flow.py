@@ -75,6 +75,23 @@ def test_core_api_smoke(tmp_path):
     )
 
 
+def test_api_unhandled_error_returns_json(tmp_path):
+    root = _prepare_temp_root(tmp_path)
+    app = create_app(root)
+
+    @app.get("/api/_boom")
+    def _boom():  # pragma: no cover - exercised by client request
+        raise RuntimeError("boom-test")
+
+    client = app.test_client()
+    res = client.get("/api/_boom")
+    assert res.status_code == 500
+    assert res.content_type.startswith("application/json")
+    payload = res.get_json()
+    assert payload["ok"] is False
+    assert "boom-test" in payload["message"]
+
+
 def test_session_switch_under_10_min_skips_save(tmp_path):
     root = _prepare_temp_root(tmp_path)
     app = create_app(root)

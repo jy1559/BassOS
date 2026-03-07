@@ -265,3 +265,26 @@ def test_migrate_v11_seeds_new_ui_notification_and_fx_keys(tmp_path: Path):
     assert ui["fx_session_complete_quick"] is False
     assert ui["fx_claim_achievement"] is True
     assert ui["fx_claim_quest"] is True
+
+
+def test_migrate_v11_normalizes_native_pip_mode_to_mini(tmp_path: Path):
+    storage = _build_storage(tmp_path)
+    storage.write_json(
+        "settings.json",
+        {
+            "policy_version": 11,
+            "ui": {
+                "default_theme": "midnight",
+                "language": "ko",
+                "animation_intensity": "adaptive",
+                "practice_video_pip_mode": "native",
+                "practice_video_tab_switch_playback": "continue",
+            },
+            "profile": {"onboarded": True},
+        },
+    )
+
+    storage.migrate_files()
+    migrated = storage.read_json("settings.json")
+    ui = migrated["ui"]
+    assert ui["practice_video_pip_mode"] == "mini"

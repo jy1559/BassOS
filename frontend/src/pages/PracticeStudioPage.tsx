@@ -23,7 +23,10 @@ export type SessionPipVideoControlPayload = {
   targetId: string;
   canControl: boolean;
   isPlaying: boolean;
+  hasPin: boolean;
   togglePlayback: () => void;
+  savePinAtCurrent: () => void;
+  jumpToPin: () => void;
   restart: () => void;
 };
 
@@ -39,9 +42,9 @@ type Props = {
   onRefresh: () => Promise<void>;
   notify: (message: string, type?: "success" | "error" | "info") => void;
   isActive: boolean;
-  pipMode: "mini" | "native" | "none";
+  pipMode: "mini" | "none";
   tabSwitchPlayback: "continue" | "pause" | "pip_only";
-  onPipModeChange: (mode: "mini" | "native" | "none") => void;
+  onPipModeChange: (mode: "mini" | "none") => void;
   onSessionPipVideoChange?: (payload: SessionPipVideoPayload | null) => void;
   onSessionPipVideoControlChange?: (payload: SessionPipVideoControlPayload | null) => void;
   onSessionCompleted?: (result: SessionStopResult) => void;
@@ -354,6 +357,42 @@ function parseBpm(value: string): number | null {
   return parsed;
 }
 
+const VIDEO_PIN_STORAGE_KEY = "bassos.video.pins.v1";
+
+function readVideoPinStore(): Record<string, number> {
+  if (typeof window === "undefined") return {};
+  try {
+    const raw = window.localStorage.getItem(VIDEO_PIN_STORAGE_KEY);
+    if (!raw) return {};
+    const parsed = JSON.parse(raw) as Record<string, unknown>;
+    const next: Record<string, number> = {};
+    for (const [key, value] of Object.entries(parsed || {})) {
+      const second = Number(value);
+      if (!key || !Number.isFinite(second) || second < 0) continue;
+      next[key] = second;
+    }
+    return next;
+  } catch {
+    return {};
+  }
+}
+
+function writeVideoPinStore(store: Record<string, number>): void {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(VIDEO_PIN_STORAGE_KEY, JSON.stringify(store));
+  } catch {
+    // Ignore local storage write errors.
+  }
+}
+
+function formatVideoSecond(totalSeconds: number): string {
+  const safe = Math.max(0, Math.floor(totalSeconds));
+  const mm = String(Math.floor(safe / 60)).padStart(2, "0");
+  const ss = String(safe % 60).padStart(2, "0");
+  return `${mm}:${ss}`;
+}
+
 function isFavorite(value: string): boolean {
   const raw = String(value || "").toLowerCase();
   return raw === "true" || raw === "1" || raw === "yes";
@@ -472,7 +511,8 @@ export function PracticeStudioPage({
 
   const [selectedSongLink, setSelectedSongLink] = useState("");
   const [isSongVideoPlaying, setIsSongVideoPlaying] = useState(false);
-  const [nativePipFallback, setNativePipFallback] = useState(false);
+  const [songYoutubeCurrentSec, setSongYoutubeCurrentSec] = useState(0);
+  const [songVideoPinSec, setSongVideoPinSec] = useState<number | null>(null);
   const [songSplitDirection, setSongSplitDirection] = useState<"horizontal" | "vertical">("horizontal");
   const [songSplitRatio, setSongSplitRatio] = useState(0.56);
   const [isSongSplitResizing, setIsSongSplitResizing] = useState(false);
@@ -665,6 +705,7 @@ export function PracticeStudioPage({
 
   useEffect(() => {
     setIsSongVideoPlaying(false);
+    setSongYoutubeCurrentSec(0);
   }, [selectedSongLink]);
 
   useEffect(() => {
@@ -845,8 +886,23 @@ export function PracticeStudioPage({
   const songCover = useMemo(() => coverSource(song), [song]);
   const songEmbed = useMemo(() => toYoutubeEmbed(selectedSongLink), [selectedSongLink]);
   const songDirectVideo = useMemo(() => (isPlayableVideoUrl(selectedSongLink) ? selectedSongLink : ""), [selectedSongLink]);
+  const currentVideoPinKey = useMemo(() => String(selectedSongLink || "").trim(), [selectedSongLink]);
   const backingEmbed = useMemo(() => toYoutubeEmbed(selectedBacking?.youtube_url || ""), [selectedBacking?.youtube_url]);
   const drillImages = useMemo(() => drillImageSources(drill), [drill]);
+
+  useEffect(() => {
+    if (!currentVideoPinKey) {
+      setSongVideoPinSec(null);
+      return;
+    }
+    const store = readVideoPinStore();
+    const saved = store[currentVideoPinKey];
+    if (!Number.isFinite(saved) || saved < 0) {
+      setSongVideoPinSec(null);
+      return;
+    }
+    setSongVideoPinSec(saved);
+  }, [currentVideoPinKey]);
 
   useEffect(() => {
     if (!drillImages.length) {
@@ -1279,64 +1335,134 @@ export function PracticeStudioPage({
     }
   };
 
-  const requestNativePictureInPicture = async (): Promise<boolean> => {
-    const video = songVideoElementRef.current;
-    if (!video || typeof video.requestPictureInPicture !== "function") return false;
-    try {
-      if (document.pictureInPictureElement !== video) {
-        await video.requestPictureInPicture();
-      }
-      return true;
-    } catch {
-      return false;
-    }
-  };
-
-  const exitNativePictureInPicture = async () => {
-    if (!document.pictureInPictureElement || typeof document.exitPictureInPicture !== "function") return;
-    try {
-      await document.exitPictureInPicture();
-    } catch {
-      // Ignore forced PiP exit failures.
-    }
-  };
-
-  const switchPipMode = async (nextMode: "mini" | "native" | "none") => {
+  const switchPipMode = (nextMode: "mini" | "none") => {
     onPipModeChange(nextMode);
-    setNativePipFallback(false);
-    if (nextMode === "none") {
-      await exitNativePictureInPicture();
-      return;
-    }
-    if (nextMode !== "native") {
-      await exitNativePictureInPicture();
-      return;
-    }
-    const success = await requestNativePictureInPicture();
-    if (!success) {
-      setNativePipFallback(true);
-      notify(
-        lang === "ko"
-          ? "native PiP를 사용할 수 없어 mini 모드로 fallback합니다."
-          : "Native PiP is unavailable. Falling back to mini mode.",
-        "info"
-      );
-      onPipModeChange("mini");
-    }
   };
 
-  const resetSongVideoToStart = () => {
+  const getCurrentSongVideoSecond = () => {
+    if (songDirectVideo && songVideoElementRef.current) {
+      return Math.max(0, Number(songVideoElementRef.current.currentTime || 0));
+    }
+    if (songEmbed) {
+      return Math.max(0, Number(songYoutubeCurrentSec || 0));
+    }
+    return 0;
+  };
+
+  const seekSongVideoTo = (second: number) => {
+    const targetSecond = Math.max(0, Number(second || 0));
     if (songDirectVideo && songVideoElementRef.current) {
       const target = songVideoElementRef.current;
-      target.currentTime = 0;
+      target.currentTime = targetSecond;
       if (isSongVideoPlaying) void target.play().catch(() => undefined);
       return;
     }
     if (songEmbed && songVideoIframeRef.current) {
-      postYoutubeCommand("seekTo", [0, true]);
+      postYoutubeCommand("seekTo", [targetSecond, true]);
       if (isSongVideoPlaying) postYoutubeCommand("playVideo");
     }
   };
+
+  const resetSongVideoToStart = () => {
+    seekSongVideoTo(0);
+  };
+
+  const saveSongVideoPinAtCurrent = () => {
+    const key = currentVideoPinKey;
+    if (!key) return;
+    const currentSecond = Math.max(0, Math.floor(getCurrentSongVideoSecond()));
+    const store = readVideoPinStore();
+    store[key] = currentSecond;
+    writeVideoPinStore(store);
+    setSongVideoPinSec(currentSecond);
+    notify(
+      lang === "ko"
+        ? `영상 핀 저장: ${formatVideoSecond(currentSecond)}`
+        : `Video pin saved: ${formatVideoSecond(currentSecond)}`,
+      "success"
+    );
+  };
+
+  const clearSongVideoPin = () => {
+    const key = currentVideoPinKey;
+    if (!key) return;
+    const store = readVideoPinStore();
+    if (Object.prototype.hasOwnProperty.call(store, key)) {
+      delete store[key];
+      writeVideoPinStore(store);
+    }
+    setSongVideoPinSec(null);
+  };
+
+  const jumpSongVideoToPin = () => {
+    if (songVideoPinSec === null) {
+      resetSongVideoToStart();
+      return;
+    }
+    seekSongVideoTo(songVideoPinSec);
+  };
+
+  useEffect(() => {
+    if (!songEmbed) return;
+    const iframe = songVideoIframeRef.current;
+    if (!iframe) return;
+
+    const send = (func: string, args: Array<string | number | boolean> = []) => {
+      if (!iframe.contentWindow) return;
+      iframe.contentWindow.postMessage(JSON.stringify({ event: "command", func, args }), "*");
+    };
+
+    const bindYoutubeEvents = () => {
+      send("addEventListener", ["onReady"]);
+      send("addEventListener", ["onStateChange"]);
+    };
+
+    const onLoad = () => bindYoutubeEvents();
+    iframe.addEventListener("load", onLoad);
+    bindYoutubeEvents();
+
+    const infoTimer = window.setInterval(() => {
+      send("getCurrentTime");
+    }, 450);
+
+    const onMessage = (event: MessageEvent) => {
+      if (!iframe.contentWindow || event.source !== iframe.contentWindow) return;
+      let payload: unknown = event.data;
+      if (typeof payload === "string") {
+        const trimmed = payload.trim();
+        if (!trimmed || (!trimmed.startsWith("{") && !trimmed.startsWith("["))) return;
+        try {
+          payload = JSON.parse(trimmed);
+        } catch {
+          return;
+        }
+      }
+      if (!payload || typeof payload !== "object") return;
+      const data = payload as Record<string, unknown>;
+      if (data.event === "onStateChange") {
+        const state = Number(data.info);
+        if (state === 1) setIsSongVideoPlaying(true);
+        if (state === 0 || state === 2) setIsSongVideoPlaying(false);
+      }
+      const info = data.info;
+      if (!info || typeof info !== "object") return;
+      const infoObj = info as Record<string, unknown>;
+      const currentTime = Number(infoObj.currentTime);
+      if (Number.isFinite(currentTime) && currentTime >= 0) {
+        setSongYoutubeCurrentSec(currentTime);
+      }
+      const playerState = Number(infoObj.playerState);
+      if (playerState === 1) setIsSongVideoPlaying(true);
+      if (playerState === 0 || playerState === 2) setIsSongVideoPlaying(false);
+    };
+
+    window.addEventListener("message", onMessage);
+    return () => {
+      iframe.removeEventListener("load", onLoad);
+      window.clearInterval(infoTimer);
+      window.removeEventListener("message", onMessage);
+    };
+  }, [songEmbed, selectedSongLink]);
 
   const toggleFullscreenElement = (target: HTMLElement | null) => {
     if (!target || typeof target.requestFullscreen !== "function") return;
@@ -1454,12 +1580,7 @@ export function PracticeStudioPage({
   ]);
 
   useEffect(() => {
-    if (isActive) {
-      if (pipMode !== "native") {
-        void exitNativePictureInPicture();
-      }
-      return;
-    }
+    if (isActive) return;
     const hasSongMedia = practiceType === "song" && (Boolean(songDirectVideo) || Boolean(songEmbed));
     if (!hasSongMedia) return;
     if (tabSwitchPlayback === "pause") {
@@ -1471,28 +1592,7 @@ export function PracticeStudioPage({
       pauseSongVideoPlayback();
       return;
     }
-    if (pipMode === "mini") {
-      void exitNativePictureInPicture();
-      return;
-    }
-    let cancelled = false;
-    void (async () => {
-      const success = await requestNativePictureInPicture();
-      if (cancelled || success) return;
-      if (!nativePipFallback) {
-        notify(
-          lang === "ko"
-            ? "native PiP를 사용할 수 없어 mini 모드로 fallback됩니다."
-            : "Native PiP unavailable. Falling back to mini mode.",
-          "info"
-        );
-      }
-      setNativePipFallback(true);
-      onPipModeChange("mini");
-    })();
-    return () => {
-      cancelled = true;
-    };
+    if (pipMode === "mini") return;
   }, [
     isActive,
     practiceType,
@@ -1500,15 +1600,7 @@ export function PracticeStudioPage({
     songEmbed,
     tabSwitchPlayback,
     pipMode,
-    nativePipFallback,
-    lang,
   ]);
-
-  useEffect(() => {
-    return () => {
-      void exitNativePictureInPicture();
-    };
-  }, []);
 
   const renderSongVideoPanel = () => {
     if (!songVideoOptions.length) {
@@ -1548,30 +1640,35 @@ export function PracticeStudioPage({
               <button
                 type="button"
                 className={`ghost-btn compact-add-btn ${pipMode === "mini" ? "active-mini" : ""}`}
-                onClick={() => void switchPipMode("mini")}
+                onClick={() => switchPipMode("mini")}
               >
                 Mini
               </button>
               <button
                 type="button"
-                className={`ghost-btn compact-add-btn ${pipMode === "native" ? "active-mini" : ""}`}
-                onClick={() => void switchPipMode("native")}
-              >
-                Native
-              </button>
-              <button
-                type="button"
                 className={`ghost-btn compact-add-btn ${pipMode === "none" ? "active-mini" : ""}`}
-                onClick={() => void switchPipMode("none")}
+                onClick={() => switchPipMode("none")}
               >
                 Off
               </button>
             </div>
-            {nativePipFallback ? (
+          </div>
+          <div className="song-video-pin-row">
+            <small className="muted">{lang === "ko" ? "영상 핀" : "Video pin"}</small>
+            <div className="switch-row">
+              <button type="button" className="ghost-btn compact-add-btn" onClick={saveSongVideoPinAtCurrent}>
+                {lang === "ko" ? "현재 위치 핀" : "Pin Current"}
+              </button>
+              <button type="button" className="ghost-btn compact-add-btn" onClick={jumpSongVideoToPin}>
+                {songVideoPinSec === null ? (lang === "ko" ? "처음으로" : "Restart") : (lang === "ko" ? "핀으로" : "To Pin")}
+              </button>
+              <button type="button" className="ghost-btn compact-add-btn" onClick={clearSongVideoPin} disabled={songVideoPinSec === null}>
+                {lang === "ko" ? "핀 해제" : "Clear Pin"}
+              </button>
+            </div>
+            {songVideoPinSec !== null ? (
               <small className="muted">
-                {lang === "ko"
-                  ? "현재 소스는 native PiP가 제한되어 mini 모드로 동작합니다."
-                  : "Native PiP is limited for this source, running in mini mode."}
+                {lang === "ko" ? `저장된 핀: ${formatVideoSecond(songVideoPinSec)}` : `Pinned at: ${formatVideoSecond(songVideoPinSec)}`}
               </small>
             ) : null}
           </div>
@@ -1599,6 +1696,7 @@ export function PracticeStudioPage({
               playsInline
               onPlay={() => setIsSongVideoPlaying(true)}
               onPause={() => setIsSongVideoPlaying(false)}
+              onTimeUpdate={(event) => setSongYoutubeCurrentSec(Math.max(0, Number(event.currentTarget.currentTime || 0)))}
             />
           </div>
         ) : songLinks.length > 0 ? (
@@ -1838,7 +1936,7 @@ export function PracticeStudioPage({
     Boolean(activeSessionSongId) &&
     Boolean(activeSessionSongVideoSource) &&
     tabSwitchPlayback !== "pause" &&
-    (pipMode === "mini" || nativePipFallback);
+    pipMode === "mini";
   const renderSessionControls = () => (
     <div className="practice-session-controls">
       {hasActiveSession ? (
@@ -1916,7 +2014,10 @@ export function PracticeStudioPage({
       targetId: activeSessionSongId,
       canControl: true,
       isPlaying: isSongVideoPlaying,
+      hasPin: songVideoPinSec !== null,
       togglePlayback: toggleSongVideoPlayback,
+      savePinAtCurrent: saveSongVideoPinAtCurrent,
+      jumpToPin: jumpSongVideoToPin,
       restart: resetSongVideoToStart,
     });
     return () => onSessionPipVideoControlChange(null);
@@ -1925,6 +2026,7 @@ export function PracticeStudioPage({
     activeSessionSongId,
     isSongVideoPlaying,
     onSessionPipVideoControlChange,
+    songVideoPinSec,
     showMiniDock,
     songDirectVideo,
     songEmbed,
