@@ -6563,6 +6563,21 @@ textarea {
   max-height: 220px;
 }
 
+.journal-template-picker-preview .journal-markdown {
+  gap: 10px;
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.journal-template-picker-preview .journal-markdown :is(h1, h2, h3, h4, h5, h6) {
+  font-size: 13px;
+}
+
+.journal-template-picker-preview .journal-markdown ul,
+.journal-template-picker-preview .journal-markdown ol {
+  padding-left: 18px;
+}
+
 .journal-composer-title-row,
 .journal-composer-meta-row {
   display: grid;
@@ -6589,8 +6604,13 @@ textarea {
 
 .journal-composer-title-actions {
   display: flex;
-  align-items: center;
+  align-self: stretch;
+  align-items: flex-end;
   justify-content: flex-end;
+}
+
+.journal-composer-title-actions .compact-add-btn {
+  min-height: 40px;
 }
 
 .journal-template-inline-summary {
@@ -6943,15 +6963,16 @@ textarea {
 }
 
 .journal-upload-list-compact {
-  grid-template-columns: repeat(auto-fit, minmax(132px, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px;
 }
 
 .journal-upload-card {
   display: grid;
-  gap: 8px;
+  gap: 6px;
   align-content: start;
   min-width: 0;
-  padding: 8px;
+  padding: 6px;
   border: 1px solid color-mix(in srgb, var(--border) 90%, transparent);
   border-radius: 12px;
   background: color-mix(in srgb, var(--panel) 96%, var(--accent-soft));
@@ -6979,8 +7000,8 @@ textarea {
 .journal-upload-card-head {
   display: flex;
   justify-content: space-between;
-  align-items: flex-start;
-  gap: 8px;
+  align-items: center;
+  gap: 6px;
 }
 
 .journal-upload-card-head strong {
@@ -6988,14 +7009,19 @@ textarea {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 12px;
+  font-size: 11px;
+}
+
+.journal-upload-card-head .compact-add-btn {
+  padding: 4px 6px;
+  font-size: 11px;
 }
 
 .journal-upload-card-meta {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
+  gap: 4px;
 }
 
 .journal-upload-card-meta small {
@@ -7003,6 +7029,7 @@ textarea {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  font-size: 10px;
 }
 
 .journal-upload-type-pill {
@@ -7015,6 +7042,10 @@ textarea {
   font-size: 10px;
   font-weight: 700;
   letter-spacing: 0.04em;
+}
+
+.journal-upload-card .journal-upload-insert-actions {
+  justify-content: space-between;
 }
 
 .journal-upload-preview-stack {
@@ -7595,6 +7626,10 @@ textarea {
     grid-template-columns: 1fr;
   }
 
+  .journal-upload-list-compact {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
   .journal-upload-inline-meta {
     justify-items: start;
   }
@@ -7612,6 +7647,10 @@ textarea {
 
   .journal-board-row-attachments {
     display: none;
+  }
+
+  .journal-upload-list-compact {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 

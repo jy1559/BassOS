@@ -242,7 +242,9 @@ function TemplatePickerModal({
                     ))}
                   </div>
                 ) : null}
-                <pre className="journal-template-picker-preview">{preview}</pre>
+                <div className="journal-template-picker-preview">
+                  <JournalMarkdown body={preview} fallbackTitle={template.name} />
+                </div>
                 <button type="button" className="primary-btn" data-testid={`journal-template-pick-${template.id}`} onClick={() => onPick(template.id)}>
                   {lang === "ko" ? "이 템플릿 사용" : "Use This Template"}
                 </button>
@@ -496,16 +498,10 @@ export function JournalComposerModal({
     setPendingVideoLink("");
     setEditorTab("write");
     setTemplatePickerOpen(false);
-    const nextOpenSongGroups = groupedSongs
-      .filter((group, index) => index < 2 || group.items.some((song) => nextSongIds.includes(String(song.library_id || ""))))
-      .map((group) => group.label);
-    const nextOpenDrillGroups = groupedDrills
-      .filter((group, index) => index < 2 || group.items.some((drill) => nextDrillIds.includes(String(drill.drill_id || ""))))
-      .map((group) => group.label);
-    setOpenSongGroups(dedupeLabels(nextOpenSongGroups));
-    setOpenDrillGroups(dedupeLabels(nextOpenDrillGroups));
-    setSongSectionOpen(Boolean(nextSongIds.length));
-    setDrillSectionOpen(Boolean(nextDrillIds.length));
+    setOpenSongGroups([]);
+    setOpenDrillGroups([]);
+    setSongSectionOpen(false);
+    setDrillSectionOpen(false);
     const selectedPresetIds = activeTagCatalog
       .filter((preset) => (item?.tags || []).some((tag) => tag.trim().toLowerCase() === preset.label.trim().toLowerCase()))
       .map((preset) => preset.id);
