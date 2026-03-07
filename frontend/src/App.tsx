@@ -681,21 +681,29 @@ export default function App() {
             contentRef.current.scrollTop = restoreTop;
           }
         };
+        let rafId = 0;
+        const startedAt = Date.now();
+        const step = () => {
+          apply();
+          if (Date.now() - startedAt < 1600) {
+            rafId = window.requestAnimationFrame(step);
+          }
+        };
+        rafId = window.requestAnimationFrame(step);
         const timerA = window.setTimeout(apply, 0);
-        const timerB = window.setTimeout(apply, 50);
-        const timerC = window.setTimeout(apply, 140);
-        const timerD = window.setTimeout(apply, 280);
-        const timerE = window.setTimeout(apply, 520);
+        const timerB = window.setTimeout(apply, 120);
+        const timerC = window.setTimeout(apply, 320);
+        const timerD = window.setTimeout(apply, 640);
         const timerDone = window.setTimeout(() => {
           isPracticeScrollRestoringRef.current = false;
-        }, 640);
+        }, 1760);
         prevTabRef.current = tab;
         return () => {
+          if (rafId) window.cancelAnimationFrame(rafId);
           window.clearTimeout(timerA);
           window.clearTimeout(timerB);
           window.clearTimeout(timerC);
           window.clearTimeout(timerD);
-          window.clearTimeout(timerE);
           window.clearTimeout(timerDone);
           isPracticeScrollRestoringRef.current = false;
         };

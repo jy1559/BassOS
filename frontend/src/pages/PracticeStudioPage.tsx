@@ -394,6 +394,34 @@ function formatVideoSecond(totalSeconds: number): string {
   return `${mm}:${ss}`;
 }
 
+function extractYoutubeCurrentTimeFromMessage(data: unknown): number | null {
+  let payload: unknown = data;
+  if (typeof payload === "string") {
+    const trimmed = payload.trim();
+    if (!trimmed || (!trimmed.startsWith("{") && !trimmed.startsWith("["))) return null;
+    try {
+      payload = JSON.parse(trimmed);
+    } catch {
+      return null;
+    }
+  }
+  if (!payload || typeof payload !== "object") return null;
+  const packet = payload as Record<string, unknown>;
+  const info = packet.info;
+  if (info && typeof info === "object") {
+    const infoRecord = info as Record<string, unknown>;
+    const currentTime = Number(infoRecord.currentTime);
+    if (Number.isFinite(currentTime) && currentTime >= 0) {
+      return currentTime;
+    }
+  }
+  const topLevelCurrentTime = Number(packet.currentTime);
+  if (Number.isFinite(topLevelCurrentTime) && topLevelCurrentTime >= 0) {
+    return topLevelCurrentTime;
+  }
+  return null;
+}
+
 function isFavorite(value: string): boolean {
   const raw = String(value || "").toLowerCase();
   return raw === "true" || raw === "1" || raw === "yes";
@@ -532,6 +560,7 @@ export function PracticeStudioPage({
   const [backingGenreFilter, setBackingGenreFilter] = useState("all");
   const [backingBpmMin, setBackingBpmMin] = useState("");
   const [backingBpmMax, setBackingBpmMax] = useState("");
+  const songYoutubeCurrentSecRef = useRef(0);
   const activeStart = hud.active_session?.start_at ? new Date(hud.active_session.start_at).getTime() : 0;
   const setMetronomeProfileKey = metronome.setProfileKey;
 
@@ -700,8 +729,8 @@ export function PracticeStudioPage({
       setSelectedSongLink("");
       return;
     }
-    if (!selectedSongLink || !songLinks.includes(selectedSongLink)) {
-      setSelectedSongLink(songLinks[0]);
+    if (selectedSongLink && !songLinks.includes(selectedSongLink)) {
+      setSelectedSongLink("");
     }
   }, [songLinks, selectedSongLink]);
 
@@ -710,6 +739,10 @@ export function PracticeStudioPage({
     setSongYoutubePlayerState(-1);
     setSongYoutubeCurrentSec(0);
   }, [selectedSongLink]);
+
+  useEffect(() => {
+    songYoutubeCurrentSecRef.current = songYoutubeCurrentSec;
+  }, [songYoutubeCurrentSec]);
 
   useEffect(() => {
     if (!isActive) {
@@ -1383,6 +1416,35 @@ export function PracticeStudioPage({
     return 0;
   };
 
+  const requestFreshYoutubeCurrentSecond = () => {
+    const iframe = songVideoIframeRef.current;
+    if (!songEmbed || !iframe?.contentWindow) {
+      return Promise.resolve(Math.max(0, Number(songYoutubeCurrentSecRef.current || 0)));
+    }
+    return new Promise<number>((resolve) => {
+      let settled = false;
+      const finish = (value: number) => {
+        if (settled) return;
+        settled = true;
+        window.clearTimeout(timeoutId);
+        window.removeEventListener("message", onMessage);
+        resolve(Math.max(0, Number(value || 0)));
+      };
+      const onMessage = (event: MessageEvent) => {
+        if (!iframe.contentWindow || event.source !== iframe.contentWindow) return;
+        const currentTime = extractYoutubeCurrentTimeFromMessage(event.data);
+        if (currentTime === null) return;
+        setSongYoutubeCurrentSec(currentTime);
+        finish(currentTime);
+      };
+      const timeoutId = window.setTimeout(() => {
+        finish(Math.max(0, Number(songYoutubeCurrentSecRef.current || 0)));
+      }, 720);
+      window.addEventListener("message", onMessage);
+      postYoutubeCommand("getCurrentTime");
+    });
+  };
+
   const seekSongVideoTo = (second: number) => {
     const targetSecond = Math.max(0, Number(second || 0));
     const shouldResume = isSongVideoPlayingNow();
@@ -1405,17 +1467,24 @@ export function PracticeStudioPage({
   const saveSongVideoPinAtCurrent = () => {
     const key = currentVideoPinKey;
     if (!key) return;
-    const currentSecond = Math.max(0, Math.floor(getCurrentSongVideoSecond()));
-    const store = readVideoPinStore();
-    store[key] = currentSecond;
-    writeVideoPinStore(store);
-    setSongVideoPinSec(currentSecond);
-    notify(
-      lang === "ko"
-        ? `영상 핀 저장: ${formatVideoSecond(currentSecond)}`
-        : `Video pin saved: ${formatVideoSecond(currentSecond)}`,
-      "success"
-    );
+    const commit = (rawSecond: number) => {
+      const currentSecond = Math.max(0, Math.floor(rawSecond));
+      const store = readVideoPinStore();
+      store[key] = currentSecond;
+      writeVideoPinStore(store);
+      setSongVideoPinSec(currentSecond);
+      notify(
+        lang === "ko"
+          ? `영상 핀 저장: ${formatVideoSecond(currentSecond)}`
+          : `Video pin saved: ${formatVideoSecond(currentSecond)}`,
+        "success"
+      );
+    };
+    if (songEmbed) {
+      void requestFreshYoutubeCurrentSecond().then((second) => commit(second));
+      return;
+    }
+    commit(getCurrentSongVideoSecond());
   };
 
   const clearSongVideoPin = () => {
@@ -1686,59 +1755,14 @@ export function PracticeStudioPage({
   ]);
 
   const renderSongVideoPanel = () => {
-    if (!songVideoOptions.length) {
-      return <small className="muted">{lang === "ko" ? "등록된 영상 링크가 없습니다." : "No video links found."}</small>;
-    }
+    const hasVideoSource = Boolean(selectedSongLink);
+    const canControlEmbeddedVideo = Boolean(songEmbed || songDirectVideo);
     return (
       <div
         className={`studio-video-surface studio-control-surface ${activePlaybackSurface === "video" ? "active" : ""}`}
         onMouseDownCapture={() => setActivePlaybackSurface("video")}
         onFocusCapture={() => setActivePlaybackSurface("video")}
       >
-        <div className="song-video-controls">
-          <label className="studio-source-select">
-            {lang === "ko" ? "영상 소스" : "Video Source"}
-            <select value={selectedSongLink} onChange={(event) => setSelectedSongLink(event.target.value)}>
-              {songLinkGroups.map((group) => (
-                <optgroup key={group.key} label={group.label}>
-                  {group.items.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </optgroup>
-              ))}
-            </select>
-          </label>
-          <div className="song-video-action-row">
-            <button type="button" className="ghost-btn compact-add-btn" onClick={toggleSongVideoPlayback}>
-              {songVideoPlaying
-                ? (lang === "ko" ? "일시정지 (Space)" : "Pause (Space)")
-                : (lang === "ko" ? "재생 (Space)" : "Play (Space)")}
-            </button>
-            <button type="button" className="ghost-btn compact-add-btn" onClick={resetSongVideoToStart}>
-              {lang === "ko" ? "처음으로 (Z)" : "Restart (Z)"}
-            </button>
-            <button type="button" className="ghost-btn compact-add-btn" onClick={toggleSongVideoFullscreen}>
-              {lang === "ko" ? "영상 전체화면 (F)" : "Video Fullscreen (F)"}
-            </button>
-            <button type="button" className="ghost-btn compact-add-btn" onClick={saveSongVideoPinAtCurrent}>
-              {lang === "ko" ? "핀 저장" : "Pin"}
-            </button>
-            <button type="button" className="ghost-btn compact-add-btn" onClick={jumpSongVideoToPin}>
-              {songVideoPinSec === null ? (lang === "ko" ? "처음으로" : "Restart") : (lang === "ko" ? "핀으로" : "To Pin")}
-            </button>
-            <button type="button" className="ghost-btn compact-add-btn" onClick={clearSongVideoPin} disabled={songVideoPinSec === null}>
-              {lang === "ko" ? "핀 해제" : "Clear Pin"}
-            </button>
-          </div>
-          {songVideoPinSec !== null ? (
-            <small className="muted song-video-pin-status">
-              {lang === "ko" ? `저장된 핀: ${formatVideoSecond(songVideoPinSec)}` : `Pinned at: ${formatVideoSecond(songVideoPinSec)}`}
-            </small>
-          ) : null}
-        </div>
-
         {songEmbed ? (
           <div className="studio-video-wrap" ref={songVideoHostRef}>
             <iframe
@@ -1770,8 +1794,8 @@ export function PracticeStudioPage({
               onTimeUpdate={(event) => setSongYoutubeCurrentSec(Math.max(0, Number(event.currentTarget.currentTime || 0)))}
             />
           </div>
-        ) : songLinks.length > 0 ? (
-          <div className="row">
+        ) : hasVideoSource ? (
+          <div className="row song-video-external-row">
             <small className="muted">
               {lang === "ko" ? "앱 내 임베드가 불가한 링크입니다. 외부에서 열어주세요." : "This source cannot be embedded. Open externally."}
             </small>
@@ -1787,8 +1811,81 @@ export function PracticeStudioPage({
             </button>
           </div>
         ) : (
-          <small className="muted">{lang === "ko" ? "등록된 영상 링크가 없습니다." : "No video links found."}</small>
+          <small className="muted">{lang === "ko" ? "영상이 숨겨져 있습니다." : "Video is hidden."}</small>
         )}
+
+        <div className="song-video-controls">
+          <div className="song-video-action-row">
+            <button
+              type="button"
+              className="ghost-btn compact-add-btn"
+              onClick={toggleSongVideoPlayback}
+              disabled={!canControlEmbeddedVideo}
+            >
+              {songVideoPlaying
+                ? (lang === "ko" ? "일시정지 (Space)" : "Pause (Space)")
+                : (lang === "ko" ? "재생 (Space)" : "Play (Space)")}
+            </button>
+            <button
+              type="button"
+              className="ghost-btn compact-add-btn"
+              onClick={resetSongVideoToStart}
+              disabled={!canControlEmbeddedVideo}
+            >
+              {lang === "ko" ? "처음으로 (Z)" : "Restart (Z)"}
+            </button>
+            <button
+              type="button"
+              className="ghost-btn compact-add-btn"
+              onClick={toggleSongVideoFullscreen}
+              disabled={!canControlEmbeddedVideo}
+            >
+              {lang === "ko" ? "영상 전체화면 (F)" : "Video Fullscreen (F)"}
+            </button>
+            <button
+              type="button"
+              className="ghost-btn compact-add-btn"
+              onClick={saveSongVideoPinAtCurrent}
+              disabled={!canControlEmbeddedVideo}
+            >
+              {lang === "ko" ? "핀 저장" : "Pin"}
+            </button>
+            <button
+              type="button"
+              className="ghost-btn compact-add-btn"
+              onClick={jumpSongVideoToPin}
+              disabled={!canControlEmbeddedVideo}
+            >
+              {songVideoPinSec === null ? (lang === "ko" ? "처음으로" : "Restart") : (lang === "ko" ? "핀으로" : "To Pin")}
+            </button>
+            <button type="button" className="ghost-btn compact-add-btn" onClick={clearSongVideoPin} disabled={songVideoPinSec === null}>
+              {lang === "ko" ? "핀 해제" : "Clear Pin"}
+            </button>
+          </div>
+          {songVideoPinSec !== null ? (
+            <small className="muted song-video-pin-status">
+              {lang === "ko" ? `저장된 핀: ${formatVideoSecond(songVideoPinSec)}` : `Pinned at: ${formatVideoSecond(songVideoPinSec)}`}
+            </small>
+          ) : null}
+          <label className="studio-source-select song-video-source-select">
+            {lang === "ko" ? "영상 소스" : "Video Source"}
+            <select value={selectedSongLink} onChange={(event) => setSelectedSongLink(event.target.value)}>
+              <option value="">{lang === "ko" ? "(영상 숨기기)" : "(Hide video)"}</option>
+              {songLinkGroups.map((group) => (
+                <optgroup key={group.key} label={group.label}>
+                  {group.items.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </optgroup>
+              ))}
+            </select>
+          </label>
+          {!songVideoOptions.length ? (
+            <small className="muted">{lang === "ko" ? "등록된 영상 링크가 없습니다." : "No video links found."}</small>
+          ) : null}
+        </div>
       </div>
     );
   };
@@ -1981,7 +2078,7 @@ export function PracticeStudioPage({
   );
   const activeSessionSongVideoSource = useMemo(() => {
     if (!activeSessionSongId) return "";
-    if (songId === activeSessionSongId && selectedSongLink) return selectedSongLink;
+    if (songId === activeSessionSongId) return String(selectedSongLink || "").trim();
     const candidateLinks = [
       ...splitLinks(activeSessionSong?.original_url || ""),
       ...splitLinks(activeSessionSong?.sub_urls || ""),

@@ -347,28 +347,28 @@
       ],
       "resume_campaign_id": "",
       "resume_step_index": 0,
-      "last_started_at": "2026-03-07T16:04:29",
-      "last_completed_at": "2026-03-07T16:04:30"
+      "last_started_at": "2026-03-07T16:24:18",
+      "last_completed_at": "2026-03-07T16:24:19"
     },
     "dashboard_photo_items": [],
     "dashboard_featured_photo_id": "",
     "journal_tag_catalog": [
       {
-        "id": "tag_1772867093554_e7tu88",
-        "label": "e2e_tag_1772867092598",
+        "id": "tag_1772868281885_q6f5yi",
+        "label": "e2e_tag_1772868280985",
         "category": "기본",
         "active": true,
         "order": 0
       },
       {
-        "id": "tag_1772867093554_lpi2lw",
+        "id": "tag_1772868281885_7tjebv",
         "label": "alpha",
         "category": "기본",
         "active": true,
         "order": 1
       },
       {
-        "id": "tag_1772867093554_dnzzws",
+        "id": "tag_1772868281885_8x10sy",
         "label": "beta",
         "category": "기본",
         "active": true,

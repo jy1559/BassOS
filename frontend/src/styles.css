@@ -6734,6 +6734,7 @@ textarea {
 .song-video-controls {
   display: grid;
   gap: 10px;
+  margin-top: 8px;
 }
 
 .song-video-action-row {
@@ -6750,6 +6751,13 @@ textarea {
 
 .song-video-pin-status {
   margin-top: -2px;
+}
+
+.song-video-external-row {
+  min-height: 56px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
 }
 
 .studio-control-surface {
@@ -7060,6 +7068,10 @@ textarea {
 
 .studio-source-select select {
   width: 100%;
+}
+
+.song-video-source-select {
+  margin-top: 2px;
 }
 
 .song-reference-stage {
