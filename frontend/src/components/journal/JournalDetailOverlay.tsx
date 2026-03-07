@@ -33,6 +33,18 @@ type Props = {
   onDeleteComment: (commentId: string) => Promise<void>;
 };
 
+function attachmentViewerTitle(mediaType: "image" | "video" | "audio", lang: Lang): string {
+  if (mediaType === "video") return lang === "ko" ? "영상 보기" : "Video Viewer";
+  if (mediaType === "audio") return lang === "ko" ? "오디오 재생" : "Audio Player";
+  return lang === "ko" ? "이미지 보기" : "Image Viewer";
+}
+
+function attachmentMediaLabel(mediaType: "image" | "video" | "audio", lang: Lang): string {
+  if (mediaType === "video") return lang === "ko" ? "영상" : "Video";
+  if (mediaType === "audio") return lang === "ko" ? "오디오" : "Audio";
+  return lang === "ko" ? "이미지" : "Image";
+}
+
 export function JournalDetailOverlay({
   lang,
   item,
@@ -234,22 +246,6 @@ export function JournalDetailOverlay({
               </section>
             ) : null}
 
-            {Object.values(item.meta || {}).some((value) => String(value || "").trim()) ? (
-              <section className="journal-detail-meta card">
-                <div className="row"><strong>{lang === "ko" ? "연습 메타" : "Practice Meta"}</strong></div>
-                <div className="journal-detail-meta-grid">
-                  {item.meta.practice_date ? <span><strong>{lang === "ko" ? "날짜" : "Date"}</strong>{item.meta.practice_date}</span> : null}
-                  {item.meta.duration_min ? <span><strong>{lang === "ko" ? "시간" : "Duration"}</strong>{item.meta.duration_min}m</span> : null}
-                  {item.meta.bpm ? <span><strong>BPM</strong>{String(item.meta.bpm)}</span> : null}
-                  {item.meta.recording_kind ? <span><strong>{lang === "ko" ? "기록" : "Recording"}</strong>{String(item.meta.recording_kind)}</span> : null}
-                  {item.meta.focus ? <span><strong>{lang === "ko" ? "포커스" : "Focus"}</strong>{String(item.meta.focus)}</span> : null}
-                  {item.meta.today_win ? <span><strong>{lang === "ko" ? "잘 된 점" : "Win"}</strong>{String(item.meta.today_win)}</span> : null}
-                  {item.meta.issue ? <span><strong>{lang === "ko" ? "이슈" : "Issue"}</strong>{String(item.meta.issue)}</span> : null}
-                  {item.meta.next_action ? <span><strong>{lang === "ko" ? "다음 액션" : "Next"}</strong>{String(item.meta.next_action)}</span> : null}
-                </div>
-              </section>
-            ) : null}
-
             <section className="journal-detail-content card">
               <JournalMarkdown
                 body={item.body || ""}
@@ -298,11 +294,8 @@ export function JournalDetailOverlay({
                           role="button"
                           tabIndex={0}
                         >
-                          <img src={url} alt={attachment.title || item.title} className="journal-detail-thumb" />
-                          <div className="journal-detail-media-meta">
-                            {attachment.title ? <strong>{attachment.title}</strong> : null}
-                            {attachment.notes ? <small>{attachment.notes}</small> : null}
-                          </div>
+                          <img src={url} alt={item.title || (lang === "ko" ? "첨부 이미지" : "Attached image")} className="journal-detail-thumb" />
+                          <small className="journal-detail-media-pill">{attachmentMediaLabel("image", lang)}</small>
                         </article>
                       );
                     }
@@ -324,13 +317,10 @@ export function JournalDetailOverlay({
                             tabIndex={0}
                           >
                             <div className="journal-gallery-youtube-wrap">
-                              <img src={thumbnailUrl} alt={attachment.title || item.title || "YouTube"} className="journal-detail-thumb" />
+                              <img src={thumbnailUrl} alt={item.title || "YouTube"} className="journal-detail-thumb" />
                               <span className="journal-gallery-youtube-badge">YouTube</span>
                             </div>
-                            <div className="journal-detail-media-meta">
-                              <strong>{attachment.title || url}</strong>
-                              {attachment.notes ? <small>{attachment.notes}</small> : null}
-                            </div>
+                            <small className="journal-detail-media-pill">YouTube</small>
                           </article>
                         );
                       }
@@ -349,10 +339,7 @@ export function JournalDetailOverlay({
                           tabIndex={0}
                         >
                           <video src={url} className="journal-detail-thumb" muted preload="metadata" />
-                          <div className="journal-detail-media-meta">
-                            {attachment.title ? <strong>{attachment.title}</strong> : null}
-                            {attachment.notes ? <small>{attachment.notes}</small> : null}
-                          </div>
+                          <small className="journal-detail-media-pill">{attachmentMediaLabel("video", lang)}</small>
                         </article>
                       );
                     }
@@ -372,11 +359,9 @@ export function JournalDetailOverlay({
                       >
                         <div className="journal-detail-audio-card">
                           <strong>AUDIO</strong>
-                          <small>{attachment.title || "Audio attachment"}</small>
+                          <small>{lang === "ko" ? "클릭해서 재생" : "Click to open"}</small>
                         </div>
-                        <div className="journal-detail-media-meta">
-                          {attachment.notes ? <small>{attachment.notes}</small> : null}
-                        </div>
+                        <small className="journal-detail-media-pill">{attachmentMediaLabel("audio", lang)}</small>
                       </article>
                     );
                   })}
@@ -498,20 +483,20 @@ export function JournalDetailOverlay({
           >
             <div className="journal-media-viewer-head">
               <div>
-                <strong>{viewerAttachment.title || item?.title || "Attachment Viewer"}</strong>
-                {viewerAttachment.notes ? <small className="muted">{viewerAttachment.notes}</small> : null}
+                <strong>{attachmentViewerTitle(viewerAttachment.media_type, lang)}</strong>
+                <small className="muted">{lang === "ko" ? "Esc로 닫기" : "Press Esc to close"}</small>
               </div>
               <button type="button" className="ghost-btn" onClick={() => setViewerAttachment(null)}>
-                Close
+                {lang === "ko" ? "닫기" : "Close"}
               </button>
             </div>
             <div className="zoom-modal-content journal-media-viewer-content">
               {viewerAttachment.media_type === "image" ? (
-                <img src={viewerUrl} alt={viewerAttachment.title || item?.title || "attachment"} className="zoomed-drill-image" />
+                <img src={viewerUrl} alt={item?.title || (lang === "ko" ? "첨부 이미지" : "Attached image")} className="zoomed-drill-image" />
               ) : viewerAttachment.media_type === "video" ? viewerEmbedUrl ? (
                 <iframe
                   src={viewerEmbedUrl}
-                  title={viewerAttachment.title || item?.title || "YouTube"}
+                  title={attachmentViewerTitle("video", lang)}
                   className="journal-media-viewer-frame"
                   allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                   allowFullScreen

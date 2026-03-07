@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+﻿import { useEffect, useMemo, useRef, useState } from "react";
 import type { Lang } from "../../i18n";
 import type {
   JournalHeaderPreset,
@@ -10,30 +10,22 @@ import type {
 import { JournalMarkdown } from "./JournalMarkdown";
 import {
   buildAttachmentEmbedToken,
-  emptyJournalMeta,
+  excerptFromMarkdown,
   filterSlashCommands,
   findSlashQuery,
   formatJournalDate,
-  hasMeaningfulMeta,
+  getYouTubeThumbnailUrl,
   isYouTubeUrl,
-  normalizeJournalMeta,
   resolveRecordAttachmentUrl,
-  serializeJournalMeta,
-  type JournalMetaDraft,
   type SlashCommandSpec,
 } from "./journalUtils";
 
 type JournalExternalAttachmentInput = {
   media_type: "video";
   url: string;
-  title: string;
-  notes: string;
 };
 
-type JournalFileAttachmentInput = {
-  title: string;
-  notes: string;
-};
+type JournalFileAttachmentInput = Record<string, never>;
 
 type JournalAttachmentUpdateInput = {
   attachment_id: string;
@@ -90,8 +82,6 @@ type FileAttachmentDraft = {
   local_id: string;
   file: File;
   media_type: "image" | "video" | "audio";
-  title: string;
-  notes: string;
   preview_url: string;
 };
 
@@ -99,8 +89,16 @@ type ExternalAttachmentDraft = {
   local_id: string;
   media_type: "video";
   url: string;
-  title: string;
-  notes: string;
+};
+
+type TemplatePickerProps = {
+  open: boolean;
+  lang: Lang;
+  selectedTemplateId: string;
+  templates: JournalTemplatePreset[];
+  headers: JournalHeaderPreset[];
+  onClose: () => void;
+  onPick: (templateId: string) => void;
 };
 
 function dedupeLabels(labels: string[]): string[] {
@@ -159,6 +157,113 @@ function groupRows(rows: Array<Record<string, string>>, key: string, fallback: s
     .map(([label, items]) => ({ label, items }));
 }
 
+function sourceContextLabel(value: string, lang: Lang): string {
+  if (value === "review") return lang === "ko" ? "회고" : "Review";
+  if (value === "performance") return lang === "ko" ? "합주/공연" : "Performance";
+  if (value === "archive") return lang === "ko" ? "아카이브" : "Archive";
+  return lang === "ko" ? "연습" : "Practice";
+}
+
+function attachmentKindLabel(mediaType: "image" | "video" | "audio", lang: Lang): string {
+  if (mediaType === "video") return lang === "ko" ? "영상" : "Video";
+  if (mediaType === "audio") return lang === "ko" ? "오디오" : "Audio";
+  return lang === "ko" ? "이미지" : "Image";
+}
+
+function attachmentShortLabel(mediaType: "image" | "video" | "audio"): string {
+  if (mediaType === "video") return "V";
+  if (mediaType === "audio") return "A";
+  return "I";
+}
+
+function attachmentTitle(order: number, mediaType: "image" | "video" | "audio", lang: Lang): string {
+  return `${attachmentKindLabel(mediaType, lang)} #${order}`;
+}
+
+function TemplatePickerModal({
+  open,
+  lang,
+  selectedTemplateId,
+  templates,
+  headers,
+  onClose,
+  onPick,
+}: TemplatePickerProps) {
+  const modalRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    modalRef.current?.focus();
+  }, [open]);
+
+  if (!open) return null;
+
+  const headerMap = new Map(headers.map((row) => [row.id, row]));
+
+  return (
+    <div className="modal-backdrop journal-template-picker-backdrop" data-testid="journal-template-picker" onClick={onClose}>
+      <div
+        ref={modalRef}
+        className="modal journal-template-picker-modal"
+        role="dialog"
+        aria-modal="true"
+        tabIndex={-1}
+        onClick={(event) => event.stopPropagation()}
+        onKeyDown={(event) => {
+          if (event.key === "Escape") {
+            event.preventDefault();
+            event.stopPropagation();
+            onClose();
+          }
+        }}
+      >
+        <div className="journal-template-picker-head">
+          <div>
+            <h3>{lang === "ko" ? "템플릿 사용" : "Use Template"}</h3>
+            <small className="muted">
+              {lang === "ko" ? "카드 형태로 템플릿 미리보기를 보고 적용하세요." : "Pick a template from the gallery preview."}
+            </small>
+          </div>
+          <button type="button" className="ghost-btn" onClick={onClose}>
+            {lang === "ko" ? "닫기" : "Close"}
+          </button>
+        </div>
+        <div className="journal-template-picker-grid">
+          {templates.map((template) => {
+            const header = headerMap.get(template.header_id);
+            const preview = template.body_markdown.trim() || (lang === "ko" ? "본문 예시가 없습니다." : "No body preview.");
+            return (
+              <article key={template.id} className={`journal-template-picker-card ${template.id === selectedTemplateId ? "is-selected" : ""}`}>
+                <div className="journal-template-picker-meta">
+                  {header ? <span className="journal-badge subtle">{header.label}</span> : null}
+                  <small>{sourceContextLabel(template.default_source_context, lang)}</small>
+                </div>
+                <div className="journal-template-picker-copy">
+                  <strong>{template.name}</strong>
+                  <p>{template.description || excerptFromMarkdown(preview, 96)}</p>
+                </div>
+                {template.default_tags.length ? (
+                  <div className="journal-chip-cloud">
+                    {template.default_tags.slice(0, 4).map((tag) => (
+                      <span key={`${template.id}_${tag}`} className="journal-badge subtle">
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
+                ) : null}
+                <pre className="journal-template-picker-preview">{preview}</pre>
+                <button type="button" className="primary-btn" data-testid={`journal-template-pick-${template.id}`} onClick={() => onPick(template.id)}>
+                  {lang === "ko" ? "이 템플릿 사용" : "Use This Template"}
+                </button>
+              </article>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function JournalComposerModal({
   open,
   lang,
@@ -190,7 +295,7 @@ export function JournalComposerModal({
   const [songSectionOpen, setSongSectionOpen] = useState(false);
   const [drillSectionOpen, setDrillSectionOpen] = useState(false);
   const [editorTab, setEditorTab] = useState<EditorTab>("write");
-  const [metaDraft, setMetaDraft] = useState<JournalMetaDraft>(emptyJournalMeta());
+  const [templatePickerOpen, setTemplatePickerOpen] = useState(false);
   const [slashQuery, setSlashQuery] = useState("");
   const [slashCommands, setSlashCommands] = useState<SlashCommandSpec[]>([]);
   const modalRef = useRef<HTMLDivElement | null>(null);
@@ -217,7 +322,7 @@ export function JournalComposerModal({
     () =>
       mergeDrills(catalogs.drills, catalogs.drill_library)
         .filter((row) => String(row.drill_id || "").trim())
-        .sort((a, b) => (a.name || "").localeCompare(b.name || "")),
+        .sort((a, b) => (a.name || "").localeCompare(b.name || "", "ko")),
     [catalogs.drill_library, catalogs.drills]
   );
   const groupedSongs = useMemo(
@@ -225,7 +330,7 @@ export function JournalComposerModal({
       groupRows(
         catalogs.song_library
           .filter((row) => String(row.library_id || "").trim())
-          .sort((a, b) => (a.title || "").localeCompare(b.title || "")),
+          .sort((a, b) => (a.title || "").localeCompare(b.title || "", "ko")),
         "genre",
         lang === "ko" ? "기타 장르" : "Other"
       ),
@@ -253,8 +358,6 @@ export function JournalComposerModal({
         path: "",
         url: "",
         preview_url: attachment.preview_url,
-        title: attachment.title,
-        notes: attachment.notes,
         sort_order: existingAttachments.length + index + 1,
       })),
       ...videoAttachments.map((attachment, index) => ({
@@ -264,8 +367,6 @@ export function JournalComposerModal({
         media_type: "video" as const,
         path: "",
         url: attachment.url,
-        title: attachment.title,
-        notes: attachment.notes,
         sort_order: existingAttachments.length + fileAttachments.length + index + 1,
       })),
     ],
@@ -296,8 +397,6 @@ export function JournalComposerModal({
           local_id: nextAttachmentDraftId("file"),
           file,
           media_type: inferAttachmentMediaType(file),
-          title: "",
-          notes: "",
           preview_url: URL.createObjectURL(file),
         });
       });
@@ -315,16 +414,8 @@ export function JournalComposerModal({
     });
   };
 
-  const updateExistingAttachment = (localId: string, patch: Partial<Pick<ExistingAttachmentDraft, "title" | "notes">>) => {
-    setExistingAttachments((prev) => prev.map((attachment) => (attachment.local_id === localId ? { ...attachment, ...patch } : attachment)));
-  };
-
-  const updateFileAttachment = (localId: string, patch: Partial<Pick<FileAttachmentDraft, "title" | "notes">>) => {
-    setFileAttachments((prev) => prev.map((attachment) => (attachment.local_id === localId ? { ...attachment, ...patch } : attachment)));
-  };
-
-  const updateVideoAttachment = (localId: string, patch: Partial<Pick<ExternalAttachmentDraft, "title" | "notes">>) => {
-    setVideoAttachments((prev) => prev.map((attachment) => (attachment.local_id === localId ? { ...attachment, ...patch } : attachment)));
+  const removeVideoLink = (localId: string) => {
+    setVideoAttachments((prev) => prev.filter((attachment) => attachment.local_id !== localId));
   };
 
   const insertTextAtCursor = (text: string) => {
@@ -355,27 +446,33 @@ export function JournalComposerModal({
     url?: string;
     title?: string;
     file_name?: string;
-  }) => {
+  }, order: number) => {
     const url = resolveRecordAttachmentUrl(attachment);
     if (attachment.media_type === "image" && url) {
-      return <img src={url} alt={attachment.title || attachment.file_name || "attachment"} className="journal-upload-preview" />;
+      return <img src={url} alt={attachment.title || attachment.file_name || attachmentTitle(order, "image", lang)} className="journal-upload-preview" />;
     }
     if (attachment.media_type === "video" && url) {
-      if (isYouTubeUrl(url)) {
+      const youtubeThumbnail = isYouTubeUrl(url) ? getYouTubeThumbnailUrl(url) : "";
+      if (youtubeThumbnail) {
         return (
-          <div className="journal-upload-preview journal-upload-preview-fallback">
-            <strong>YouTube</strong>
+          <div className="journal-upload-preview-stack">
+            <img src={youtubeThumbnail} alt={attachmentTitle(order, "video", lang)} className="journal-upload-preview" />
+            <span className="journal-upload-preview-badge">YouTube</span>
           </div>
         );
       }
-      return <video src={url} className="journal-upload-preview" muted preload="metadata" />;
+      return <video src={url} className="journal-upload-preview" muted preload="metadata" playsInline />;
     }
-    if (attachment.media_type === "audio" && url) {
-      return <audio src={url} className="journal-upload-audio-preview" controls preload="metadata" />;
+    if (attachment.media_type === "audio") {
+      return (
+        <div className="journal-upload-preview journal-upload-preview-fallback journal-upload-preview-audio">
+          <strong>{lang === "ko" ? "오디오" : "Audio"}</strong>
+        </div>
+      );
     }
     return (
       <div className="journal-upload-preview journal-upload-preview-fallback">
-        <strong>{attachment.media_type.toUpperCase()}</strong>
+        <strong>{attachment.file_name || attachmentKindLabel(attachment.media_type, lang)}</strong>
       </div>
     );
   };
@@ -409,7 +506,7 @@ export function JournalComposerModal({
     setVideoAttachments([]);
     setPendingVideoLink("");
     setEditorTab("write");
-    setMetaDraft(normalizeJournalMeta(item?.meta));
+    setTemplatePickerOpen(false);
     const nextOpenSongGroups = groupedSongs
       .filter((group, index) => index < 2 || group.items.some((song) => nextSongIds.includes(String(song.library_id || ""))))
       .map((group) => group.label);
@@ -497,6 +594,10 @@ export function JournalComposerModal({
     lang === "ko"
       ? "기존 첨부를 포함해 게시글당 최대 8개까지 보관할 수 있습니다."
       : "You can keep up to 8 attachments per post, including existing ones.";
+  const currentTemplatePreview =
+    selectedTemplate?.description ||
+    excerptFromMarkdown(selectedTemplate?.body_markdown || "", 110) ||
+    (lang === "ko" ? "아직 템플릿을 선택하지 않았습니다." : "No template selected yet.");
 
   const addVideoLink = () => {
     const trimmed = pendingVideoLink.trim();
@@ -512,8 +613,6 @@ export function JournalComposerModal({
           local_id: nextAttachmentDraftId("youtube"),
           media_type: "video" as const,
           url: trimmed,
-          title: "",
-          notes: "",
         },
       ].slice(0, maxNewAttachmentCount)
     );
@@ -521,7 +620,6 @@ export function JournalComposerModal({
   };
 
   const applyTemplate = (nextTemplateId: string) => {
-    setTemplateId(nextTemplateId);
     const template = activeTemplateCatalog.find((row) => row.id === nextTemplateId);
     if (!template) return;
     const dirty = Boolean(
@@ -531,12 +629,12 @@ export function JournalComposerModal({
       selectedSongIds.length ||
       selectedDrillIds.length ||
       fileAttachments.length ||
-      videoAttachments.length ||
-      hasMeaningfulMeta(metaDraft)
+      videoAttachments.length
     );
     if (dirty && !window.confirm(lang === "ko" ? "현재 입력값 위에 템플릿을 적용할까요?" : "Apply template over current draft?")) {
       return;
     }
+    setTemplateId(nextTemplateId);
     setHeaderId(template.header_id);
     setBody(template.body_markdown);
     setSourceContext(template.default_source_context);
@@ -578,27 +676,18 @@ export function JournalComposerModal({
         post_type: selectedHeaderLabel,
         header_id: headerId,
         template_id: templateId,
-        meta: serializeJournalMeta(metaDraft),
+        meta: {},
         tags: mergedTags,
         linked_song_ids: selectedSongIds,
         linked_drill_ids: selectedDrillIds,
         free_targets: freeTagList,
         source_context: sourceContext,
-        file_attachments: fileAttachments.map((attachment) => ({
-          title: attachment.title.trim(),
-          notes: attachment.notes.trim(),
-        })),
+        file_attachments: fileAttachments.map(() => ({})),
         external_attachments: videoAttachments.map((attachment) => ({
           media_type: "video",
           url: attachment.url,
-          title: attachment.title.trim(),
-          notes: attachment.notes.trim(),
         })),
-        attachment_updates: existingAttachments.map((attachment) => ({
-          attachment_id: attachment.attachment_id,
-          title: String(attachment.title || "").trim(),
-          notes: String(attachment.notes || "").trim(),
-        })),
+        attachment_updates: [],
       },
       fileAttachments.map((attachment) => attachment.file)
     );
@@ -616,6 +705,10 @@ export function JournalComposerModal({
         onKeyDown={(event) => {
           if (event.key === "Escape") {
             event.preventDefault();
+            if (templatePickerOpen) {
+              setTemplatePickerOpen(false);
+              return;
+            }
             onClose();
           }
         }}
@@ -626,16 +719,16 @@ export function JournalComposerModal({
             {item?.created_at ? <small className="muted">{formatJournalDate(item.created_at)}</small> : null}
           </div>
           <div className="journal-composer-head-actions">
-            <button className="ghost-btn compact-add-btn" onClick={() => onOpenManager("headers")}>
+            <button type="button" className="ghost-btn compact-add-btn" onClick={() => onOpenManager("headers")}>
               {lang === "ko" ? "말머리 관리" : "Headers"}
             </button>
-            <button className="ghost-btn compact-add-btn" onClick={() => onOpenManager("templates")}>
+            <button type="button" className="ghost-btn compact-add-btn" onClick={() => onOpenManager("templates")}>
               {lang === "ko" ? "템플릿 관리" : "Templates"}
             </button>
-            <button className="ghost-btn compact-add-btn" onClick={() => onOpenManager("tags")}>
+            <button type="button" className="ghost-btn compact-add-btn" onClick={() => onOpenManager("tags")}>
               {lang === "ko" ? "태그 관리" : "Tags"}
             </button>
-            <button className="ghost-btn" onClick={onClose}>
+            <button type="button" className="ghost-btn" onClick={onClose}>
               {lang === "ko" ? "닫기" : "Close"}
             </button>
           </div>
@@ -649,36 +742,6 @@ export function JournalComposerModal({
                 <input value={title} onChange={(event) => setTitle(event.target.value)} />
               </label>
             </div>
-
-            <div className="journal-composer-meta-row">
-              <label>
-                {lang === "ko" ? "말머리" : "Header"}
-                <select value={headerId} onChange={(event) => setHeaderId(event.target.value)}>
-                  {activeHeaderCatalog.map((row) => (
-                    <option key={row.id} value={row.id}>{row.label}</option>
-                  ))}
-                </select>
-              </label>
-              <label>
-                {lang === "ko" ? "템플릿" : "Template"}
-                <select value={templateId} onChange={(event) => applyTemplate(event.target.value)}>
-                  <option value="">{lang === "ko" ? "선택 안 함" : "None"}</option>
-                  {activeTemplateCatalog.map((row) => (
-                    <option key={row.id} value={row.id}>{row.name}</option>
-                  ))}
-                </select>
-              </label>
-              <label>
-                {lang === "ko" ? "맥락" : "Context"}
-                <select value={sourceContext} onChange={(event) => setSourceContext(event.target.value)}>
-                  <option value="practice">{lang === "ko" ? "연습" : "Practice"}</option>
-                  <option value="review">{lang === "ko" ? "회고" : "Review"}</option>
-                  <option value="performance">{lang === "ko" ? "합주/공연" : "Performance"}</option>
-                  <option value="archive">{lang === "ko" ? "아카이브" : "Archive"}</option>
-                </select>
-              </label>
-            </div>
-
             {editorTab === "write" ? (
               <div className="journal-editor-wrap">
                 <textarea
@@ -687,12 +750,16 @@ export function JournalComposerModal({
                   value={body}
                   onChange={(event) => setBody(event.target.value)}
                   rows={18}
-                  placeholder={lang === "ko" ? "Markdown으로 작성하세요. /todo, /quote 같은 명령을 줄 시작에서 써도 됩니다." : "Write in Markdown. Use /todo or /quote at line start."}
+                  placeholder={
+                    lang === "ko"
+                      ? "Markdown으로 작성하세요. 첨부 카드의 S/M/L 버튼으로 본문에 바로 넣을 수 있습니다."
+                      : "Write in Markdown. Use the S/M/L attachment buttons to insert media into the body."
+                  }
                 />
                 {slashCommands.length ? (
                   <div className="journal-slash-menu">
                     {slashCommands.map((command) => (
-                      <button key={command.id} className="ghost-btn journal-slash-item" onClick={() => applySlashCommand(command)}>
+                      <button type="button" key={command.id} className="ghost-btn journal-slash-item" onClick={() => applySlashCommand(command)}>
                         <strong>{command.label}</strong>
                         <small>{command.keywords.join(" · ")}</small>
                       </button>
@@ -710,26 +777,192 @@ export function JournalComposerModal({
               </div>
             )}
 
-            <section className="card journal-composer-inline-card">
+          </section>
+
+          <aside className="journal-composer-side">
+            <section className="card journal-composer-side-card">
+              <div className="journal-composer-control-grid">
+                <label>
+                  {lang === "ko" ? "말머리" : "Header"}
+                  <select value={headerId} onChange={(event) => setHeaderId(event.target.value)}>
+                    {activeHeaderCatalog.map((row) => (
+                      <option key={row.id} value={row.id}>{row.label}</option>
+                    ))}
+                  </select>
+                </label>
+                <label>
+                  {lang === "ko" ? "맥락" : "Context"}
+                  <select value={sourceContext} onChange={(event) => setSourceContext(event.target.value)}>
+                    <option value="practice">{lang === "ko" ? "연습" : "Practice"}</option>
+                    <option value="review">{lang === "ko" ? "회고" : "Review"}</option>
+                    <option value="performance">{lang === "ko" ? "합주/공연" : "Performance"}</option>
+                    <option value="archive">{lang === "ko" ? "아카이브" : "Archive"}</option>
+                  </select>
+                </label>
+              </div>
+              <div className="journal-template-current">
+                <div>
+                  <strong>{selectedTemplate ? selectedTemplate.name : lang === "ko" ? "선택된 템플릿 없음" : "No template selected"}</strong>
+                  <small>{currentTemplatePreview}</small>
+                </div>
+                {selectedTemplate ? <span className="journal-badge subtle">{sourceContextLabel(selectedTemplate.default_source_context, lang)}</span> : null}
+              </div>
+              <div className="journal-composer-control-actions">
+                <button type="button" className="ghost-btn compact-add-btn" onClick={() => setTemplatePickerOpen(true)}>
+                  {lang === "ko" ? "템플릿 사용" : "Use Template"}
+                </button>
+                <button type="button" className="ghost-btn compact-add-btn" onClick={() => onOpenManager("templates")}>
+                  {lang === "ko" ? "템플릿 관리" : "Manage"}
+                </button>
+              </div>
+            </section>
+
+            <section className="card journal-composer-side-card">
+              <div className="row">
+                <strong>{lang === "ko" ? "태그" : "Tags"}</strong>
+                <button type="button" className="ghost-btn compact-add-btn" onClick={() => onOpenManager("tags")}>
+                  {lang === "ko" ? "관리" : "Manage"}
+                </button>
+              </div>
+              <div className="journal-chip-cloud">
+                {activeTagCatalog.map((row) => {
+                  const selected = selectedCatalogTagIds.includes(row.id);
+                  return (
+                    <button
+                      type="button"
+                      key={row.id}
+                      className={`achievement-chip journal-select-tag ${selected ? "is-selected" : ""}`}
+                      onClick={() => toggleInArray(row.id, selectedCatalogTagIds, setSelectedCatalogTagIds)}
+                    >
+                      {row.label}
+                    </button>
+                  );
+                })}
+              </div>
+              <label>
+                {lang === "ko" ? "자유 태그" : "Free Tags"}
+                <input value={freeTags} onChange={(event) => setFreeTags(event.target.value)} placeholder={lang === "ko" ? "쉼표로 구분" : "Comma separated"} />
+              </label>
+            </section>
+
+            <section className="card journal-composer-side-card">
+              <button type="button" className="ghost-btn journal-link-section-toggle" aria-expanded={songSectionOpen} onClick={() => setSongSectionOpen((prev) => !prev)}>
+                <span className="journal-link-group-title">
+                  <strong>{lang === "ko" ? "연결 곡" : "Linked Songs"}</strong>
+                  <small>{lang === "ko" ? "장르별로 접어서 선택" : "Fold by genre"}</small>
+                </span>
+                <span className="journal-link-group-meta">
+                  <small>{selectedSongIds.length}</small>
+                  <strong>{songSectionOpen ? "−" : "+"}</strong>
+                </span>
+              </button>
+              {songSectionOpen ? (
+                <div className="journal-link-groups">
+                  {groupedSongs.map((group) => {
+                    const selectedCount = group.items.filter((song) => selectedSongIds.includes(String(song.library_id || ""))).length;
+                    const openGroup = openSongGroups.includes(group.label);
+                  return (
+                      <section key={group.label} className="journal-link-group">
+                        <button type="button" className="ghost-btn journal-link-group-toggle" aria-expanded={openGroup} onClick={() => toggleGroup(group.label, openSongGroups, setOpenSongGroups)}>
+                          <span className="journal-link-group-title">
+                            <strong>{group.label}</strong>
+                            <small>{lang === "ko" ? "곡 장르" : "Song Genre"}</small>
+                          </span>
+                          <span className="journal-link-group-meta">
+                            <small>{selectedCount}/{group.items.length}</small>
+                            <strong>{openGroup ? "−" : "+"}</strong>
+                          </span>
+                        </button>
+                        {openGroup ? (
+                          <div className="journal-link-scroll">
+                            {group.items.map((song) => (
+                              <label key={song.library_id} className="inline selectable-row journal-link-row">
+                                <input type="checkbox" checked={selectedSongIds.includes(song.library_id)} onChange={() => toggleInArray(song.library_id, selectedSongIds, setSelectedSongIds)} />
+                                <span>
+                                  <strong>{song.title || song.library_id}</strong>
+                                  <small>{[song.artist, song.status].filter(Boolean).join(" · ") || song.library_id}</small>
+                                </span>
+                              </label>
+                            ))}
+                          </div>
+                        ) : null}
+                      </section>
+                    );
+                  })}
+                </div>
+              ) : null}
+            </section>
+
+            <section className="card journal-composer-side-card">
+              <button type="button" className="ghost-btn journal-link-section-toggle" aria-expanded={drillSectionOpen} onClick={() => setDrillSectionOpen((prev) => !prev)}>
+                <span className="journal-link-group-title">
+                  <strong>{lang === "ko" ? "연결 드릴" : "Linked Drills"}</strong>
+                  <small>{lang === "ko" ? "유형별로 접어서 선택" : "Fold by type"}</small>
+                </span>
+                <span className="journal-link-group-meta">
+                  <small>{selectedDrillIds.length}</small>
+                  <strong>{drillSectionOpen ? "−" : "+"}</strong>
+                </span>
+              </button>
+              {drillSectionOpen ? (
+                <div className="journal-link-groups">
+                  {groupedDrills.map((group) => {
+                    const selectedCount = group.items.filter((drill) => selectedDrillIds.includes(String(drill.drill_id || ""))).length;
+                    const openGroup = openDrillGroups.includes(group.label);
+                  return (
+                      <section key={group.label} className="journal-link-group">
+                        <button type="button" className="ghost-btn journal-link-group-toggle" aria-expanded={openGroup} onClick={() => toggleGroup(group.label, openDrillGroups, setOpenDrillGroups)}>
+                          <span className="journal-link-group-title">
+                            <strong>{group.label}</strong>
+                            <small>{lang === "ko" ? "드릴 유형" : "Drill Type"}</small>
+                          </span>
+                          <span className="journal-link-group-meta">
+                            <small>{selectedCount}/{group.items.length}</small>
+                            <strong>{openGroup ? "−" : "+"}</strong>
+                          </span>
+                        </button>
+                        {openGroup ? (
+                          <div className="journal-link-scroll">
+                            {group.items.map((drill) => (
+                              <label key={drill.drill_id} className="inline selectable-row journal-link-row">
+                                <input type="checkbox" checked={selectedDrillIds.includes(drill.drill_id)} onChange={() => toggleInArray(drill.drill_id, selectedDrillIds, setSelectedDrillIds)} />
+                                <span>
+                                  <strong>{drill.name || drill.drill_id}</strong>
+                                  <small>{[drill.area, drill.tags].filter(Boolean).join(" · ") || drill.drill_id}</small>
+                                </span>
+                              </label>
+                            ))}
+                          </div>
+                        ) : null}
+                      </section>
+                    );
+                  })}
+                </div>
+              ) : null}
+            </section>
+
+            <section className="card journal-composer-side-card">
               <div className="row journal-upload-head">
                 <div className="journal-upload-head-title">
                   <strong>{lang === "ko" ? "첨부" : "Attachments"}</strong>
                   <small className="muted">
-                    {lang === "ko" ? "이미지 업로드/붙여넣기, 영상 업로드/유튜브 링크, 오디오 업로드" : "Image upload/paste, video upload/YouTube link, audio upload"}
+                    {lang === "ko"
+                      ? "이미지 업로드/붙여넣기, 영상 업로드/유튜브 링크, 오디오 업로드"
+                      : "Image upload/paste, video upload/YouTube link, audio upload"}
                   </small>
                 </div>
                 <div className="journal-upload-head-actions">
-                  <button className="ghost-btn compact-add-btn" onClick={() => setEditorTab((prev) => (prev === "write" ? "preview" : "write"))}>
+                  <button type="button" className="ghost-btn compact-add-btn" onClick={() => setEditorTab((prev) => (prev === "write" ? "preview" : "write"))}>
                     {editorTab === "write" ? (lang === "ko" ? "미리보기" : "Preview") : (lang === "ko" ? "작성" : "Write")}
                   </button>
-                  <button className="ghost-btn compact-add-btn" disabled={maxNewAttachmentCount <= 0} onClick={() => fileInputRef.current?.click()}>
+                  <button type="button" className="ghost-btn compact-add-btn" disabled={maxNewAttachmentCount <= 0} onClick={() => fileInputRef.current?.click()}>
                     {lang === "ko" ? "첨부 추가" : "Add Files"}
                   </button>
                 </div>
               </div>
               {hasExistingAttachments ? (
                 <small className="muted">
-                  {lang === "ko" ? `기존 첨부 ${item?.attachments.length}개는 유지됩니다.` : `${item?.attachments.length} existing attachments will be kept.`}
+                  {lang === "ko" ? `기존 첨부 ${item?.attachments.length}개는 그대로 둡니다.` : `${item?.attachments.length} existing attachments will stay.`}
                 </small>
               ) : null}
               <small className="muted">
@@ -769,42 +1002,25 @@ export function JournalComposerModal({
                     }}
                     placeholder={lang === "ko" ? "유튜브 링크 추가" : "Add YouTube link"}
                   />
-                  <button className="ghost-btn compact-add-btn" onClick={addVideoLink} disabled={!isYouTubeUrl(pendingVideoLink) || remainingAttachmentSlots <= 0}>
+                  <button type="button" className="ghost-btn compact-add-btn" onClick={addVideoLink} disabled={!isYouTubeUrl(pendingVideoLink) || remainingAttachmentSlots <= 0}>
                     {lang === "ko" ? "링크 추가" : "Add Link"}
                   </button>
                 </div>
               </div>
-              <div className="journal-upload-list">
+              <div className="journal-upload-list journal-upload-list-compact">
                 {existingAttachments.map((attachment, index) => {
                   const order = index + 1;
                   return (
-                    <article key={attachment.local_id} className="journal-upload-item journal-upload-item-rich">
-                      <div className="journal-upload-preview-wrap">{renderAttachmentPreview(attachment)}</div>
-                      <div className="journal-upload-fields">
-                        <div className="journal-upload-item-head">
-                          <div>
-                            <strong>{`#${order} ${attachment.title || "Attachment"}`}</strong>
-                            <small>{attachment.media_type}</small>
-                          </div>
-                          <small className="muted">Kept</small>
-                        </div>
-                        <input
-                          value={attachment.title || ""}
-                          onChange={(event) => updateExistingAttachment(attachment.local_id, { title: event.target.value })}
-                          placeholder="Attachment title"
-                        />
-                        <textarea
-                          rows={2}
-                          value={attachment.notes || ""}
-                          onChange={(event) => updateExistingAttachment(attachment.local_id, { notes: event.target.value })}
-                          placeholder="Attachment notes"
-                        />
-                        <div className="journal-upload-insert-actions">
-                          <small className="muted">Insert in body</small>
-                          <button type="button" className="ghost-btn compact-add-btn" onClick={() => insertAttachmentEmbed(order, "small")}>Small</button>
-                          <button type="button" className="ghost-btn compact-add-btn" onClick={() => insertAttachmentEmbed(order, "medium")}>Medium</button>
-                          <button type="button" className="ghost-btn compact-add-btn" onClick={() => insertAttachmentEmbed(order, "large")}>Large</button>
-                        </div>
+                    <article key={attachment.local_id} className="journal-upload-card">
+                      <div className="journal-upload-card-preview">{renderAttachmentPreview(attachment, order)}</div>
+                      <div className="journal-upload-card-head">
+                        <strong>{attachmentTitle(order, attachment.media_type, lang)}</strong>
+                        <small className="muted">{lang === "ko" ? "유지" : "Kept"}</small>
+                      </div>
+                      <div className="journal-upload-insert-actions">
+                        <button type="button" className="ghost-btn compact-add-btn" onClick={() => insertAttachmentEmbed(order, "small")}>S</button>
+                        <button type="button" className="ghost-btn compact-add-btn" onClick={() => insertAttachmentEmbed(order, "medium")}>M</button>
+                        <button type="button" className="ghost-btn compact-add-btn" onClick={() => insertAttachmentEmbed(order, "large")}>L</button>
                       </div>
                     </article>
                   );
@@ -812,40 +1028,31 @@ export function JournalComposerModal({
                 {fileAttachments.map((attachment, index) => {
                   const order = existingAttachments.length + index + 1;
                   return (
-                    <article key={attachment.local_id} className="journal-upload-item journal-upload-item-rich">
-                      <div className="journal-upload-preview-wrap">
-                        {renderAttachmentPreview({
-                          media_type: attachment.media_type,
-                          preview_url: attachment.preview_url,
-                          title: attachment.title,
-                          file_name: attachment.file.name,
-                        })}
+                    <article key={attachment.local_id} className="journal-upload-card">
+                      <div className="journal-upload-card-preview">
+                        {renderAttachmentPreview(
+                          {
+                            media_type: attachment.media_type,
+                            preview_url: attachment.preview_url,
+                            file_name: attachment.file.name,
+                          },
+                          order
+                        )}
                       </div>
-                      <div className="journal-upload-fields">
-                        <div className="journal-upload-item-head">
-                          <div>
-                            <strong>{`#${order} ${attachment.title || attachment.file.name}`}</strong>
-                            <small>{attachment.file.type || attachment.media_type}</small>
-                          </div>
-                          <button type="button" className="ghost-btn compact-add-btn" onClick={() => removeFile(attachment.local_id)}>Remove</button>
-                        </div>
-                        <input
-                          value={attachment.title}
-                          onChange={(event) => updateFileAttachment(attachment.local_id, { title: event.target.value })}
-                          placeholder="Attachment title"
-                        />
-                        <textarea
-                          rows={2}
-                          value={attachment.notes}
-                          onChange={(event) => updateFileAttachment(attachment.local_id, { notes: event.target.value })}
-                          placeholder="Attachment notes"
-                        />
-                        <div className="journal-upload-insert-actions">
-                          <small className="muted">Insert in body</small>
-                          <button type="button" className="ghost-btn compact-add-btn" onClick={() => insertAttachmentEmbed(order, "small")}>Small</button>
-                          <button type="button" className="ghost-btn compact-add-btn" onClick={() => insertAttachmentEmbed(order, "medium")}>Medium</button>
-                          <button type="button" className="ghost-btn compact-add-btn" onClick={() => insertAttachmentEmbed(order, "large")}>Large</button>
-                        </div>
+                      <div className="journal-upload-card-head">
+                        <strong>{attachmentTitle(order, attachment.media_type, lang)}</strong>
+                        <button type="button" className="ghost-btn compact-add-btn" onClick={() => removeFile(attachment.local_id)}>
+                          {lang === "ko" ? "삭제" : "Remove"}
+                        </button>
+                      </div>
+                      <div className="journal-upload-card-meta">
+                        <small>{attachment.file.name}</small>
+                        <small className="journal-upload-type-pill">{attachmentShortLabel(attachment.media_type)}</small>
+                      </div>
+                      <div className="journal-upload-insert-actions">
+                        <button type="button" className="ghost-btn compact-add-btn" onClick={() => insertAttachmentEmbed(order, "small")}>S</button>
+                        <button type="button" className="ghost-btn compact-add-btn" onClick={() => insertAttachmentEmbed(order, "medium")}>M</button>
+                        <button type="button" className="ghost-btn compact-add-btn" onClick={() => insertAttachmentEmbed(order, "large")}>L</button>
                       </div>
                     </article>
                   );
@@ -853,180 +1060,28 @@ export function JournalComposerModal({
                 {videoAttachments.map((attachment, index) => {
                   const order = existingAttachments.length + fileAttachments.length + index + 1;
                   return (
-                    <article key={attachment.local_id} className="journal-upload-item journal-upload-item-rich">
-                      <div className="journal-upload-preview-wrap">
-                        {renderAttachmentPreview({ media_type: "video", url: attachment.url, title: attachment.title })}
+                    <article key={attachment.local_id} className="journal-upload-card">
+                      <div className="journal-upload-card-preview">{renderAttachmentPreview({ media_type: "video", url: attachment.url }, order)}</div>
+                      <div className="journal-upload-card-head">
+                        <strong>{attachmentTitle(order, "video", lang)}</strong>
+                        <button type="button" className="ghost-btn compact-add-btn" onClick={() => removeVideoLink(attachment.local_id)}>
+                          {lang === "ko" ? "삭제" : "Remove"}
+                        </button>
                       </div>
-                      <div className="journal-upload-fields">
-                        <div className="journal-upload-item-head">
-                          <div>
-                            <strong>{`#${order} ${attachment.title || "YouTube link"}`}</strong>
-                            <small>{attachment.url}</small>
-                          </div>
-                          <button type="button" className="ghost-btn compact-add-btn" onClick={() => setVideoAttachments((prev) => prev.filter((item) => item.local_id !== attachment.local_id))}>Remove</button>
-                        </div>
-                        <input
-                          value={attachment.title}
-                          onChange={(event) => updateVideoAttachment(attachment.local_id, { title: event.target.value })}
-                          placeholder="Video title"
-                        />
-                        <textarea
-                          rows={2}
-                          value={attachment.notes}
-                          onChange={(event) => updateVideoAttachment(attachment.local_id, { notes: event.target.value })}
-                          placeholder="Video notes"
-                        />
-                        <div className="journal-upload-insert-actions">
-                          <small className="muted">Insert in body</small>
-                          <button type="button" className="ghost-btn compact-add-btn" onClick={() => insertAttachmentEmbed(order, "small")}>Small</button>
-                          <button type="button" className="ghost-btn compact-add-btn" onClick={() => insertAttachmentEmbed(order, "medium")}>Medium</button>
-                          <button type="button" className="ghost-btn compact-add-btn" onClick={() => insertAttachmentEmbed(order, "large")}>Large</button>
-                        </div>
+                      <div className="journal-upload-card-meta">
+                        <small>{attachment.url}</small>
+                        <small className="journal-upload-type-pill">YT</small>
+                      </div>
+                      <div className="journal-upload-insert-actions">
+                        <button type="button" className="ghost-btn compact-add-btn" onClick={() => insertAttachmentEmbed(order, "small")}>S</button>
+                        <button type="button" className="ghost-btn compact-add-btn" onClick={() => insertAttachmentEmbed(order, "medium")}>M</button>
+                        <button type="button" className="ghost-btn compact-add-btn" onClick={() => insertAttachmentEmbed(order, "large")}>L</button>
                       </div>
                     </article>
                   );
                 })}
-                {!previewAttachments.length ? <small className="muted">No attachments yet</small> : null}
+                {!previewAttachments.length ? <small className="muted">{lang === "ko" ? "아직 첨부가 없습니다." : "No attachments yet."}</small> : null}
               </div>
-            </section>
-          </section>
-
-          <aside className="journal-composer-side">
-            <section className="card journal-composer-side-card">
-              <div className="row"><strong>{lang === "ko" ? "연습 메타" : "Practice Meta"}</strong></div>
-              <div className="journal-meta-grid">
-                <label>{lang === "ko" ? "날짜" : "Date"}<input type="date" value={metaDraft.practice_date} onChange={(event) => setMetaDraft((prev) => ({ ...prev, practice_date: event.target.value }))} /></label>
-                <label>{lang === "ko" ? "시간(분)" : "Minutes"}<input value={metaDraft.duration_min} onChange={(event) => setMetaDraft((prev) => ({ ...prev, duration_min: event.target.value }))} /></label>
-                <label>BPM<input value={metaDraft.bpm} onChange={(event) => setMetaDraft((prev) => ({ ...prev, bpm: event.target.value }))} /></label>
-                <label>{lang === "ko" ? "기록 종류" : "Recording"}<input value={metaDraft.recording_kind} onChange={(event) => setMetaDraft((prev) => ({ ...prev, recording_kind: event.target.value }))} placeholder={lang === "ko" ? "audio / video" : "audio / video"} /></label>
-                <label>{lang === "ko" ? "포커스" : "Focus"}<input value={metaDraft.focus} onChange={(event) => setMetaDraft((prev) => ({ ...prev, focus: event.target.value }))} /></label>
-                <label>{lang === "ko" ? "잘 된 점" : "Win"}<input value={metaDraft.today_win} onChange={(event) => setMetaDraft((prev) => ({ ...prev, today_win: event.target.value }))} /></label>
-                <label>{lang === "ko" ? "이슈" : "Issue"}<input value={metaDraft.issue} onChange={(event) => setMetaDraft((prev) => ({ ...prev, issue: event.target.value }))} /></label>
-                <label>{lang === "ko" ? "다음 액션" : "Next Action"}<input value={metaDraft.next_action} onChange={(event) => setMetaDraft((prev) => ({ ...prev, next_action: event.target.value }))} /></label>
-              </div>
-            </section>
-
-            <section className="card journal-composer-side-card">
-              <div className="row">
-                <strong>{lang === "ko" ? "태그" : "Tags"}</strong>
-                <button className="ghost-btn compact-add-btn" onClick={() => onOpenManager("tags")}>
-                  {lang === "ko" ? "관리" : "Manage"}
-                </button>
-              </div>
-              <div className="journal-chip-cloud">
-                {activeTagCatalog.map((row) => {
-                  const selected = selectedCatalogTagIds.includes(row.id);
-                  return (
-                    <button
-                      key={row.id}
-                      className={`achievement-chip journal-select-tag ${selected ? "is-selected" : ""}`}
-                      onClick={() => toggleInArray(row.id, selectedCatalogTagIds, setSelectedCatalogTagIds)}
-                    >
-                      {row.label}
-                    </button>
-                  );
-                })}
-              </div>
-              <label>
-                {lang === "ko" ? "자유 태그" : "Free Tags"}
-                <input value={freeTags} onChange={(event) => setFreeTags(event.target.value)} placeholder={lang === "ko" ? "쉼표로 구분" : "Comma separated"} />
-              </label>
-            </section>
-
-            <section className="card journal-composer-side-card">
-              <button className="ghost-btn journal-link-section-toggle" aria-expanded={songSectionOpen} onClick={() => setSongSectionOpen((prev) => !prev)}>
-                <span className="journal-link-group-title">
-                  <strong>{lang === "ko" ? "연결 곡" : "Linked Songs"}</strong>
-                  <small>{lang === "ko" ? "필요할 때만 펼쳐서 선택" : "Open only when needed"}</small>
-                </span>
-                <span className="journal-link-group-meta">
-                  <small>{selectedSongIds.length}</small>
-                  <strong>{songSectionOpen ? "−" : "+"}</strong>
-                </span>
-              </button>
-              {songSectionOpen ? (
-                <div className="journal-link-groups">
-                  {groupedSongs.map((group) => {
-                    const selectedCount = group.items.filter((song) => selectedSongIds.includes(String(song.library_id || ""))).length;
-                    const openGroup = openSongGroups.includes(group.label);
-                    return (
-                      <section key={group.label} className="journal-link-group">
-                        <button className="ghost-btn journal-link-group-toggle" aria-expanded={openGroup} onClick={() => toggleGroup(group.label, openSongGroups, setOpenSongGroups)}>
-                          <span className="journal-link-group-title">
-                            <strong>{group.label}</strong>
-                            <small>{lang === "ko" ? "곡 장르" : "Song Genre"}</small>
-                          </span>
-                          <span className="journal-link-group-meta">
-                            <small>{selectedCount}/{group.items.length}</small>
-                            <strong>{openGroup ? "−" : "+"}</strong>
-                          </span>
-                        </button>
-                        {openGroup ? (
-                          <div className="journal-link-scroll">
-                            {group.items.map((song) => (
-                              <label key={song.library_id} className="inline selectable-row journal-link-row">
-                                <input type="checkbox" checked={selectedSongIds.includes(song.library_id)} onChange={() => toggleInArray(song.library_id, selectedSongIds, setSelectedSongIds)} />
-                                <span>
-                                  <strong>{song.title || song.library_id}</strong>
-                                  <small>{[song.artist, song.status].filter(Boolean).join(" · ") || song.library_id}</small>
-                                </span>
-                              </label>
-                            ))}
-                          </div>
-                        ) : null}
-                      </section>
-                    );
-                  })}
-                </div>
-              ) : null}
-            </section>
-
-            <section className="card journal-composer-side-card">
-              <button className="ghost-btn journal-link-section-toggle" aria-expanded={drillSectionOpen} onClick={() => setDrillSectionOpen((prev) => !prev)}>
-                <span className="journal-link-group-title">
-                  <strong>{lang === "ko" ? "연결 드릴" : "Linked Drills"}</strong>
-                  <small>{lang === "ko" ? "필요할 때만 펼쳐서 선택" : "Open only when needed"}</small>
-                </span>
-                <span className="journal-link-group-meta">
-                  <small>{selectedDrillIds.length}</small>
-                  <strong>{drillSectionOpen ? "−" : "+"}</strong>
-                </span>
-              </button>
-              {drillSectionOpen ? (
-                <div className="journal-link-groups">
-                  {groupedDrills.map((group) => {
-                    const selectedCount = group.items.filter((drill) => selectedDrillIds.includes(String(drill.drill_id || ""))).length;
-                    const openGroup = openDrillGroups.includes(group.label);
-                    return (
-                      <section key={group.label} className="journal-link-group">
-                        <button className="ghost-btn journal-link-group-toggle" aria-expanded={openGroup} onClick={() => toggleGroup(group.label, openDrillGroups, setOpenDrillGroups)}>
-                          <span className="journal-link-group-title">
-                            <strong>{group.label}</strong>
-                            <small>{lang === "ko" ? "드릴 유형" : "Drill Type"}</small>
-                          </span>
-                          <span className="journal-link-group-meta">
-                            <small>{selectedCount}/{group.items.length}</small>
-                            <strong>{openGroup ? "−" : "+"}</strong>
-                          </span>
-                        </button>
-                        {openGroup ? (
-                          <div className="journal-link-scroll">
-                            {group.items.map((drill) => (
-                              <label key={drill.drill_id} className="inline selectable-row journal-link-row">
-                                <input type="checkbox" checked={selectedDrillIds.includes(drill.drill_id)} onChange={() => toggleInArray(drill.drill_id, selectedDrillIds, setSelectedDrillIds)} />
-                                <span>
-                                  <strong>{drill.name || drill.drill_id}</strong>
-                                  <small>{[drill.area, drill.tags].filter(Boolean).join(" · ") || drill.drill_id}</small>
-                                </span>
-                              </label>
-                            ))}
-                          </div>
-                        ) : null}
-                      </section>
-                    );
-                  })}
-                </div>
-              ) : null}
             </section>
           </aside>
         </div>
@@ -1035,10 +1090,23 @@ export function JournalComposerModal({
           <button className="primary-btn" disabled={busy || (!title.trim() && !body.trim() && previewAttachments.length === 0)} onClick={() => void submit()}>
             {busy ? (lang === "ko" ? "저장 중..." : "Saving...") : item ? (lang === "ko" ? "수정 저장" : "Save Changes") : (lang === "ko" ? "게시글 등록" : "Publish")}
           </button>
-          <button className="ghost-btn" onClick={onClose}>
+          <button type="button" className="ghost-btn" onClick={onClose}>
             {lang === "ko" ? "취소" : "Cancel"}
           </button>
         </div>
+
+        <TemplatePickerModal
+          open={templatePickerOpen}
+          lang={lang}
+          selectedTemplateId={templateId}
+          templates={activeTemplateCatalog}
+          headers={activeHeaderCatalog}
+          onClose={() => setTemplatePickerOpen(false)}
+          onPick={(nextTemplateId) => {
+            applyTemplate(nextTemplateId);
+            setTemplatePickerOpen(false);
+          }}
+        />
       </div>
     </div>
   );

@@ -51,7 +51,13 @@ test("E2E-28 journal template apply, manual search, and threaded comments", asyn
   await expect(composer.locator(".journal-link-group")).toHaveCount(0);
   await composer.locator(".journal-link-section-toggle", { hasText: /연결 곡|Linked Songs/i }).click();
   await expect(composer.locator(".journal-link-group").first()).toBeVisible();
-  await composer.getByLabel(/템플릿|Template/i).selectOption({ label: templateName });
+  await composer.getByRole("button", { name: /템플릿 사용|Use Template/i }).click();
+  const templatePicker = page.getByTestId("journal-template-picker");
+  await expect(templatePicker).toBeVisible();
+  const templateOption = templatePicker.locator(".journal-template-picker-card", { hasText: templateName }).first();
+  await expect(templateOption).toBeVisible();
+  await templateOption.getByRole("button", { name: /이 템플릿 사용|Use This Template/i }).click();
+  await expect(templatePicker).toHaveCount(0);
   const textarea = composer.locator(".journal-editor-textarea");
   await expect(textarea).toHaveValue(/E2E 템플릿/);
   await composer.getByRole("button", { name: /미리보기|Preview/i }).click();
@@ -71,11 +77,10 @@ test("E2E-28 journal template apply, manual search, and threaded comments", asyn
     mimeType: "image/png",
     buffer: inlineImage,
   });
-  const attachmentRow = composer.locator(".journal-upload-item-rich").first();
+  const attachmentRow = composer.locator(".journal-upload-card").first();
   await expect(attachmentRow).toBeVisible();
-  await attachmentRow.locator("input").first().fill("Inline image");
-  await attachmentRow.locator("textarea").fill("Embedded preview");
-  await attachmentRow.getByRole("button", { name: /Medium/i }).click();
+  await expect(attachmentRow.locator("input, textarea")).toHaveCount(0);
+  await attachmentRow.getByRole("button", { name: /^M$/i }).click();
   await composer.getByRole("button", { name: /미리보기|Preview/i }).click();
   await expect(composer.getByTestId("journal-inline-attachment")).toBeVisible();
   await composer.getByRole("button", { name: /작성|Write/i }).click();

@@ -42,18 +42,24 @@ function AttachmentBlock({ attachment, size, fallbackTitle, onOpenAttachment }: 
   if (!url) return null;
 
   const title = attachment.title || fallbackTitle;
-  const notes = attachment.notes || "";
   const youtubeEmbedUrl = attachment.media_type === "video" && isYouTubeUrl(url) ? getYouTubeEmbedUrl(url) : "";
   const openAttachment = () => onOpenAttachment?.(attachment);
+  const openableImage = attachment.media_type === "image" && Boolean(onOpenAttachment);
 
   return (
     <div
-      className={`journal-inline-attachment is-${size} is-${attachment.media_type} ${onOpenAttachment ? "is-openable" : ""}`.trim()}
+      className={`journal-inline-attachment is-${size} is-${attachment.media_type} ${openableImage ? "is-openable" : ""}`.trim()}
       data-testid="journal-inline-attachment"
     >
       <div className="journal-inline-attachment-media">
         {attachment.media_type === "image" ? (
-          <img src={url} alt={title} className="journal-inline-attachment-image" onClick={openAttachment} />
+          openableImage ? (
+            <button type="button" className="journal-inline-attachment-image-button" onClick={openAttachment}>
+              <img src={url} alt={title} className="journal-inline-attachment-image" />
+            </button>
+          ) : (
+            <img src={url} alt={title} className="journal-inline-attachment-image" />
+          )
         ) : attachment.media_type === "video" ? (
           youtubeEmbedUrl ? (
             <iframe
@@ -70,17 +76,6 @@ function AttachmentBlock({ attachment, size, fallbackTitle, onOpenAttachment }: 
           <audio src={url} className="journal-inline-attachment-audio" controls preload="metadata" />
         )}
       </div>
-      {(title || notes || onOpenAttachment) ? (
-        <div className="journal-inline-attachment-meta">
-          {title ? <strong>{title}</strong> : null}
-          {notes ? <small>{notes}</small> : null}
-          {onOpenAttachment ? (
-            <button type="button" className="ghost-btn compact-add-btn" onClick={openAttachment}>
-              Open
-            </button>
-          ) : null}
-        </div>
-      ) : null}
     </div>
   );
 }
