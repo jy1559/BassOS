@@ -7050,8 +7050,36 @@ textarea {
 
 .journal-upload-preview-stack {
   position: relative;
+  display: grid;
   width: 100%;
   height: 100%;
+}
+
+.journal-upload-preview-stack-youtube {
+  align-items: center;
+  padding: 8px;
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--panel) 96%, transparent), color-mix(in srgb, var(--accent-soft) 76%, var(--panel))),
+    radial-gradient(circle at top left, color-mix(in srgb, #ff4e45 18%, transparent), transparent 58%);
+}
+
+.journal-upload-preview-youtube-frame {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  align-self: center;
+  overflow: hidden;
+  border-radius: 8px;
+  border: 1px solid color-mix(in srgb, var(--border) 82%, transparent);
+  box-shadow: 0 6px 16px rgba(15, 20, 24, 0.12);
+  background: #10151a;
+}
+
+.journal-upload-preview-youtube {
+  display: block;
+  width: 100%;
+  height: 100%;
+  aspect-ratio: auto;
+  object-fit: cover;
 }
 
 .journal-upload-preview-badge {
@@ -7064,6 +7092,12 @@ textarea {
   color: #fff;
   font-size: 10px;
   font-weight: 700;
+}
+
+.journal-upload-preview-badge-youtube {
+  right: 8px;
+  bottom: 8px;
+  background: rgba(188, 28, 28, 0.92);
 }
 
 .journal-upload-preview-audio {

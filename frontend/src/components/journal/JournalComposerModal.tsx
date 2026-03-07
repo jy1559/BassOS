@@ -447,9 +447,11 @@ export function JournalComposerModal({
       const youtubeThumbnail = isYouTubeUrl(url) ? getYouTubeThumbnailUrl(url) : "";
       if (youtubeThumbnail) {
         return (
-          <div className="journal-upload-preview-stack">
-            <img src={youtubeThumbnail} alt={attachmentTitle(order, "video", lang)} className="journal-upload-preview" />
-            <span className="journal-upload-preview-badge">YouTube</span>
+          <div className="journal-upload-preview-stack journal-upload-preview-stack-youtube">
+            <div className="journal-upload-preview-youtube-frame">
+              <img src={youtubeThumbnail} alt={attachmentTitle(order, "video", lang)} className="journal-upload-preview journal-upload-preview-youtube" />
+            </div>
+            <span className="journal-upload-preview-badge journal-upload-preview-badge-youtube">YouTube</span>
           </div>
         );
       }
