@@ -1887,10 +1887,11 @@ button:disabled {
 }
 
 .metronome-pip-main {
-  display: flex;
-  align-items: stretch;
-  gap: 8px;
-  min-height: 50px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  min-height: 62px;
 }
 
 .metronome-pip-main .metronome-pip-visual {
@@ -1899,8 +1900,7 @@ button:disabled {
 }
 
 .metronome-pip-side {
-  flex: 0 0 auto;
-  min-width: 96px;
+  min-width: 116px;
   display: grid;
   align-content: center;
   justify-items: end;
@@ -1930,15 +1930,15 @@ button:disabled {
   display: flex !important;
   align-items: center !important;
   flex-wrap: nowrap !important;
-  gap: 11px;
+  gap: 14px;
   overflow: hidden;
-  padding: 4px 2px;
+  padding: 5px 2px;
   justify-content: flex-start;
 }
 
 .metronome-pip-visual .metronome-light {
-  flex: 0 0 15px;
-  width: 15px;
+  flex: 0 0 18px;
+  width: 18px;
 }
 
 .metronome-pip-settings {
@@ -7558,17 +7558,23 @@ textarea {
 .metronome-visual-hero {
   display: flex;
   align-items: center;
+  justify-content: center;
   flex-wrap: nowrap;
-  gap: 14px;
-  min-height: 52px;
+  gap: 24px;
+  min-height: 132px;
   overflow-x: auto;
   overflow-y: hidden;
-  padding: 5px 4px;
+  padding: 10px 8px;
 }
 
 .metronome-visual-hero .metronome-light {
-  flex: 0 0 18px;
-  width: 18px;
+  flex: 0 0 88px;
+  width: 88px;
+}
+
+.metronome-visual-hero .metronome-sub-light {
+  flex: 0 0 14px;
+  width: 14px;
 }
 
 .metronome-light {

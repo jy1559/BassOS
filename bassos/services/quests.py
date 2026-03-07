@@ -10,7 +10,7 @@ from typing import Any
 
 from bassos.constants import QUEST_HEADERS
 from bassos.services.calculations import evaluate_rule, to_int
-from bassos.services.events import create_event_row
+from bassos.services.events import create_event_row, filter_finalized_events
 from bassos.services.storage import Storage
 
 PERIOD_ORDER = {"short": 0, "mid": 1, "long": 2}
@@ -513,7 +513,7 @@ def refresh_auto_quests(
 def list_current_quests(storage: Storage, settings: dict[str, Any]) -> list[QuestState]:
     refresh_auto_quests(storage, settings, now=datetime.now())
     rows = _normalize_quest_rows(storage, settings)
-    events = storage.read_csv("events.csv")
+    events = filter_finalized_events(storage.read_csv("events.csv"))
     feature_context = _feature_context(storage)
     out: list[QuestState] = []
 
@@ -721,7 +721,7 @@ def claim_quest(storage: Storage, settings: dict[str, Any], quest_id: str, now: 
     if status != STATUS_ACTIVE:
         return False, "Only active quests can be claimed."
 
-    events = storage.read_csv("events.csv")
+    events = filter_finalized_events(storage.read_csv("events.csv"))
     feature_context = _feature_context(storage)
     target = max(1, to_int(row.get("target"), 1))
     rule_type = _normalize_rule_type(row.get("rule_type"))

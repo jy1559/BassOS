@@ -197,6 +197,8 @@ function clampPipPosition(position: SessionPipPosition, width: number, height: n
   };
 }
 
+const PRACTICE_SCROLL_STORAGE_KEY = "bassos.practice.scrollTop.v1";
+
 export default function App() {
   const [tab, setTab] = useState<TabId>("dashboard");
   const [navOpen, setNavOpen] = useState<Record<NavGroupId, boolean>>({
@@ -295,9 +297,34 @@ export default function App() {
     setSessionPipVideoControls(payload);
   };
 
+  const savePracticeScrollTop = (rawValue: number) => {
+    const value = Math.max(0, Math.floor(Number(rawValue) || 0));
+    practiceScrollTopRef.current = value;
+    try {
+      window.sessionStorage.setItem(PRACTICE_SCROLL_STORAGE_KEY, String(value));
+    } catch {
+      // Ignore storage write failures.
+    }
+  };
+
+  const loadPracticeScrollTop = (): number => {
+    if (practiceScrollTopRef.current > 0) return practiceScrollTopRef.current;
+    try {
+      const raw = window.sessionStorage.getItem(PRACTICE_SCROLL_STORAGE_KEY);
+      const parsed = Number(raw || 0);
+      if (Number.isFinite(parsed) && parsed > 0) {
+        practiceScrollTopRef.current = Math.floor(parsed);
+        return practiceScrollTopRef.current;
+      }
+    } catch {
+      // Ignore storage read failures.
+    }
+    return 0;
+  };
+
   const switchTab = (nextTab: TabId) => {
     if (tab === "practice" && contentRef.current) {
-      practiceScrollTopRef.current = contentRef.current.scrollTop;
+      savePracticeScrollTop(contentRef.current.scrollTop);
     }
     setTab(nextTab);
   };
@@ -643,10 +670,10 @@ export default function App() {
     }
     const previousTab = prevTabRef.current;
     if (previousTab === "practice" && tab !== "practice") {
-      practiceScrollTopRef.current = contentEl.scrollTop;
+      savePracticeScrollTop(contentEl.scrollTop);
     }
     if (tab === "practice") {
-      const restoreTop = Math.max(0, practiceScrollTopRef.current || 0);
+      const restoreTop = loadPracticeScrollTop();
       if (restoreTop > 0) {
         isPracticeScrollRestoringRef.current = true;
         const apply = () => {
@@ -654,16 +681,21 @@ export default function App() {
             contentRef.current.scrollTop = restoreTop;
           }
         };
-        apply();
-        const timerA = window.setTimeout(apply, 50);
-        const timerB = window.setTimeout(apply, 180);
+        const timerA = window.setTimeout(apply, 0);
+        const timerB = window.setTimeout(apply, 50);
+        const timerC = window.setTimeout(apply, 140);
+        const timerD = window.setTimeout(apply, 280);
+        const timerE = window.setTimeout(apply, 520);
         const timerDone = window.setTimeout(() => {
           isPracticeScrollRestoringRef.current = false;
-        }, 280);
+        }, 640);
         prevTabRef.current = tab;
         return () => {
           window.clearTimeout(timerA);
           window.clearTimeout(timerB);
+          window.clearTimeout(timerC);
+          window.clearTimeout(timerD);
+          window.clearTimeout(timerE);
           window.clearTimeout(timerDone);
           isPracticeScrollRestoringRef.current = false;
         };
@@ -677,7 +709,7 @@ export default function App() {
     if (!contentEl || tab !== "practice") return;
     const syncPracticeScroll = () => {
       if (isPracticeScrollRestoringRef.current) return;
-      practiceScrollTopRef.current = contentEl.scrollTop;
+      savePracticeScrollTop(contentEl.scrollTop);
     };
     contentEl.addEventListener("scroll", syncPracticeScroll, { passive: true });
     return () => contentEl.removeEventListener("scroll", syncPracticeScroll);

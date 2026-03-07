@@ -21,7 +21,13 @@ from bassos.services.calculations import (
     total_xp_from_events,
     xp_to_next,
 )
-from bassos.services.events import create_event_row, empty_event
+from bassos.services.events import (
+    create_event_row,
+    empty_event,
+    filter_finalized_events,
+    is_pending_chain_session,
+    parse_event_meta,
+)
 from bassos.services.gamification_messages import build_session_gamification, level_up_copy as build_level_up_copy
 from bassos.services.motivation import build_session_coach_feedback
 from bassos.services.storage import Storage
@@ -379,6 +385,7 @@ class GameService:
 
         duration_min = max(0, int((end_at - start_at).total_seconds() // 60))
         payload = dict(payload)
+        pending_chain = bool(payload.pop("pending_chain", False))
         payload["duration_min"] = duration_min
         if not payload.get("activity"):
             payload["activity"] = (active or {}).get("activity", "Song")
@@ -482,14 +489,30 @@ class GameService:
                 "song_speed": payload.get("song_speed", {}),
                 "drill_bpm": payload.get("drill_bpm", {}),
                 "feelings": payload.get("feelings", []),
+                "pending_chain": pending_chain,
             },
             source=payload.get("source", "app"),
         )
         self.storage.append_csv_row("events.csv", event, self.storage.read_csv_headers("events.csv"))
         self.storage.clear_session_state()
-        granted = auto_grant_claims(self.storage, settings, created_at=now)
         chain_segments_with_current = chain_saved_segments + [self._chain_segment_from_event(event)]
         session_chain = self._build_chain_summary(chain_segments_with_current)
+        if pending_chain:
+            return {
+                "event": event,
+                "xp_breakdown": breakdown,
+                "auto_granted": [],
+                "gamification": {},
+                "coach_message": "",
+                "coach_reason_tags": [],
+                "next_win_hint": "",
+                "event_saved": True,
+                "under_min_skipped_current": False,
+                "current_duration_min": duration_min,
+                "session_chain": session_chain,
+            }
+
+        granted = auto_grant_claims(self.storage, settings, created_at=now)
         after_hud = self.hud_summary(settings)
         stats = self.stats_overview(settings)
         lang = str((settings.get("ui") or {}).get("language") or "ko").strip().lower()
@@ -556,6 +579,7 @@ class GameService:
             "notes": active.get("notes", ""),
             "start_at": active.get("start_at", ""),
             "end_at": to_iso(now_local()),
+            "pending_chain": True,
         }
         auto_saved = self.stop_session(stop_payload, settings)
         chain_saved_segments = self._coerce_chain_segments((auto_saved.get("session_chain") or {}).get("segments"))
@@ -589,14 +613,42 @@ class GameService:
 
         kept_sessions = [item for item in chain_saved_segments if str(item.get("event_id") or "") in include_saved_event_ids]
         removed_sessions = [item for item in chain_saved_segments if str(item.get("event_id") or "") not in include_saved_event_ids]
+        kept_event_ids = {str(item.get("event_id") or "").strip() for item in kept_sessions if str(item.get("event_id") or "").strip()}
         removed_event_ids = {str(item.get("event_id") or "").strip() for item in removed_sessions if str(item.get("event_id") or "").strip()}
 
+        rows = self.storage.read_csv("events.csv")
+        rows_changed = False
+        finalized_pending_count = 0
+
         if removed_event_ids:
-            rows = self.storage.read_csv("events.csv")
             kept_rows = [row for row in rows if str(row.get("event_id") or "") not in removed_event_ids]
             if len(kept_rows) != len(rows):
-                self.storage.write_csv("events.csv", kept_rows, headers=self.storage.read_csv_headers("events.csv"))
-                reconcile_auto_claims(self.storage, settings, now_local())
+                rows = kept_rows
+                rows_changed = True
+
+        if kept_event_ids:
+            for row in rows:
+                event_id = str(row.get("event_id") or "").strip()
+                if not event_id or event_id not in kept_event_ids:
+                    continue
+                if not is_pending_chain_session(row):
+                    continue
+                meta = parse_event_meta(row)
+                if not meta.get("pending_chain"):
+                    continue
+                meta.pop("pending_chain", None)
+                row["meta_json"] = json.dumps(meta, ensure_ascii=False)
+                rows_changed = True
+                finalized_pending_count += 1
+
+        if rows_changed:
+            self.storage.write_csv("events.csv", rows, headers=self.storage.read_csv_headers("events.csv"))
+
+        auto_granted_from_finalize: list[str] = []
+        if removed_event_ids:
+            auto_granted_from_finalize = reconcile_auto_claims(self.storage, settings, now_local())
+        elif finalized_pending_count > 0:
+            auto_granted_from_finalize = auto_grant_claims(self.storage, settings, created_at=now_local())
 
         include_current = bool(payload.get("include_current", True))
         current_stop_payload = payload.get("current_stop_payload")
@@ -637,6 +689,13 @@ class GameService:
                 "current_duration_min": 0,
                 "session_chain": self._build_chain_summary(kept_sessions),
             }
+
+        merged_auto_granted: list[str] = []
+        for ach_id in [*auto_granted_from_finalize, *(current_result.get("auto_granted") or [])]:
+            token = str(ach_id or "").strip()
+            if token and token not in merged_auto_granted:
+                merged_auto_granted.append(token)
+        current_result["auto_granted"] = merged_auto_granted
 
         if current_saved:
             final_segments = self._coerce_chain_segments((current_result.get("session_chain") or {}).get("segments"))
@@ -679,7 +738,7 @@ class GameService:
         )
 
     def hud_summary(self, settings: dict[str, Any]) -> dict[str, Any]:
-        events = self.storage.read_csv("events.csv")
+        events = filter_finalized_events(self.storage.read_csv("events.csv"))
         total_xp = total_xp_from_events(events)
         level = compute_level_summary(total_xp, settings)
         today = now_local().date()
@@ -801,7 +860,7 @@ class GameService:
         return {"level": current_level, "items": data}
 
     def list_media(self) -> list[dict[str, Any]]:
-        events = self.storage.read_csv("events.csv")
+        events = filter_finalized_events(self.storage.read_csv("events.csv"))
         media = []
         for event in events:
             if event.get("evidence_path") or event.get("evidence_url"):
@@ -1178,7 +1237,7 @@ class GameService:
         }
 
     def list_sessions(self, limit: int = 300) -> list[dict[str, Any]]:
-        events = self.storage.read_csv("events.csv")
+        events = filter_finalized_events(self.storage.read_csv("events.csv"))
         sessions = [e for e in events if (e.get("event_type") or "").upper() == "SESSION"]
         sessions.sort(key=lambda e: _event_dt(e) or now_local(), reverse=True)
         songs = {item.get("library_id", ""): item for item in self.storage.read_csv("song_library.csv")}
@@ -1315,7 +1374,7 @@ class GameService:
         return True, "세션을 수정했습니다.", self._normalize_session(target)
 
     def stats_overview(self, settings: dict[str, Any], quest_range: str = "all") -> dict[str, Any]:
-        events = self.storage.read_csv("events.csv")
+        events = filter_finalized_events(self.storage.read_csv("events.csv"))
         sessions = [e for e in events if (e.get("event_type") or "").upper() == "SESSION"]
         sessions.sort(key=lambda e: _event_dt(e) or now_local())
         today = now_local().date()
@@ -1630,7 +1689,7 @@ class GameService:
         anchor: str = "",
         recent_days: int = 7,
     ) -> dict[str, Any]:
-        events = self.storage.read_csv("events.csv")
+        events = filter_finalized_events(self.storage.read_csv("events.csv"))
         today = now_local().date()
 
         daily_xp_all: dict[str, int] = defaultdict(int)
@@ -1750,7 +1809,7 @@ class GameService:
     def player_xp_page(self, settings: dict[str, Any]) -> dict[str, Any]:
         hud = self.hud_summary(settings)
         unlockables = self.storage.read_csv("unlockables.csv")
-        events = self.storage.read_csv("events.csv")
+        events = filter_finalized_events(self.storage.read_csv("events.csv"))
         current_level = to_int(hud.get("level"), 1)
         upcoming = []
         for row in unlockables:
@@ -2250,7 +2309,7 @@ class GameService:
         }
 
     def list_gallery(self, limit: int = 500) -> list[dict[str, Any]]:
-        events = self.storage.read_csv("events.csv")
+        events = filter_finalized_events(self.storage.read_csv("events.csv"))
         songs = {row.get("library_id", ""): row for row in self.storage.read_csv("song_library.csv")}
         drills = {row.get("drill_id", ""): row for row in self.storage.read_csv("drill_library.csv")}
         items: list[dict[str, Any]] = []

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import io
 import csv
+import json
 import shutil
 from datetime import timedelta
 from pathlib import Path
@@ -21,6 +22,17 @@ def _prepare_temp_root(tmp_path: Path) -> Path:
 
 def _session_events(storage) -> list[dict[str, str]]:
     return [row for row in storage.read_csv("events.csv") if str(row.get("event_type") or "").upper() == "SESSION"]
+
+
+def _meta(row: dict[str, str]) -> dict[str, object]:
+    raw = str(row.get("meta_json") or "")
+    if not raw:
+        return {}
+    try:
+        data = json.loads(raw)
+    except json.JSONDecodeError:
+        return {}
+    return data if isinstance(data, dict) else {}
 
 
 def test_session_stop_updates_hud(tmp_path):
@@ -143,6 +155,7 @@ def test_session_switch_over_10_min_autosaves_and_chains(tmp_path):
     storage = app.config["storage"]
 
     before_count = len(_session_events(storage))
+    before_hud = client.get("/api/hud/summary").get_json()["summary"]
     now = now_local()
     start_at = (now - timedelta(minutes=14)).isoformat()
 
@@ -172,13 +185,140 @@ def test_session_switch_over_10_min_autosaves_and_chains(tmp_path):
     payload = switch_res.get_json()
     assert payload["under_min_skipped"] is False
     assert payload["auto_saved"]["event_saved"] is True
+    auto_saved_event_id = str((payload["auto_saved"].get("event") or {}).get("event_id") or "")
+    assert auto_saved_event_id
 
     after_count = len(_session_events(storage))
     assert after_count == before_count + 1
+    switched_event = next(row for row in _session_events(storage) if str(row.get("event_id") or "") == auto_saved_event_id)
+    assert bool(_meta(switched_event).get("pending_chain")) is True
 
-    active = client.get("/api/hud/summary").get_json()["summary"]["active_session"]
+    hud_after_switch = client.get("/api/hud/summary").get_json()["summary"]
+    assert hud_after_switch["total_xp"] == before_hud["total_xp"]
+    assert hud_after_switch["level"] == before_hud["level"]
+    active = hud_after_switch["active_session"]
     assert active.get("song_library_id") == "L0002"
     assert len(active.get("chain_saved_segments") or []) == 1
+
+
+def test_session_finalize_applies_pending_chain_rewards(tmp_path):
+    root = _prepare_temp_root(tmp_path)
+    app = create_app(root)
+    client = app.test_client()
+    storage = app.config["storage"]
+    now = now_local()
+
+    before_hud = client.get("/api/hud/summary").get_json()["summary"]
+    start_res = client.post(
+        "/api/session/start",
+        json={
+            "activity": "Song",
+            "sub_activity": "SongPractice",
+            "song_library_id": "L0001",
+            "title": "song-a",
+            "start_at": (now - timedelta(minutes=16)).isoformat(),
+        },
+    )
+    assert start_res.status_code == 200
+
+    switch_res = client.post(
+        "/api/session/switch",
+        json={
+            "activity": "Song",
+            "sub_activity": "SongPractice",
+            "song_library_id": "L0002",
+            "title": "song-b",
+        },
+    )
+    assert switch_res.status_code == 200
+    active = client.get("/api/hud/summary").get_json()["summary"]["active_session"]
+    saved_segments = active.get("chain_saved_segments") or []
+    assert len(saved_segments) == 1
+    pending_event_id = str(saved_segments[0]["event_id"])
+    pending_row = next(row for row in _session_events(storage) if str(row.get("event_id") or "") == pending_event_id)
+    assert bool(_meta(pending_row).get("pending_chain")) is True
+
+    hud_after_switch = client.get("/api/hud/summary").get_json()["summary"]
+    assert hud_after_switch["total_xp"] == before_hud["total_xp"]
+
+    finalize_res = client.post(
+        "/api/session/finalize",
+        json={
+            "include_saved_event_ids": [pending_event_id],
+            "include_current": False,
+        },
+    )
+    assert finalize_res.status_code == 200
+    pending_row_after = next(row for row in _session_events(storage) if str(row.get("event_id") or "") == pending_event_id)
+    assert bool(_meta(pending_row_after).get("pending_chain")) is False
+
+    hud_after_finalize = client.get("/api/hud/summary").get_json()["summary"]
+    assert hud_after_finalize["total_xp"] > before_hud["total_xp"]
+
+
+def test_pending_chain_does_not_unlock_quest_until_finalize(tmp_path):
+    root = _prepare_temp_root(tmp_path)
+    app = create_app(root)
+    client = app.test_client()
+    now = now_local()
+
+    quest_res = client.post(
+        "/api/quests",
+        json={
+            "title": "pending chain gate",
+            "description": "count one finalized session",
+            "period_class": "short",
+            "difficulty": "low",
+            "rule_type": "count_events",
+            "target": 1,
+            "rule_filter": {"event_type": "SESSION"},
+        },
+    )
+    assert quest_res.status_code == 200
+    quest_id = str(quest_res.get_json()["quest"]["quest_id"] or "")
+    assert quest_id
+
+    start_res = client.post(
+        "/api/session/start",
+        json={
+            "activity": "Song",
+            "sub_activity": "SongPractice",
+            "song_library_id": "L0001",
+            "title": "song-a",
+            "start_at": (now - timedelta(minutes=14)).isoformat(),
+        },
+    )
+    assert start_res.status_code == 200
+
+    switch_res = client.post(
+        "/api/session/switch",
+        json={
+            "activity": "Song",
+            "sub_activity": "SongPractice",
+            "song_library_id": "L0002",
+            "title": "song-b",
+        },
+    )
+    assert switch_res.status_code == 200
+
+    quests_before = client.get("/api/quests/current").get_json()["quests"]
+    target_before = next(item for item in quests_before if str(item.get("quest_id") or "") == quest_id)
+    assert target_before["claimable"] is False
+
+    active = client.get("/api/hud/summary").get_json()["summary"]["active_session"]
+    pending_event_id = str((active.get("chain_saved_segments") or [])[0]["event_id"])
+    finalize_res = client.post(
+        "/api/session/finalize",
+        json={
+            "include_saved_event_ids": [pending_event_id],
+            "include_current": False,
+        },
+    )
+    assert finalize_res.status_code == 200
+
+    quests_after = client.get("/api/quests/current").get_json()["quests"]
+    target_after = next(item for item in quests_after if str(item.get("quest_id") or "") == quest_id)
+    assert target_after["claimable"] is True
 
 
 def test_session_retarget_updates_none_session_without_restart(tmp_path):

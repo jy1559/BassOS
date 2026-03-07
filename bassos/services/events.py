@@ -59,3 +59,31 @@ def create_event_row(
     row["meta_json"] = json.dumps(meta or {}, ensure_ascii=False)
     row["source"] = source
     return row
+
+
+def parse_event_meta(row: dict[str, Any] | None) -> dict[str, Any]:
+    if not isinstance(row, dict):
+        return {}
+    raw = row.get("meta_json")
+    if not raw:
+        return {}
+    try:
+        value = json.loads(str(raw))
+    except json.JSONDecodeError:
+        return {}
+    return value if isinstance(value, dict) else {}
+
+
+def is_pending_chain_session(row: dict[str, Any] | None) -> bool:
+    if not isinstance(row, dict):
+        return False
+    if str(row.get("event_type") or "").upper() != "SESSION":
+        return False
+    meta = parse_event_meta(row)
+    return bool(meta.get("pending_chain"))
+
+
+def filter_finalized_events(rows: list[dict[str, Any]] | None) -> list[dict[str, Any]]:
+    if not isinstance(rows, list):
+        return []
+    return [row for row in rows if not is_pending_chain_session(row)]

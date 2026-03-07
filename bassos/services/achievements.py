@@ -8,7 +8,7 @@ from datetime import datetime
 from typing import Any
 
 from bassos.services.calculations import evaluate_rule, to_int
-from bassos.services.events import create_event_row
+from bassos.services.events import create_event_row, filter_finalized_events
 from bassos.services.storage import Storage
 
 
@@ -91,7 +91,7 @@ def _feature_context(storage: Storage) -> dict[str, dict[str, dict[str, str]]]:
 
 def evaluate_achievements(storage: Storage, settings: dict[str, Any]) -> list[AchievementState]:
     achievements = storage.read_csv("achievements_master.csv")
-    events = storage.read_csv("events.csv")
+    events = filter_finalized_events(storage.read_csv("events.csv"))
     feature_context = _feature_context(storage)
     claimed_map = _claimed_map(events)
     states: list[AchievementState] = []
@@ -146,7 +146,7 @@ def evaluate_achievements(storage: Storage, settings: dict[str, Any]) -> list[Ac
 
 def auto_grant_claims(storage: Storage, settings: dict[str, Any], created_at: datetime) -> list[str]:
     achievements = storage.read_csv("achievements_master.csv")
-    events = storage.read_csv("events.csv")
+    events = filter_finalized_events(storage.read_csv("events.csv"))
     feature_context = _feature_context(storage)
     claimed = _claimed_ids(events)
     granted_ids: list[str] = []
@@ -221,7 +221,7 @@ def manual_claim(
     row = achievements.get(achievement_id)
     if not row:
         return False, "업적을 찾을 수 없습니다."
-    events = storage.read_csv("events.csv")
+    events = filter_finalized_events(storage.read_csv("events.csv"))
     feature_context = _feature_context(storage)
     if achievement_id in _claimed_ids(events):
         return False, "이미 수령한 업적입니다."
