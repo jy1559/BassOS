@@ -192,7 +192,7 @@ DASHBOARD_LAYOUT_FOCUS_DEFAULT = {
 
 
 SETTINGS_DEFAULTS = {
-    "policy_version": 13,
+    "policy_version": 14,
     "ui": {
         "default_theme": "midnight",
         "enable_confetti": True,
@@ -213,6 +213,41 @@ SETTINGS_DEFAULTS = {
         "fx_claim_quest": True,
         "dashboard_glass_cards": True,
         "dashboard_version": "focus",
+        "keyboard_shortcuts": {
+            "bindings": {
+                "tab_dashboard": {"code": "Digit1", "alt": True},
+                "tab_practice": {"code": "Digit2", "alt": True},
+                "tab_gallery": {"code": "Digit3", "alt": True},
+                "tab_songs": {"code": "Digit4", "alt": True},
+                "tab_drills": {"code": "Digit5", "alt": True},
+                "tab_recommend": {"code": "Digit6", "alt": True},
+                "tab_review": {"code": "Digit7", "alt": True},
+                "tab_xp": {"code": "Digit8", "alt": True},
+                "tab_sessions": {"code": "Digit9", "alt": True},
+                "tab_quests": {"code": "KeyQ", "alt": True},
+                "tab_achievements": {"code": "KeyA", "alt": True},
+                "tab_tools": {"code": "KeyB", "alt": True},
+                "tab_settings": {"code": "Digit0", "alt": True},
+                "video_toggle": {"code": "Space"},
+                "video_restart": {"code": "KeyR"},
+                "video_fullscreen": {"code": "KeyF"},
+                "video_pin_save": {"code": "KeyP"},
+                "video_pin_jump": {"code": "KeyJ"},
+                "video_pin_clear": {"code": "KeyP", "shift": True},
+                "score_zoom": {"code": "KeyG"},
+                "score_prev": {"code": "ArrowLeft"},
+                "score_next": {"code": "ArrowRight"},
+                "metronome_toggle": {"code": "KeyM"},
+                "pip_video_toggle": {"code": "KeyV"},
+                "pip_collapse_toggle": {"code": "KeyC"},
+                "pip_open_studio": {"code": "KeyS"},
+                "pip_stop_session": {"code": "KeyX", "shift": True},
+                "popup_primary": {"code": "Enter"},
+                "popup_close": {"code": "Escape"},
+                "popup_destructive": {"code": "Delete"},
+                "popup_alternate": {"code": "KeyT"},
+            }
+        },
         "dashboard_layout_legacy": DASHBOARD_LAYOUT_LEGACY_DEFAULT,
         "dashboard_layout_focus": DASHBOARD_LAYOUT_FOCUS_DEFAULT,
         "song_genres": [

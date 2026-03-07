@@ -1720,8 +1720,9 @@ def settings_basic_update() -> Response:
     allowed_root = {"ui", "audio", "profile"}
     sanitized = {k: v for k, v in payload.items() if k in allowed_root and isinstance(v, dict)}
     merged = _deep_merge(settings, sanitized)
-    storage.write_json("settings.json", merged)
-    return jsonify({"ok": True, "settings": merged})
+    normalized = storage.normalize_settings(merged)
+    storage.write_json("settings.json", normalized)
+    return jsonify({"ok": True, "settings": normalized})
 
 
 @api_bp.put("/settings/critical")
@@ -1732,8 +1733,9 @@ def settings_critical_update() -> Response:
     allowed_root = {"xp", "level_curve", "critical", "backup", "performance", "admin"}
     sanitized = {k: v for k, v in payload.items() if k in allowed_root and isinstance(v, dict)}
     merged = _deep_merge(settings, sanitized)
-    storage.write_json("settings.json", merged)
-    return jsonify({"ok": True, "settings": merged})
+    normalized = storage.normalize_settings(merged)
+    storage.write_json("settings.json", normalized)
+    return jsonify({"ok": True, "settings": normalized})
 
 
 @api_bp.post("/export")

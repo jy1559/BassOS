@@ -96,6 +96,30 @@ _FOCUS_LAYOUT_PREVIOUS_DEFAULTS: list[dict[str, dict[str, Any]]] = [
     },
 ]
 
+_SHORTCUT_MODIFIER_CODES = {
+    "ShiftLeft",
+    "ShiftRight",
+    "ControlLeft",
+    "ControlRight",
+    "AltLeft",
+    "AltRight",
+    "MetaLeft",
+    "MetaRight",
+}
+_SHORTCUT_SUPPORTED_CODES = {
+    "Space",
+    "Enter",
+    "Escape",
+    "Delete",
+    "Backspace",
+    "ArrowLeft",
+    "ArrowRight",
+    "ArrowUp",
+    "ArrowDown",
+    *[f"Digit{idx}" for idx in range(10)],
+    *[f"Key{chr(code)}" for code in range(ord("A"), ord("Z") + 1)],
+}
+
 
 def _drill_tag_key(raw: str | None) -> str:
     return str(raw or "").strip().lower().replace(" ", "").replace("_", "").replace("-", "").replace("&", "and")
@@ -559,6 +583,237 @@ class Storage:
                 return True
         return False
 
+    def _normalize_keyboard_shortcut_binding(
+        self, raw: Any, fallback: dict[str, Any] | None
+    ) -> dict[str, Any] | None:
+        if not isinstance(raw, dict):
+            return dict(fallback) if isinstance(fallback, dict) else None
+        code = str(raw.get("code") or "").strip()
+        if not code or code in _SHORTCUT_MODIFIER_CODES or code not in _SHORTCUT_SUPPORTED_CODES:
+            return dict(fallback) if isinstance(fallback, dict) else None
+        return {
+            "code": code,
+            "ctrl": bool(raw.get("ctrl")),
+            "alt": bool(raw.get("alt")),
+            "shift": bool(raw.get("shift")),
+        }
+
+    def _normalize_keyboard_shortcuts(self, raw: Any) -> dict[str, Any]:
+        default_shortcuts = SETTINGS_DEFAULTS["ui"]["keyboard_shortcuts"]
+        default_bindings = default_shortcuts.get("bindings", {})
+        source_bindings = raw.get("bindings", {}) if isinstance(raw, dict) else {}
+        normalized_bindings: dict[str, Any] = {}
+        for action_id, fallback in default_bindings.items():
+            normalized_bindings[action_id] = self._normalize_keyboard_shortcut_binding(
+                source_bindings.get(action_id),
+                fallback if isinstance(fallback, dict) else None,
+            )
+        return {"bindings": normalized_bindings}
+
+    def normalize_settings(
+        self,
+        settings: dict[str, Any],
+        *,
+        source_settings: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        merged = self._merge_defaults(settings, SETTINGS_DEFAULTS)
+        source = source_settings if isinstance(source_settings, dict) else settings
+
+        def _apply_level_curve_defaults(level_curve: dict[str, Any], *, overwrite: bool = False) -> None:
+            curve_type = str(level_curve.get("type") or LEVEL_BALANCE_V2.get("type", "decade_linear")).strip().lower()
+            if overwrite:
+                curve_type = str(LEVEL_BALANCE_V2.get("type", "decade_linear")).strip().lower()
+
+            if curve_type == "quadratic":
+                level_curve["type"] = "quadratic"
+                for key, fallback in (("a", 230.0), ("b", 13.0), ("c", 1.1)):
+                    if overwrite or key not in level_curve:
+                        level_curve[key] = fallback
+            else:
+                level_curve["type"] = "decade_linear"
+                for key in ("base", "slope", "step_10", "step_20", "step_30", "step_40"):
+                    if overwrite or key not in level_curve:
+                        level_curve[key] = LEVEL_BALANCE_V2[key]
+
+            if overwrite or "max_level" not in level_curve:
+                level_curve["max_level"] = LEVEL_BALANCE_V2.get("max_level", 50)
+
+        merged["policy_version"] = SETTINGS_DEFAULTS["policy_version"]
+        merged.setdefault("critical", {}).setdefault("quest_xp_multiplier", SETTINGS_DEFAULTS["critical"]["quest_xp_multiplier"])
+        merged.setdefault("critical", {}).setdefault(
+            "achievement_xp_multiplier", SETTINGS_DEFAULTS["critical"]["achievement_xp_multiplier"]
+        )
+        merged.setdefault("critical", {}).setdefault(
+            "daily_session_xp_cap", SETTINGS_DEFAULTS["critical"]["daily_session_xp_cap"]
+        )
+        level_curve = merged.setdefault("level_curve", {})
+        _apply_level_curve_defaults(level_curve, overwrite=False)
+        merged.setdefault("ui", {}).setdefault("song_genres", SETTINGS_DEFAULTS["ui"]["song_genres"])
+
+        if "xp" in merged:
+            merged.setdefault("xp", {}).setdefault("backfill_multiplier", 0.5)
+            merged["xp"]["backfill_multiplier"] = float(
+                merged["critical"].get("backfill_multiplier_default", merged["xp"]["backfill_multiplier"])
+            )
+            merged["xp"].setdefault("display_scale", int(XP_BALANCE_V2.get("display_scale", 50)))
+
+        profile = merged.setdefault("profile", {})
+        profile.setdefault("guide_finisher_unlocked", False)
+        profile.setdefault("quest_settings", dict(SETTINGS_DEFAULTS["profile"]["quest_settings"]))
+        quest_settings = profile.get("quest_settings")
+        if not isinstance(quest_settings, dict):
+            quest_settings = {}
+        quest_defaults = SETTINGS_DEFAULTS["profile"]["quest_settings"]
+        quest_settings = self._merge_defaults(quest_settings, quest_defaults)
+        period_days = quest_settings.get("period_days", {})
+        if not isinstance(period_days, dict):
+            period_days = {}
+        for key in ("short", "mid", "long"):
+            try:
+                period_days[key] = max(1, int(period_days.get(key, quest_defaults["period_days"][key])))
+            except (TypeError, ValueError):
+                period_days[key] = int(quest_defaults["period_days"][key])
+        quest_settings["period_days"] = period_days
+
+        for key, default_map in (
+            ("auto_enabled_by_period", quest_defaults["auto_enabled_by_period"]),
+            ("auto_target_minutes_by_period", quest_defaults["auto_target_minutes_by_period"]),
+            ("auto_priority_by_period", quest_defaults["auto_priority_by_period"]),
+            ("auto_difficulty_by_period", quest_defaults["auto_difficulty_by_period"]),
+        ):
+            raw_map = quest_settings.get(key)
+            if not isinstance(raw_map, dict):
+                raw_map = {}
+            merged_map: dict[str, Any] = {}
+            for period in ("short", "mid", "long"):
+                raw_value = raw_map.get(period, default_map[period])
+                if key == "auto_enabled_by_period":
+                    if isinstance(raw_value, str):
+                        merged_map[period] = raw_value.strip().lower() in {"1", "true", "yes", "on"}
+                    else:
+                        merged_map[period] = bool(raw_value)
+                elif key == "auto_target_minutes_by_period":
+                    try:
+                        merged_map[period] = max(1, int(raw_value))
+                    except (TypeError, ValueError):
+                        merged_map[period] = int(default_map[period])
+                elif key == "auto_priority_by_period":
+                    token = str(raw_value or "").strip().lower()
+                    merged_map[period] = token if token in {"low", "normal", "urgent"} else default_map[period]
+                elif key == "auto_difficulty_by_period":
+                    token = str(raw_value or "").strip().lower()
+                    merged_map[period] = token if token in {"low", "mid", "high"} else default_map[period]
+            quest_settings[key] = merged_map
+
+        ui_style_defaults = quest_defaults.get("ui_style", {})
+        raw_ui_style = quest_settings.get("ui_style")
+        if not isinstance(raw_ui_style, dict):
+            raw_ui_style = {}
+
+        def _normalize_hex(raw: Any, fallback: str) -> str:
+            token = str(raw or "").strip()
+            if len(token) == 7 and token.startswith("#"):
+                if all(ch in "0123456789abcdefABCDEF" for ch in token[1:]):
+                    return token
+            return fallback
+
+        merged_ui_style: dict[str, Any] = {}
+        for key, default_map in (
+            ("period_border", ui_style_defaults.get("period_border", {})),
+            ("period_fill", ui_style_defaults.get("period_fill", {})),
+            ("priority_border", ui_style_defaults.get("priority_border", {})),
+            ("difficulty_fill", ui_style_defaults.get("difficulty_fill", {})),
+        ):
+            raw_map = raw_ui_style.get(key)
+            if not isinstance(raw_map, dict):
+                raw_map = {}
+            merged_map: dict[str, str] = {}
+            for tone_key, default_value in default_map.items():
+                merged_map[tone_key] = _normalize_hex(raw_map.get(tone_key), str(default_value))
+            merged_ui_style[key] = merged_map
+        quest_settings["ui_style"] = merged_ui_style
+        profile["quest_settings"] = quest_settings
+
+        ui = merged.setdefault("ui", {})
+        raw_ui = source.get("ui")
+        if not isinstance(raw_ui, dict):
+            raw_ui = {}
+        ui_defaults = SETTINGS_DEFAULTS["ui"]
+        for key in (
+            "practice_video_pip_mode",
+            "practice_video_tab_switch_playback",
+            "notify_level_up",
+            "notify_achievement_unlock",
+            "notify_quest_complete",
+            "fx_achievement_unlock",
+            "fx_quest_complete",
+            "fx_session_complete_normal",
+            "fx_session_complete_quick",
+            "fx_claim_achievement",
+            "fx_claim_quest",
+        ):
+            ui.setdefault(key, ui_defaults[key])
+        if "fx_level_up_overlay" in raw_ui:
+            ui["fx_level_up_overlay"] = bool(raw_ui.get("fx_level_up_overlay"))
+        elif "enable_confetti" in raw_ui:
+            ui["fx_level_up_overlay"] = bool(raw_ui.get("enable_confetti"))
+        else:
+            ui["fx_level_up_overlay"] = bool(ui.get("fx_level_up_overlay", ui_defaults["enable_confetti"]))
+        ui["fx_level_up_overlay"] = bool(ui.get("fx_level_up_overlay"))
+        ui["enable_confetti"] = bool(ui["fx_level_up_overlay"])
+        if str(ui.get("practice_video_pip_mode") or "").strip().lower() not in {"mini", "none"}:
+            ui["practice_video_pip_mode"] = ui_defaults["practice_video_pip_mode"]
+        if str(ui.get("practice_video_tab_switch_playback") or "").strip().lower() not in {"continue", "pause", "pip_only"}:
+            ui["practice_video_tab_switch_playback"] = ui_defaults["practice_video_tab_switch_playback"]
+        ui["dashboard_layout_legacy"] = self._normalize_dashboard_layout(
+            ui.get("dashboard_layout_legacy"), DASHBOARD_LAYOUT_LEGACY_DEFAULT
+        )
+        ui["dashboard_layout_focus"] = self._normalize_dashboard_layout(
+            ui.get("dashboard_layout_focus"), DASHBOARD_LAYOUT_FOCUS_DEFAULT
+        )
+        focus_layout = ui.get("dashboard_layout_focus")
+        if isinstance(focus_layout, dict):
+            if self._is_focus_layout_previous_default(focus_layout):
+                focus_layout = self._normalize_dashboard_layout({}, DASHBOARD_LAYOUT_FOCUS_DEFAULT)
+            next_win = focus_layout.get("nextWin")
+            if isinstance(next_win, dict):
+                next_win["h"] = 1
+                focus_layout["nextWin"] = next_win
+            ui["dashboard_layout_focus"] = focus_layout
+        dashboard_version = str(ui.get("dashboard_version") or "").strip().lower()
+        if dashboard_version not in {"legacy", "focus"}:
+            dashboard_version = "legacy" if bool(profile.get("onboarded")) else "focus"
+        ui["dashboard_version"] = dashboard_version
+        ui["keyboard_shortcuts"] = self._normalize_keyboard_shortcuts(ui.get("keyboard_shortcuts"))
+        ui.pop("dashboard_bg_mode", None)
+        ui.pop("dashboard_live_motion", None)
+        ui.pop("dashboard_layout", None)
+        profile.pop("dashboard_photo_fit", None)
+        profile.pop("dashboard_todo", None)
+        profile.pop("dashboard_todo_items", None)
+
+        tutorial_defaults = SETTINGS_DEFAULTS["profile"]["tutorial_state"]
+        tutorial_state = profile.get("tutorial_state")
+        if not isinstance(tutorial_state, dict):
+            tutorial_state = {}
+        for key, default in tutorial_defaults.items():
+            if isinstance(default, list):
+                existing = tutorial_state.get(key)
+                if isinstance(existing, list):
+                    tutorial_state[key] = [str(item) for item in existing if str(item)]
+                else:
+                    tutorial_state[key] = list(default)
+            elif isinstance(default, int):
+                try:
+                    tutorial_state[key] = int(tutorial_state.get(key))
+                except (TypeError, ValueError):
+                    tutorial_state[key] = default
+            else:
+                tutorial_state[key] = str(tutorial_state.get(key) or default)
+        profile["tutorial_state"] = tutorial_state
+
+        return merged
+
     def _migrate_settings(self) -> None:
         settings = self.read_json("settings.json")
         current_version = int(settings.get("policy_version", 1))
@@ -741,177 +996,10 @@ class Storage:
             _apply_level_curve_defaults(level_curve, overwrite=True)
             merged["policy_version"] = 13
 
-        merged.setdefault("critical", {}).setdefault("quest_xp_multiplier", SETTINGS_DEFAULTS["critical"]["quest_xp_multiplier"])
-        merged.setdefault("critical", {}).setdefault(
-            "achievement_xp_multiplier", SETTINGS_DEFAULTS["critical"]["achievement_xp_multiplier"]
-        )
-        merged.setdefault("critical", {}).setdefault(
-            "daily_session_xp_cap", SETTINGS_DEFAULTS["critical"]["daily_session_xp_cap"]
-        )
-        level_curve = merged.setdefault("level_curve", {})
-        _apply_level_curve_defaults(level_curve, overwrite=False)
-        merged.setdefault("ui", {}).setdefault("song_genres", SETTINGS_DEFAULTS["ui"]["song_genres"])
+        if current_version < 14:
+            merged["policy_version"] = 14
 
-        if "xp" in merged:
-            merged.setdefault("xp", {}).setdefault("backfill_multiplier", 0.5)
-            merged["xp"]["backfill_multiplier"] = float(
-                merged["critical"].get("backfill_multiplier_default", merged["xp"]["backfill_multiplier"])
-            )
-            merged["xp"].setdefault("display_scale", int(XP_BALANCE_V2.get("display_scale", 50)))
-
-        profile = merged.setdefault("profile", {})
-        profile.setdefault("guide_finisher_unlocked", False)
-        profile.setdefault("quest_settings", dict(SETTINGS_DEFAULTS["profile"]["quest_settings"]))
-        quest_settings = profile.get("quest_settings")
-        if not isinstance(quest_settings, dict):
-            quest_settings = {}
-        quest_defaults = SETTINGS_DEFAULTS["profile"]["quest_settings"]
-        quest_settings = self._merge_defaults(quest_settings, quest_defaults)
-        period_days = quest_settings.get("period_days", {})
-        if not isinstance(period_days, dict):
-            period_days = {}
-        for key in ("short", "mid", "long"):
-            try:
-                period_days[key] = max(1, int(period_days.get(key, quest_defaults["period_days"][key])))
-            except (TypeError, ValueError):
-                period_days[key] = int(quest_defaults["period_days"][key])
-        quest_settings["period_days"] = period_days
-
-        for key, default_map in (
-            ("auto_enabled_by_period", quest_defaults["auto_enabled_by_period"]),
-            ("auto_target_minutes_by_period", quest_defaults["auto_target_minutes_by_period"]),
-            ("auto_priority_by_period", quest_defaults["auto_priority_by_period"]),
-            ("auto_difficulty_by_period", quest_defaults["auto_difficulty_by_period"]),
-        ):
-            raw_map = quest_settings.get(key)
-            if not isinstance(raw_map, dict):
-                raw_map = {}
-            merged_map: dict[str, Any] = {}
-            for period in ("short", "mid", "long"):
-                raw_value = raw_map.get(period, default_map[period])
-                if key == "auto_enabled_by_period":
-                    if isinstance(raw_value, str):
-                        merged_map[period] = raw_value.strip().lower() in {"1", "true", "yes", "on"}
-                    else:
-                        merged_map[period] = bool(raw_value)
-                elif key == "auto_target_minutes_by_period":
-                    try:
-                        merged_map[period] = max(1, int(raw_value))
-                    except (TypeError, ValueError):
-                        merged_map[period] = int(default_map[period])
-                elif key == "auto_priority_by_period":
-                    token = str(raw_value or "").strip().lower()
-                    merged_map[period] = token if token in {"low", "normal", "urgent"} else default_map[period]
-                elif key == "auto_difficulty_by_period":
-                    token = str(raw_value or "").strip().lower()
-                    merged_map[period] = token if token in {"low", "mid", "high"} else default_map[period]
-            quest_settings[key] = merged_map
-
-        ui_style_defaults = quest_defaults.get("ui_style", {})
-        raw_ui_style = quest_settings.get("ui_style")
-        if not isinstance(raw_ui_style, dict):
-            raw_ui_style = {}
-
-        def _normalize_hex(raw: Any, fallback: str) -> str:
-            token = str(raw or "").strip()
-            if len(token) == 7 and token.startswith("#"):
-                if all(ch in "0123456789abcdefABCDEF" for ch in token[1:]):
-                    return token
-            return fallback
-
-        merged_ui_style: dict[str, Any] = {}
-        for key, default_map in (
-            ("period_border", ui_style_defaults.get("period_border", {})),
-            ("period_fill", ui_style_defaults.get("period_fill", {})),
-            ("priority_border", ui_style_defaults.get("priority_border", {})),
-            ("difficulty_fill", ui_style_defaults.get("difficulty_fill", {})),
-        ):
-            raw_map = raw_ui_style.get(key)
-            if not isinstance(raw_map, dict):
-                raw_map = {}
-            merged_map: dict[str, str] = {}
-            for tone_key, default_value in default_map.items():
-                merged_map[tone_key] = _normalize_hex(raw_map.get(tone_key), str(default_value))
-            merged_ui_style[key] = merged_map
-        quest_settings["ui_style"] = merged_ui_style
-        profile["quest_settings"] = quest_settings
-
-        ui = merged.setdefault("ui", {})
-        raw_ui = settings.get("ui")
-        if not isinstance(raw_ui, dict):
-            raw_ui = {}
-        ui_defaults = SETTINGS_DEFAULTS["ui"]
-        for key in (
-            "practice_video_pip_mode",
-            "practice_video_tab_switch_playback",
-            "notify_level_up",
-            "notify_achievement_unlock",
-            "notify_quest_complete",
-            "fx_achievement_unlock",
-            "fx_quest_complete",
-            "fx_session_complete_normal",
-            "fx_session_complete_quick",
-            "fx_claim_achievement",
-            "fx_claim_quest",
-        ):
-            ui.setdefault(key, ui_defaults[key])
-        if "fx_level_up_overlay" in raw_ui:
-            ui["fx_level_up_overlay"] = bool(raw_ui.get("fx_level_up_overlay"))
-        elif "enable_confetti" in raw_ui:
-            ui["fx_level_up_overlay"] = bool(raw_ui.get("enable_confetti"))
-        else:
-            ui["fx_level_up_overlay"] = bool(ui.get("fx_level_up_overlay", ui_defaults["enable_confetti"]))
-        ui["fx_level_up_overlay"] = bool(ui.get("fx_level_up_overlay"))
-        ui["enable_confetti"] = bool(ui["fx_level_up_overlay"])
-        if str(ui.get("practice_video_pip_mode") or "").strip().lower() not in {"mini", "none"}:
-            ui["practice_video_pip_mode"] = ui_defaults["practice_video_pip_mode"]
-        if str(ui.get("practice_video_tab_switch_playback") or "").strip().lower() not in {"continue", "pause", "pip_only"}:
-            ui["practice_video_tab_switch_playback"] = ui_defaults["practice_video_tab_switch_playback"]
-        ui["dashboard_layout_legacy"] = self._normalize_dashboard_layout(
-            ui.get("dashboard_layout_legacy"), DASHBOARD_LAYOUT_LEGACY_DEFAULT
-        )
-        ui["dashboard_layout_focus"] = self._normalize_dashboard_layout(
-            ui.get("dashboard_layout_focus"), DASHBOARD_LAYOUT_FOCUS_DEFAULT
-        )
-        focus_layout = ui.get("dashboard_layout_focus")
-        if isinstance(focus_layout, dict):
-            if self._is_focus_layout_previous_default(focus_layout):
-                focus_layout = self._normalize_dashboard_layout({}, DASHBOARD_LAYOUT_FOCUS_DEFAULT)
-            next_win = focus_layout.get("nextWin")
-            if isinstance(next_win, dict):
-                next_win["h"] = 1
-                focus_layout["nextWin"] = next_win
-            ui["dashboard_layout_focus"] = focus_layout
-        dashboard_version = str(ui.get("dashboard_version") or "").strip().lower()
-        if dashboard_version not in {"legacy", "focus"}:
-            dashboard_version = "legacy" if bool(profile.get("onboarded")) else "focus"
-        ui["dashboard_version"] = dashboard_version
-        ui.pop("dashboard_bg_mode", None)
-        ui.pop("dashboard_live_motion", None)
-        ui.pop("dashboard_layout", None)
-        profile.pop("dashboard_photo_fit", None)
-        profile.pop("dashboard_todo", None)
-        profile.pop("dashboard_todo_items", None)
-
-        tutorial_defaults = SETTINGS_DEFAULTS["profile"]["tutorial_state"]
-        tutorial_state = profile.get("tutorial_state")
-        if not isinstance(tutorial_state, dict):
-            tutorial_state = {}
-        for key, default in tutorial_defaults.items():
-            if isinstance(default, list):
-                existing = tutorial_state.get(key)
-                if isinstance(existing, list):
-                    tutorial_state[key] = [str(item) for item in existing if str(item)]
-                else:
-                    tutorial_state[key] = list(default)
-            elif isinstance(default, int):
-                try:
-                    tutorial_state[key] = int(tutorial_state.get(key))
-                except (TypeError, ValueError):
-                    tutorial_state[key] = default
-            else:
-                tutorial_state[key] = str(tutorial_state.get(key) or default)
-        profile["tutorial_state"] = tutorial_state
+        merged = self.normalize_settings(merged, source_settings=settings)
 
         self.write_json("settings.json", merged)
 

@@ -104,6 +104,33 @@ def test_api_unhandled_error_returns_json(tmp_path):
     assert "boom-test" in payload["message"]
 
 
+def test_settings_basic_keyboard_shortcuts_are_normalized(tmp_path):
+    root = _prepare_temp_root(tmp_path)
+    app = create_app(root)
+    client = app.test_client()
+
+    res = client.put(
+        "/api/settings/basic",
+        json={
+            "ui": {
+                "keyboard_shortcuts": {
+                    "bindings": {
+                        "video_toggle": {"code": "ShiftLeft"},
+                        "tab_dashboard": {"code": "KeyK", "ctrl": True},
+                    }
+                }
+            }
+        },
+    )
+    assert res.status_code == 200
+    payload = res.get_json()["settings"]
+    bindings = payload["ui"]["keyboard_shortcuts"]["bindings"]
+    assert bindings["video_toggle"]["code"] == "Space"
+    assert bindings["tab_dashboard"]["code"] == "KeyK"
+    assert bindings["tab_dashboard"]["ctrl"] is True
+    assert bindings["metronome_toggle"]["code"] == "KeyM"
+
+
 def test_session_switch_under_10_min_skips_save(tmp_path):
     root = _prepare_temp_root(tmp_path)
     app = create_app(root)

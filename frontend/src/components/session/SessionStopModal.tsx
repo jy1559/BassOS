@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { discardSession, finalizeSession, stopSession, uploadEvidenceFile } from "../../api";
 import type { Lang } from "../../i18n";
+import { formatShortcutBinding } from "../../keyboardShortcuts";
+import { useShortcutLayer, useShortcutRouter } from "../../shortcutRouter";
 import type { ChainSavedSegment, SessionStopInput, SessionStopResult } from "../../types/models";
 import { formatDisplayXp } from "../../utils/xpDisplay";
 
@@ -31,14 +33,6 @@ const subMap: Record<MainActivity, Array<{ value: string; labelKo: string; label
 
 const speedValues = Array.from({ length: 21 }).map((_, idx) => 50 + idx * 5);
 const bpmValues = Array.from({ length: 37 }).map((_, idx) => 60 + idx * 5);
-
-function isEditableTarget(target: EventTarget | null): boolean {
-  const element = target as HTMLElement | null;
-  if (!element) return false;
-  if (element.isContentEditable) return true;
-  const tag = element.tagName;
-  return tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT";
-}
 
 function toMain(raw: string): MainActivity {
   if (raw === "None" || raw === "Song" || raw === "Drill" || raw === "Etc") return raw;
@@ -112,6 +106,7 @@ export function SessionStopModal({
   onSaved,
   onDiscarded,
 }: SessionStopModalProps) {
+  const shortcutRouter = useShortcutRouter();
   const [activity, setActivity] = useState<MainActivity>("None");
   const [subActivity, setSubActivity] = useState("Etc");
   const [songId, setSongId] = useState("");
@@ -137,6 +132,8 @@ export function SessionStopModal({
   const [showUnderMinGate, setShowUnderMinGate] = useState(false);
   const [showUnderMinAlert, setShowUnderMinAlert] = useState(false);
   const wasOpenRef = useRef(false);
+  const shortcutBindings = shortcutRouter.bindings.bindings;
+  const shortcutText = (actionId: keyof typeof shortcutBindings) => formatShortcutBinding(shortcutBindings[actionId], lang);
 
   const chainSavedSegments = useMemo(() => {
     const raw = activeSession?.chain_saved_segments;
@@ -294,6 +291,20 @@ export function SessionStopModal({
     }
   };
 
+  const discardCurrent = async () => {
+    try {
+      setBusy(true);
+      await discardSession({ chain_mode: chainSavedSegments.length > 0 ? "all" : "last" });
+      notify(lang === "ko" ? "저장하지 않고 종료했습니다." : "Session ended without saving.", "info");
+      await onDiscarded?.();
+      onClose();
+    } catch (error) {
+      notify(error instanceof Error ? error.message : "Discard failed", "error");
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const saveAndStop = async () => {
     const start = new Date(startAtInput);
     let end = new Date(endAtInput);
@@ -382,48 +393,79 @@ export function SessionStopModal({
     }
   };
 
-  useEffect(() => {
-    if (!open) return;
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (busy) return;
-      if (showUnderMinAlert) {
-        if (event.key === "Escape" || event.key === "Enter" || event.key === " " || event.key === "Spacebar") {
-          if (isEditableTarget(event.target)) return;
-          event.preventDefault();
-          setShowUnderMinAlert(false);
+  useShortcutLayer(
+    open && showUnderMinAlert
+      ? {
+          priority: 540,
+          allowInEditable: true,
+          handlers: {
+            popup_close: () => {
+              if (busy) return false;
+              setShowUnderMinAlert(false);
+            },
+            popup_primary: () => {
+              if (busy) return false;
+              setShowUnderMinAlert(false);
+            },
+          },
         }
-        return;
-      }
-      if (showUnderMinGate) {
-        if (event.key === "Escape" || event.key === " " || event.key === "Spacebar") {
-          if (isEditableTarget(event.target)) return;
-          event.preventDefault();
-          onClose();
-          return;
+      : null
+  );
+
+  useShortcutLayer(
+    open && showUnderMinGate
+      ? {
+          priority: 520,
+          allowInEditable: true,
+          handlers: {
+            popup_close: () => {
+              if (busy) return false;
+              onClose();
+            },
+            popup_primary: () => {
+              if (busy) return false;
+              void endWithoutSavingCurrent();
+            },
+            popup_destructive: () => {
+              if (busy) return false;
+              void endWithoutSavingCurrent();
+            },
+            popup_alternate: () => {
+              if (busy) return false;
+              setShowUnderMinGate(false);
+              setShowDetails(true);
+            },
+          },
         }
-        if (event.key === "Enter" && !event.shiftKey) {
-          if (isEditableTarget(event.target)) return;
-          event.preventDefault();
-          void endWithoutSavingCurrent();
+      : null
+  );
+
+  useShortcutLayer(
+    open && !showUnderMinGate && !showUnderMinAlert
+      ? {
+          priority: 510,
+          allowInEditable: true,
+          handlers: {
+            popup_close: () => {
+              if (busy) return false;
+              onClose();
+            },
+            popup_primary: () => {
+              if (busy) return false;
+              void saveAndStop();
+            },
+            popup_destructive: () => {
+              if (busy) return false;
+              void discardCurrent();
+            },
+            popup_alternate: () => {
+              if (busy) return false;
+              setShowDetails((prev) => !prev);
+            },
+          },
         }
-        return;
-      }
-      if (event.key === "Escape") {
-        event.preventDefault();
-        onClose();
-        return;
-      }
-      const isSaveKey =
-        (event.key === "Enter" && !event.shiftKey) || event.key === " " || event.key === "Spacebar";
-      if (isSaveKey) {
-        if (isEditableTarget(event.target)) return;
-        event.preventDefault();
-        void saveAndStop();
-      }
-    };
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
-  }, [busy, endWithoutSavingCurrent, onClose, open, saveAndStop, showUnderMinAlert, showUnderMinGate]);
+      : null
+  );
 
   if (!open) return null;
 
@@ -434,11 +476,15 @@ export function SessionStopModal({
           <h3>{lang === "ko" ? "종료하시겠습니까?" : "Finish session?"}</h3>
           {showUnderMinGate ? (
             <small className="muted">
-              {lang === "ko" ? "Enter 저장하지 않고 종료 · Esc/Space 닫기" : "Enter ends without save · Esc/Space closes"}
+              {lang === "ko"
+                ? `기본 ${shortcutText("popup_primary")} · 시간 지정 ${shortcutText("popup_alternate")} · 닫기 ${shortcutText("popup_close")}`
+                : `Primary ${shortcutText("popup_primary")} · Alternate ${shortcutText("popup_alternate")} · Close ${shortcutText("popup_close")}`}
             </small>
           ) : (
             <small className="muted">
-              {lang === "ko" ? "Enter/Space 저장 · Esc 닫기" : "Enter/Space to save · Esc to close"}
+              {lang === "ko"
+                ? `저장 ${shortcutText("popup_primary")} · 미저장 종료 ${shortcutText("popup_destructive")} · 닫기 ${shortcutText("popup_close")}`
+                : `Save ${shortcutText("popup_primary")} · Discard ${shortcutText("popup_destructive")} · Close ${shortcutText("popup_close")}`}
             </small>
           )}
 
@@ -743,19 +789,7 @@ export function SessionStopModal({
             className="ghost-btn danger-border"
             data-testid={`${testIdPrefix}-stop-discard`}
             disabled={busy}
-            onClick={async () => {
-              try {
-                setBusy(true);
-                await discardSession({ chain_mode: chainSavedSegments.length > 0 ? "all" : "last" });
-                notify(lang === "ko" ? "저장하지 않고 종료했습니다." : "Session ended without saving.", "info");
-                await onDiscarded?.();
-                onClose();
-              } catch (error) {
-                notify(error instanceof Error ? error.message : "Discard failed", "error");
-              } finally {
-                setBusy(false);
-              }
-            }}
+            onClick={() => void discardCurrent()}
           >
             {lang === "ko" ? "저장하지 않고 종료" : "End Without Save"}
           </button>

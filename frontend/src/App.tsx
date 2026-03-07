@@ -49,7 +49,9 @@ import { SongsPage } from "./pages/SongsPage";
 import { XPPage } from "./pages/XPPage";
 import { TutorialOverlay } from "./components/tutorial/TutorialOverlay";
 import { SessionStopModal } from "./components/session/SessionStopModal";
-import { MetronomePipPanel, MetronomeProvider } from "./metronome";
+import { MetronomePipPanel, MetronomeProvider, useMetronome } from "./metronome";
+import { ShortcutRouterProvider, useShortcutLayer, useShortcutRouter } from "./shortcutRouter";
+import type { ShortcutActionId } from "./keyboardShortcuts";
 import { CORE_CAMPAIGN_ID, getTutorialCampaign } from "./tutorial/campaigns";
 import type { TutorialCampaign } from "./tutorial/types";
 import { configureGenreCatalog } from "./genreCatalog";
@@ -120,6 +122,22 @@ type SessionPipDragState = {
   width: number;
   height: number;
 };
+
+const TAB_SHORTCUT_ACTIONS: Array<{ action: ShortcutActionId; tab: TabId }> = [
+  { action: "tab_dashboard", tab: "dashboard" },
+  { action: "tab_practice", tab: "practice" },
+  { action: "tab_gallery", tab: "gallery" },
+  { action: "tab_songs", tab: "songs" },
+  { action: "tab_drills", tab: "drills" },
+  { action: "tab_recommend", tab: "recommend" },
+  { action: "tab_review", tab: "review" },
+  { action: "tab_xp", tab: "xp" },
+  { action: "tab_sessions", tab: "sessions" },
+  { action: "tab_quests", tab: "quests" },
+  { action: "tab_achievements", tab: "achievements" },
+  { action: "tab_tools", tab: "tools" },
+  { action: "tab_settings", tab: "settings" },
+];
 
 function preventBrowserReload() {
   window.addEventListener("keydown", (event) => {
@@ -199,7 +217,7 @@ function clampPipPosition(position: SessionPipPosition, width: number, height: n
 
 const PRACTICE_SCROLL_STORAGE_KEY = "bassos.practice.scrollTop.v1";
 
-export default function App() {
+function AppBody() {
   const [tab, setTab] = useState<TabId>("dashboard");
   const [navOpen, setNavOpen] = useState<Record<NavGroupId, boolean>>({
     tools: false,
@@ -248,12 +266,18 @@ export default function App() {
   const isPracticeScrollRestoringRef = useRef(false);
   const sessionPipRef = useRef<HTMLDivElement | null>(null);
   const sessionPipDragRef = useRef<SessionPipDragState | null>(null);
+  const shortcutRouter = useShortcutRouter();
+  const metronome = useMetronome();
 
   const lang = (settings?.ui?.language ?? "ko") as Lang;
   const xpDisplayScale = getXpDisplayScale(settings);
   const activeSessionId = hud?.active_session?.session_id || "";
   const activeSessionStartMs = hud?.active_session?.start_at ? new Date(hud.active_session.start_at).getTime() : 0;
   const activeSessionSongId = String(hud?.active_session?.song_library_id || "");
+
+  useEffect(() => {
+    shortcutRouter.setBindings(settings?.ui?.keyboard_shortcuts);
+  }, [settings?.ui?.keyboard_shortcuts, shortcutRouter]);
 
   const handleSessionPipVideoChange = (payload: SessionPipVideoPayload | null) => {
     if (!payload) {
@@ -781,15 +805,6 @@ export default function App() {
   }, [activeFx]);
 
   useEffect(() => {
-    if (!activeFx) return;
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setActiveFx(null);
-    };
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
-  }, [activeFx]);
-
-  useEffect(() => {
     if (!activeSessionId || !activeSessionStartMs) {
       setSessionPipElapsedSec(0);
       setShowGlobalStopModal(false);
@@ -974,6 +989,79 @@ export default function App() {
     [lang]
   );
 
+  useShortcutLayer({
+    priority: 100,
+    handlers: Object.fromEntries(
+      TAB_SHORTCUT_ACTIONS.map(({ action, tab: nextTab }) => [
+        action,
+        () => {
+          switchTab(nextTab);
+        },
+      ])
+    ) as Partial<Record<ShortcutActionId, (event: KeyboardEvent) => void>>,
+  });
+
+  useShortcutLayer(
+    activeFx
+      ? {
+          priority: 650,
+          allowInEditable: true,
+          handlers: {
+            popup_close: () => {
+              setActiveFx(null);
+            },
+          },
+        }
+      : null
+  );
+
+  useShortcutLayer(
+    activeSessionId && tab !== "practice"
+      ? {
+          priority: 400,
+          allowInEditable: true,
+          handlers: {
+            metronome_toggle: () => {
+              void metronome.toggle();
+            },
+            video_toggle: () => {
+              if (!sessionPipVideoControls?.canControl) return false;
+              sessionPipVideoControls.togglePlayback();
+            },
+            video_restart: () => {
+              if (!sessionPipVideoControls?.canControl) return false;
+              sessionPipVideoControls.restart();
+            },
+            video_pin_save: () => {
+              if (!sessionPipVideoControls?.canControl) return false;
+              sessionPipVideoControls.savePinAtCurrent();
+            },
+            video_pin_jump: () => {
+              if (!sessionPipVideoControls?.canControl) return false;
+              sessionPipVideoControls.jumpToPin();
+            },
+            video_pin_clear: () => {
+              if (!sessionPipVideoControls?.canControl) return false;
+              sessionPipVideoControls.clearPin();
+            },
+            pip_video_toggle: () => {
+              if (!sessionPipVideo) return false;
+              setSessionPipVideoOpen((prev) => !prev);
+            },
+            pip_collapse_toggle: () => {
+              setSessionPipCollapsed((prev) => !prev);
+            },
+            pip_open_studio: () => {
+              switchTab("practice");
+            },
+            pip_stop_session: () => {
+              setShowGlobalStopModal(true);
+            },
+          },
+        }
+      : null
+  );
+
   const globalStopDrills = useMemo(() => {
     if (!catalogs) return [];
     const seen = new Set<string>();
@@ -1072,8 +1160,7 @@ export default function App() {
   const startupTheme = settings.profile.onboarded ? settings.ui.default_theme ?? "studio" : "studio";
 
   return (
-    <MetronomeProvider>
-      <div className={`app-root theme-${startupTheme}`}>
+    <div className={`app-root theme-${startupTheme}`}>
         {!settings.profile.onboarded ? (
           <OnboardingWizard
             lang={lang}
@@ -1192,6 +1279,7 @@ export default function App() {
                     <button
                       type="button"
                       className="ghost-btn compact-add-btn"
+                      data-testid="global-session-pip-collapse"
                       onClick={() => setSessionPipCollapsed((prev) => !prev)}
                     >
                       {sessionPipCollapsed ? (lang === "ko" ? "펼치기" : "Expand") : (lang === "ko" ? "접기" : "Collapse")}
@@ -1199,6 +1287,7 @@ export default function App() {
                     <button
                       type="button"
                       className="ghost-btn compact-add-btn"
+                      data-testid="global-session-pip-studio"
                       onClick={() => switchTab("practice")}
                       title={lang === "ko" ? "연습 스튜디오로 이동" : "Go to practice studio"}
                     >
@@ -1207,6 +1296,7 @@ export default function App() {
                     <button
                       type="button"
                       className={`ghost-btn compact-add-btn ${sessionPipVideoOpen ? "active-mini" : ""}`}
+                      data-testid="global-session-pip-video-toggle"
                       onClick={() => setSessionPipVideoOpen((prev) => !prev)}
                       disabled={!sessionPipVideo}
                     >
@@ -1603,6 +1693,15 @@ export default function App() {
           ) : null}
         </main>
       </div>
+  );
+}
+
+export default function App() {
+  return (
+    <MetronomeProvider>
+      <ShortcutRouterProvider>
+        <AppBody />
+      </ShortcutRouterProvider>
     </MetronomeProvider>
   );
 }

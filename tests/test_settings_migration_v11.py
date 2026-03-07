@@ -49,7 +49,7 @@ def test_migrate_v11_existing_user_defaults_to_legacy_and_cleans_removed_keys(tm
     storage.migrate_files()
     migrated = storage.read_json("settings.json")
 
-    assert int(migrated.get("policy_version", 0)) == 13
+    assert int(migrated.get("policy_version", 0)) == 14
     ui = migrated["ui"]
     profile = migrated["profile"]
 
@@ -106,7 +106,7 @@ def test_migrate_v11_new_user_defaults_to_focus_and_seeds_layouts(tmp_path: Path
     storage.migrate_files()
     migrated = storage.read_json("settings.json")
 
-    assert int(migrated.get("policy_version", 0)) == 13
+    assert int(migrated.get("policy_version", 0)) == 14
     ui = migrated["ui"]
     assert ui.get("dashboard_version") == "focus"
 
@@ -265,6 +265,7 @@ def test_migrate_v11_seeds_new_ui_notification_and_fx_keys(tmp_path: Path):
     assert ui["fx_session_complete_quick"] is False
     assert ui["fx_claim_achievement"] is True
     assert ui["fx_claim_quest"] is True
+    assert ui["keyboard_shortcuts"]["bindings"]["metronome_toggle"]["code"] == "KeyM"
 
 
 def test_migrate_v11_normalizes_native_pip_mode_to_mini(tmp_path: Path):

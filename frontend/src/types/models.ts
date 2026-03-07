@@ -583,6 +583,50 @@ export type GenreGroup = {
   values: string[];
 };
 
+export type ShortcutBinding = {
+  code: string;
+  ctrl?: boolean;
+  alt?: boolean;
+  shift?: boolean;
+};
+
+export type ShortcutActionId =
+  | "tab_dashboard"
+  | "tab_practice"
+  | "tab_gallery"
+  | "tab_songs"
+  | "tab_drills"
+  | "tab_recommend"
+  | "tab_review"
+  | "tab_xp"
+  | "tab_sessions"
+  | "tab_quests"
+  | "tab_achievements"
+  | "tab_tools"
+  | "tab_settings"
+  | "video_toggle"
+  | "video_restart"
+  | "video_fullscreen"
+  | "video_pin_save"
+  | "video_pin_jump"
+  | "video_pin_clear"
+  | "score_zoom"
+  | "score_prev"
+  | "score_next"
+  | "metronome_toggle"
+  | "pip_video_toggle"
+  | "pip_collapse_toggle"
+  | "pip_open_studio"
+  | "pip_stop_session"
+  | "popup_primary"
+  | "popup_close"
+  | "popup_destructive"
+  | "popup_alternate";
+
+export type KeyboardShortcutSettings = {
+  bindings: Record<ShortcutActionId, ShortcutBinding | null>;
+};
+
 export type Settings = {
   ui: {
     default_theme: string;
@@ -617,6 +661,7 @@ export type Settings = {
     >;
     dashboard_layout_legacy?: Record<string, DashboardLayoutItem>;
     dashboard_layout_focus?: Record<string, DashboardLayoutItem>;
+    keyboard_shortcuts?: KeyboardShortcutSettings;
   };
   audio: {
     enabled: boolean;

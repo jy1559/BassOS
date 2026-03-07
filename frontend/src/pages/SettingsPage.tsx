@@ -25,6 +25,20 @@ import type {
   MockDatasetInfo,
   Settings,
 } from "../types/models";
+import {
+  DEFAULT_KEYBOARD_SHORTCUT_SETTINGS,
+  DEFAULT_SHORTCUT_BINDINGS,
+  SHORTCUT_ACTIONS,
+  SHORTCUT_GROUP_LABELS,
+  eventToShortcutBinding,
+  findShortcutConflict,
+  formatShortcutBinding,
+  normalizeKeyboardShortcutSettings,
+  shortcutMetaById,
+  type ShortcutActionId,
+  type ShortcutBinding,
+  type ShortcutGroupId,
+} from "../keyboardShortcuts";
 import { AchievementAdminPanel } from "./settings/AchievementAdminPanel";
 import { buildGenreGroups, normalizeGenre, normalizeGenreGroups } from "../genreCatalog";
 import { formatDisplayXp, getXpDisplayScale } from "../utils/xpDisplay";
@@ -45,6 +59,7 @@ type SectionId =
   | "basic"
   | "appearance"
   | "soundMotion"
+  | "keyboard"
   | "dashboard"
   | "goals"
   | "quests"
@@ -91,6 +106,7 @@ const SECTION_ORDER: SectionId[] = [
   "basic",
   "appearance",
   "soundMotion",
+  "keyboard",
   "dashboard",
   "goals",
   "quests",
@@ -101,6 +117,8 @@ const SECTION_ORDER: SectionId[] = [
   "misc",
   "developer",
 ];
+
+const SHORTCUT_GROUP_ORDER: ShortcutGroupId[] = ["tabs", "video", "metronome", "pin", "pip", "popup"];
 
 const DEFAULT_SONG_GENRES = [
   "Rock",
@@ -377,6 +395,7 @@ function makeSectionRefMap(): Record<SectionId, HTMLElement | null> {
     basic: null,
     appearance: null,
     soundMotion: null,
+    keyboard: null,
     dashboard: null,
     goals: null,
     quests: null,
@@ -417,6 +436,7 @@ export function SettingsPage({ lang, settings, hud, unlockables, onSettingsChang
     basic: false,
     appearance: false,
     soundMotion: false,
+    keyboard: false,
     dashboard: false,
     goals: false,
     quests: false,
@@ -427,6 +447,9 @@ export function SettingsPage({ lang, settings, hud, unlockables, onSettingsChang
     misc: true,
     developer: true,
   });
+  const normalizedShortcutSettings = useMemo(() => normalizeKeyboardShortcutSettings(ui.keyboard_shortcuts), [ui.keyboard_shortcuts]);
+  const [capturingShortcutId, setCapturingShortcutId] = useState<ShortcutActionId | null>(null);
+  const [keyboardConflictText, setKeyboardConflictText] = useState("");
 
   const [nicknameDraft, setNicknameDraft] = useState(String(profile.nickname || ""));
   const [newGenre, setNewGenre] = useState("");
@@ -571,6 +594,11 @@ export function SettingsPage({ lang, settings, hud, unlockables, onSettingsChang
         keywords: ["audio", "sound", "motion", "animation", "volume"],
       },
       {
+        id: "keyboard" as const,
+        title: lang === "ko" ? "키보드 단축키" : "Keyboard Shortcuts",
+        keywords: ["keyboard", "shortcut", "hotkey", "video", "pip", "metronome", "tab"],
+      },
+      {
         id: "dashboard" as const,
         title: lang === "ko" ? "대시보드" : "Dashboard",
         keywords: ["dashboard", "layout", "glass", "hud"],
@@ -655,6 +683,88 @@ export function SettingsPage({ lang, settings, hud, unlockables, onSettingsChang
       setMessage(getErrorMessage(error, lang === "ko" ? "관리자 설정 저장 실패" : "Failed to save admin settings"));
     }
   };
+
+  const keyboardActionGroups = useMemo(
+    () =>
+      SHORTCUT_GROUP_ORDER.map((groupId) => ({
+        id: groupId,
+        title: SHORTCUT_GROUP_LABELS[groupId][lang],
+        items: SHORTCUT_ACTIONS.filter((item) => item.group === groupId),
+      })),
+    [lang]
+  );
+
+  const saveShortcutBinding = async (actionId: ShortcutActionId, binding: ShortcutBinding | null) => {
+    setKeyboardConflictText("");
+    setCapturingShortcutId(null);
+    const actionLabel = shortcutMetaById(actionId).label[lang];
+    await applyBasicPatch(
+      {
+        ui: {
+          keyboard_shortcuts: {
+            bindings: {
+              [actionId]: binding,
+            },
+          },
+        },
+      },
+      lang === "ko" ? `${actionLabel} 단축키 저장 완료` : `${actionLabel} shortcut saved`
+    );
+  };
+
+  const resetAllShortcutBindings = async () => {
+    setKeyboardConflictText("");
+    setCapturingShortcutId(null);
+    await applyBasicPatch(
+      {
+        ui: {
+          keyboard_shortcuts: DEFAULT_KEYBOARD_SHORTCUT_SETTINGS,
+        },
+      },
+      lang === "ko" ? "키보드 단축키 기본값 복원 완료" : "Keyboard shortcuts reset to defaults"
+    );
+  };
+
+  useEffect(() => {
+    if (!capturingShortcutId) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      event.preventDefault();
+      event.stopPropagation();
+      event.stopImmediatePropagation?.();
+
+      const isBareEscape = event.key === "Escape" && !event.ctrlKey && !event.altKey && !event.shiftKey && !event.metaKey;
+      if (isBareEscape) {
+        setCapturingShortcutId(null);
+        setKeyboardConflictText("");
+        return;
+      }
+      const isClearKey =
+        (event.key === "Delete" || event.key === "Backspace") &&
+        !event.ctrlKey &&
+        !event.altKey &&
+        !event.shiftKey &&
+        !event.metaKey;
+      if (isClearKey) {
+        void saveShortcutBinding(capturingShortcutId, null);
+        return;
+      }
+      const binding = eventToShortcutBinding(event);
+      if (!binding) return;
+      const conflictId = findShortcutConflict(normalizedShortcutSettings.bindings, binding, capturingShortcutId);
+      if (conflictId) {
+        const conflictLabel = shortcutMetaById(conflictId).label[lang];
+        setKeyboardConflictText(
+          lang === "ko"
+            ? `${formatShortcutBinding(binding, lang)} 는 이미 "${conflictLabel}"에 사용 중입니다.`
+            : `${formatShortcutBinding(binding, lang)} is already used by "${conflictLabel}".`
+        );
+        return;
+      }
+      void saveShortcutBinding(capturingShortcutId, binding);
+    };
+    window.addEventListener("keydown", onKeyDown, true);
+    return () => window.removeEventListener("keydown", onKeyDown, true);
+  }, [capturingShortcutId, lang, normalizedShortcutSettings.bindings]);
 
   const persistGenreConfig = async (
     nextGenres: string[],
@@ -1679,6 +1789,88 @@ export function SettingsPage({ lang, settings, hud, unlockables, onSettingsChang
                 </label>
               </div>
             </div>
+          </>
+        )}
+
+        {renderSection(
+          "keyboard",
+          lang === "ko" ? "주요 탭/PiP/팝업 단축키를 설정합니다." : "Configure major tab, PiP, and popup shortcuts.",
+          <>
+            <small className="muted">
+              {lang === "ko"
+                ? "단축키 입력 중에는 다른 앱 단축키보다 우선합니다. F5 / Ctrl+R 는 예약되어 변경할 수 없습니다."
+                : "Shortcut capture takes priority. F5 / Ctrl+R remain reserved and cannot be assigned."}
+            </small>
+            {keyboardConflictText ? <div className="settings-inline-error">{keyboardConflictText}</div> : null}
+            <div className="row settings-shortcut-toolbar">
+              <button className="ghost-btn" data-testid="keyboard-reset-all" onClick={() => void resetAllShortcutBindings()}>
+                {lang === "ko" ? "기본값 전체 복원" : "Reset All To Defaults"}
+              </button>
+              <small className="muted">
+                {capturingShortcutId
+                  ? lang === "ko"
+                    ? `${shortcutMetaById(capturingShortcutId).label[lang]} 입력 대기 중 · Esc 취소 · Delete/Backspace 비우기`
+                    : `Listening for ${shortcutMetaById(capturingShortcutId).label[lang]} · Esc cancels · Delete/Backspace clears`
+                  : lang === "ko"
+                    ? "변경을 누른 뒤 원하는 키를 입력하세요."
+                    : "Click change and press the key combination you want."}
+              </small>
+            </div>
+            {keyboardActionGroups.map((group) => (
+              <div key={group.id} className="settings-shortcut-group">
+                <strong>{group.title}</strong>
+                <div className="settings-shortcut-list">
+                  {group.items.map((item) => {
+                    const binding = normalizedShortcutSettings.bindings[item.id];
+                    const capturing = capturingShortcutId === item.id;
+                    return (
+                      <div
+                        key={item.id}
+                        className={`settings-shortcut-row ${capturing ? "capturing" : ""}`}
+                        data-testid={`keyboard-shortcut-row-${item.id}`}
+                      >
+                        <span className="settings-shortcut-copy">
+                          <strong>{item.label[lang]}</strong>
+                          <small className="muted">{item.description[lang]}</small>
+                        </span>
+                        <code className="settings-shortcut-binding">
+                          {capturing ? (lang === "ko" ? "입력 대기 중..." : "Listening...") : formatShortcutBinding(binding, lang)}
+                        </code>
+                        <div className="settings-shortcut-actions">
+                          <button
+                            type="button"
+                            className={`ghost-btn compact-add-btn ${capturing ? "active-mini" : ""}`}
+                            data-testid={`keyboard-shortcut-change-${item.id}`}
+                            onClick={() => {
+                              setKeyboardConflictText("");
+                              setCapturingShortcutId((prev) => (prev === item.id ? null : item.id));
+                            }}
+                          >
+                            {capturing ? (lang === "ko" ? "취소" : "Cancel") : lang === "ko" ? "변경" : "Change"}
+                          </button>
+                          <button
+                            type="button"
+                            className="ghost-btn compact-add-btn"
+                            data-testid={`keyboard-shortcut-reset-${item.id}`}
+                            onClick={() => void saveShortcutBinding(item.id, DEFAULT_SHORTCUT_BINDINGS[item.id] ? { ...DEFAULT_SHORTCUT_BINDINGS[item.id]! } : null)}
+                          >
+                            {lang === "ko" ? "초기화" : "Reset"}
+                          </button>
+                          <button
+                            type="button"
+                            className="ghost-btn compact-add-btn danger-border"
+                            data-testid={`keyboard-shortcut-clear-${item.id}`}
+                            onClick={() => void saveShortcutBinding(item.id, null)}
+                          >
+                            {lang === "ko" ? "비우기" : "Clear"}
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
           </>
         )}
 

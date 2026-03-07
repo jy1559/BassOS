@@ -35,3 +35,27 @@ def test_append_csv_row_keeps_single_bom(tmp_path: Path):
     raw = (storage.paths.runtime_data / "events.csv").read_bytes()
     assert raw.startswith(b"\xef\xbb\xbf")
     assert raw.count(b"\xef\xbb\xbf") == 1
+
+
+def test_settings_migration_normalizes_keyboard_shortcuts(tmp_path: Path):
+    storage = _build_storage(tmp_path)
+    storage.write_json(
+        "settings.json",
+        {
+            "ui": {
+                "keyboard_shortcuts": {
+                    "bindings": {
+                        "video_toggle": {"code": "ShiftLeft"},
+                        "metronome_toggle": {"code": "KeyT"},
+                    }
+                }
+            }
+        },
+    )
+
+    storage.migrate_files()
+    settings = storage.read_json("settings.json")
+    bindings = settings["ui"]["keyboard_shortcuts"]["bindings"]
+    assert bindings["video_toggle"]["code"] == "Space"
+    assert bindings["metronome_toggle"]["code"] == "KeyT"
+    assert bindings["popup_close"]["code"] == "Escape"

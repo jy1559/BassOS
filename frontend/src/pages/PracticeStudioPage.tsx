@@ -2,6 +2,8 @@
 import { getRecords, getSessions, retargetSession, startSession, stopSession, switchSession } from "../api";
 import { SessionStopModal } from "../components/session/SessionStopModal";
 import type { Lang } from "../i18n";
+import { formatShortcutBinding, type ShortcutActionId } from "../keyboardShortcuts";
+import { useShortcutLayer, useShortcutRouter } from "../shortcutRouter";
 import type { HudSummary, RecordPost, SessionItem, SessionStopResult } from "../types/models";
 import { formatDisplayXp } from "../utils/xpDisplay";
 import { GlobalMetronomeDock, useMetronome } from "../metronome";
@@ -27,6 +29,7 @@ export type SessionPipVideoControlPayload = {
   togglePlayback: () => void;
   savePinAtCurrent: () => void;
   jumpToPin: () => void;
+  clearPin: () => void;
   restart: () => void;
 };
 
@@ -631,6 +634,7 @@ export function PracticeStudioPage({
   xpDisplayScale = 50,
 }: Props) {
   const metronome = useMetronome();
+  const shortcutRouter = useShortcutRouter();
   const [sessions, setSessions] = useState<SessionItem[]>([]);
   const [practiceType, setPracticeType] = useState<PracticeType>(hud.active_session?.drill_id ? "drill" : "song");
   const [songId, setSongId] = useState(hud.active_session?.song_library_id ?? "");
@@ -691,6 +695,8 @@ export function PracticeStudioPage({
   const prevSelectedSongIdRef = useRef(String(hud.active_session?.song_library_id || ""));
   const activeStart = hud.active_session?.start_at ? new Date(hud.active_session.start_at).getTime() : 0;
   const setMetronomeProfileKey = metronome.setProfileKey;
+  const shortcutBindings = shortcutRouter.bindings.bindings;
+  const shortcutText = (actionId: ShortcutActionId) => formatShortcutBinding(shortcutBindings[actionId], lang);
 
   useEffect(() => {
     void getSessions(1000).then(setSessions).catch(() => undefined);
@@ -1399,41 +1405,66 @@ export function PracticeStudioPage({
     return false;
   };
 
-  useEffect(() => {
-    if (!pendingSwitchPrompt || showSwitchTimeEditor) return;
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (isEditableTarget(event.target)) return;
-      if (event.key === "Escape") {
-        event.preventDefault();
-        closePendingSwitchPrompt();
-        return;
-      }
-      if (pendingSwitchPrompt.underMin && (event.key === " " || event.key === "Spacebar")) {
-        event.preventDefault();
-        closePendingSwitchPrompt();
-        return;
-      }
-      if (event.key === "Enter" && !event.shiftKey) {
-        event.preventDefault();
-        void confirmPendingSwitch();
-      }
-    };
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
-  }, [pendingSwitchPrompt, showSwitchTimeEditor]);
+  useShortcutLayer(
+    pendingSwitchPrompt && !showSwitchTimeEditor
+      ? {
+          priority: 520,
+          allowInEditable: true,
+          handlers: {
+            popup_close: () => {
+              closePendingSwitchPrompt();
+            },
+            popup_primary: () => {
+              void confirmPendingSwitch();
+            },
+            popup_destructive: () => {
+              if (!pendingSwitchPrompt.underMin) return false;
+              void confirmPendingSwitch();
+            },
+            popup_alternate: () => {
+              if (!pendingSwitchPrompt.underMin) return false;
+              openSwitchTimeEditor();
+            },
+          },
+        }
+      : null
+  );
 
-  useEffect(() => {
-    if (!showSwitchTimeEditor) return;
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (switchTimeBusy) return;
-      if (event.key === "Escape") {
-        event.preventDefault();
-        closeSwitchTimeEditor();
-      }
-    };
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
-  }, [showSwitchTimeEditor, switchTimeBusy]);
+  useShortcutLayer(
+    showSwitchTimeEditor
+      ? {
+          priority: 530,
+          allowInEditable: true,
+          handlers: {
+            popup_close: () => {
+              if (switchTimeBusy) return false;
+              closeSwitchTimeEditor();
+            },
+            popup_primary: () => {
+              if (switchTimeBusy) return false;
+              void saveSwitchTimeAndSwitch();
+            },
+          },
+        }
+      : null
+  );
+
+  useShortcutLayer(
+    showSwitchTimeUnderMinAlert
+      ? {
+          priority: 540,
+          allowInEditable: true,
+          handlers: {
+            popup_close: () => {
+              setShowSwitchTimeUnderMinAlert(false);
+            },
+            popup_primary: () => {
+              setShowSwitchTimeUnderMinAlert(false);
+            },
+          },
+        }
+      : null
+  );
 
   const startTargetSession = async () => {
     const hasActive = Boolean(hud.active_session?.session_id);
@@ -1984,99 +2015,91 @@ export function PracticeStudioPage({
       }
     }
   }, [zoomAsset, selectedScoreImage, songScorePdf, scorePdfPage]);
+  const practiceShortcutModalOpen =
+    showStopModal || Boolean(pendingSwitchPrompt) || showSwitchTimeEditor || showSwitchTimeUnderMinAlert;
+  const hasSongVideoShortcutTarget = practiceType === "song" && Boolean(songDirectVideo || songEmbed);
 
-  useEffect(() => {
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (!isActive) return;
-      if (showStopModal || pendingSwitchPrompt || showSwitchTimeEditor || showSwitchTimeUnderMinAlert) return;
-      if (isEditableTarget(event.target)) return;
-      const isSpaceKey = event.key === " " || event.key === "Spacebar" || event.code === "Space";
-      if (!isSpaceKey) return;
-      if (activePlaybackSurface === "metronome") {
-        event.preventDefault();
-        void metronome.toggle();
-        return;
-      }
-      if (activePlaybackSurface === "video" && practiceType === "song") {
-        event.preventDefault();
-        toggleSongVideoPlayback();
-      }
-    };
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
-  }, [
-    isActive,
-    showStopModal,
-    pendingSwitchPrompt,
-    showSwitchTimeEditor,
-    showSwitchTimeUnderMinAlert,
-    activePlaybackSurface,
-    practiceType,
-    metronome,
-    songEmbed,
-    songDirectVideo,
-    songYoutubePlayerState,
-    isSongVideoPlaying,
-  ]);
+  useShortcutLayer(
+    isActive && !practiceShortcutModalOpen
+      ? {
+          priority: 300,
+          handlers: {
+            metronome_toggle: () => {
+              void metronome.toggle();
+            },
+            video_toggle: () => {
+              if (!hasSongVideoShortcutTarget) return false;
+              toggleSongVideoPlayback();
+            },
+            video_restart: () => {
+              if (!hasSongVideoShortcutTarget) return false;
+              resetSongVideoToStart();
+            },
+            video_fullscreen: () => {
+              if (!hasSongVideoShortcutTarget) return false;
+              toggleSongVideoFullscreen();
+            },
+            video_pin_save: () => {
+              if (!hasSongVideoShortcutTarget) return false;
+              saveSongVideoPinAtCurrent();
+            },
+            video_pin_jump: () => {
+              if (!hasSongVideoShortcutTarget) return false;
+              jumpSongVideoToPin();
+            },
+            video_pin_clear: () => {
+              if (!hasSongVideoShortcutTarget || songVideoPinSec === null) return false;
+              clearSongVideoPin();
+            },
+            score_zoom: () => {
+              if (practiceType !== "song") return false;
+              if (zoomAsset) {
+                setZoomAsset(null);
+              } else {
+                openScoreZoom();
+              }
+            },
+            score_prev: () => {
+              if (practiceType !== "song") return false;
+              if (zoomAsset?.kind === "image" || (scoreContentTab === "images" && songScoreImages.length)) {
+                shiftScoreImage(-1);
+                return;
+              }
+              if (zoomAsset?.kind === "pdf" || (scoreContentTab === "pdf" && songScorePdf)) {
+                shiftScorePdfPage(-1);
+                return;
+              }
+              return false;
+            },
+            score_next: () => {
+              if (practiceType !== "song") return false;
+              if (zoomAsset?.kind === "image" || (scoreContentTab === "images" && songScoreImages.length)) {
+                shiftScoreImage(1);
+                return;
+              }
+              if (zoomAsset?.kind === "pdf" || (scoreContentTab === "pdf" && songScorePdf)) {
+                shiftScorePdfPage(1);
+                return;
+              }
+              return false;
+            },
+          },
+        }
+      : null
+  );
 
-  useEffect(() => {
-    if (practiceType !== "song") return;
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape" && zoomAsset) {
-        event.preventDefault();
-        setZoomAsset(null);
-        return;
-      }
-      if (isEditableTarget(event.target)) return;
-      if (event.key === "ArrowLeft" || event.key === "ArrowRight") {
-        const direction: -1 | 1 = event.key === "ArrowLeft" ? -1 : 1;
-        if (zoomAsset?.kind === "image" || (scoreContentTab === "images" && songScoreImages.length)) {
-          event.preventDefault();
-          shiftScoreImage(direction);
-          return;
+  useShortcutLayer(
+    isActive && Boolean(zoomAsset) && !practiceShortcutModalOpen
+      ? {
+          priority: 340,
+          handlers: {
+            popup_close: () => {
+              setZoomAsset(null);
+            },
+          },
         }
-        if (zoomAsset?.kind === "pdf" || (scoreContentTab === "pdf" && songScorePdf)) {
-          event.preventDefault();
-          shiftScorePdfPage(direction);
-        }
-        return;
-      }
-      const key = event.key.toLowerCase();
-      if (key === "f") {
-        event.preventDefault();
-        toggleSongVideoFullscreen();
-        return;
-      }
-      if (key === "g") {
-        event.preventDefault();
-        if (zoomAsset) {
-          setZoomAsset(null);
-        } else {
-          openScoreZoom();
-        }
-        return;
-      }
-      if (key === "z") {
-        event.preventDefault();
-        resetSongVideoToStart();
-      }
-    };
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
-  }, [
-    practiceType,
-    scoreContentTab,
-    songScoreImages.length,
-    songScorePdf,
-    scorePdfSrc,
-    zoomAsset,
-    songDirectVideo,
-    songEmbed,
-    isSongVideoPlaying,
-    selectedScoreImage,
-    song?.title,
-    songScoreImages,
-  ]);
+      : null
+  );
 
   useEffect(() => {
     if (isActive) return;
@@ -2167,47 +2190,60 @@ export function PracticeStudioPage({
             <button
               type="button"
               className="ghost-btn compact-add-btn"
+              data-testid="studio-video-toggle"
               onClick={toggleSongVideoPlayback}
               disabled={!canControlEmbeddedVideo}
             >
               {songVideoPlaying
-                ? (lang === "ko" ? "일시정지 (Space)" : "Pause (Space)")
-                : (lang === "ko" ? "재생 (Space)" : "Play (Space)")}
+                ? (lang === "ko" ? `일시정지 · ${shortcutText("video_toggle")}` : `Pause · ${shortcutText("video_toggle")}`)
+                : (lang === "ko" ? `재생 · ${shortcutText("video_toggle")}` : `Play · ${shortcutText("video_toggle")}`)}
             </button>
             <button
               type="button"
               className="ghost-btn compact-add-btn"
+              data-testid="studio-video-restart"
               onClick={resetSongVideoToStart}
               disabled={!canControlEmbeddedVideo}
             >
-              {lang === "ko" ? "처음으로 (Z)" : "Restart (Z)"}
+              {lang === "ko" ? `처음으로 · ${shortcutText("video_restart")}` : `Restart · ${shortcutText("video_restart")}`}
             </button>
             <button
               type="button"
               className="ghost-btn compact-add-btn"
+              data-testid="studio-video-fullscreen"
               onClick={toggleSongVideoFullscreen}
               disabled={!canControlEmbeddedVideo}
             >
-              {lang === "ko" ? "영상 전체화면 (F)" : "Video Fullscreen (F)"}
+              {lang === "ko" ? `영상 전체화면 · ${shortcutText("video_fullscreen")}` : `Video Fullscreen · ${shortcutText("video_fullscreen")}`}
             </button>
             <button
               type="button"
               className="ghost-btn compact-add-btn"
+              data-testid="studio-video-pin-save"
               onClick={saveSongVideoPinAtCurrent}
               disabled={!canControlEmbeddedVideo}
             >
-              {lang === "ko" ? "핀 저장" : "Pin"}
+              {lang === "ko" ? `핀 저장 · ${shortcutText("video_pin_save")}` : `Pin · ${shortcutText("video_pin_save")}`}
             </button>
             <button
               type="button"
               className="ghost-btn compact-add-btn"
+              data-testid="studio-video-pin-jump"
               onClick={jumpSongVideoToPin}
               disabled={!canControlEmbeddedVideo}
             >
-              {songVideoPinSec === null ? (lang === "ko" ? "처음으로" : "Restart") : (lang === "ko" ? "핀으로" : "To Pin")}
+              {songVideoPinSec === null
+                ? (lang === "ko" ? `처음으로 · ${shortcutText("video_pin_jump")}` : `Restart · ${shortcutText("video_pin_jump")}`)
+                : (lang === "ko" ? `핀으로 · ${shortcutText("video_pin_jump")}` : `To Pin · ${shortcutText("video_pin_jump")}`)}
             </button>
-            <button type="button" className="ghost-btn compact-add-btn" onClick={clearSongVideoPin} disabled={songVideoPinSec === null}>
-              {lang === "ko" ? "핀 해제" : "Clear Pin"}
+            <button
+              type="button"
+              className="ghost-btn compact-add-btn"
+              data-testid="studio-video-pin-clear"
+              onClick={clearSongVideoPin}
+              disabled={songVideoPinSec === null}
+            >
+              {lang === "ko" ? `핀 해제 · ${shortcutText("video_pin_clear")}` : `Clear Pin · ${shortcutText("video_pin_clear")}`}
             </button>
           </div>
           {songVideoPinSec !== null ? (
@@ -2534,6 +2570,7 @@ export function PracticeStudioPage({
       togglePlayback: toggleSongVideoPlayback,
       savePinAtCurrent: saveSongVideoPinAtCurrent,
       jumpToPin: jumpSongVideoToPin,
+      clearPin: clearSongVideoPin,
       restart: resetSongVideoToStart,
     });
     return () => onSessionPipVideoControlChange(null);

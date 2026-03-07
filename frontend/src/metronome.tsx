@@ -1,5 +1,7 @@
 import { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { formatShortcutBinding } from "./keyboardShortcuts";
+import { useShortcutRouter } from "./shortcutRouter";
 
 type WaveKey = OscillatorType;
 type SubdivisionMode = "none" | "eighth" | "sixteenth" | "triplet";
@@ -468,11 +470,13 @@ export function MetronomePipPanel({
   forceVisible?: boolean;
 }) {
   const metro = useMetronome();
+  const shortcutRouter = useShortcutRouter();
   const beats = Array.from({ length: metro.signatureTop }).map((_, idx) => idx + 1);
   const accentSet = useMemo(() => parseAccentBeats(metro.accentInput, metro.signatureTop), [metro.accentInput, metro.signatureTop]);
   const visualBeat = Math.max(1, Math.floor((metro.visualStep - 1) / Math.max(1, metro.subdivisionStepsPerBeat)) + 1);
   const visualSubStep = (metro.visualStep - 1) % Math.max(1, metro.subdivisionStepsPerBeat);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const metronomeShortcut = formatShortcutBinding(shortcutRouter.bindings.bindings.metronome_toggle, "ko");
 
   useEffect(() => {
     if (!visible) setSettingsOpen(false);
@@ -513,8 +517,13 @@ export function MetronomePipPanel({
             {metro.bpm} BPM · {signatureLabel(metro.signatureTop, metro.signatureBottom)}
           </small>
           <div className="metronome-pip-side-actions">
-            <button type="button" className={metro.running ? "danger-btn" : "primary-btn"} onClick={() => void metro.toggle()}>
-              {metro.running ? "중지" : "시작"}
+            <button
+              type="button"
+              className={metro.running ? "danger-btn" : "primary-btn"}
+              data-testid={placement === "inline" ? "metronome-pip-toggle-inline" : "metronome-pip-toggle-floating"}
+              onClick={() => void metro.toggle()}
+            >
+              {metro.running ? `중지 · ${metronomeShortcut}` : `시작 · ${metronomeShortcut}`}
             </button>
             <button
               type="button"
@@ -596,12 +605,14 @@ export function MetronomePipPanel({
 
 export function GlobalMetronomeDock({ embedded = false }: { embedded?: boolean }) {
   const metro = useMetronome();
+  const shortcutRouter = useShortcutRouter();
   const [embeddedExpanded, setEmbeddedExpanded] = useState(false);
   const beats = Array.from({ length: metro.signatureTop }).map((_, idx) => idx + 1);
   const accentSet = useMemo(() => parseAccentBeats(metro.accentInput, metro.signatureTop), [metro.accentInput, metro.signatureTop]);
   const visualBeat = Math.max(1, Math.floor((metro.visualStep - 1) / Math.max(1, metro.subdivisionStepsPerBeat)) + 1);
   const visualSubStep = (metro.visualStep - 1) % Math.max(1, metro.subdivisionStepsPerBeat);
   const showDock = embedded ? embeddedExpanded : metro.open;
+  const metronomeShortcut = formatShortcutBinding(shortcutRouter.bindings.bindings.metronome_toggle, "ko");
   const toggleDock = () => {
     if (embedded) {
       setEmbeddedExpanded((prev) => !prev);
@@ -659,8 +670,12 @@ export function GlobalMetronomeDock({ embedded = false }: { embedded?: boolean }
               })}
             </div>
             <div className="metronome-main-actions">
-              <button className={metro.running ? "danger-btn" : "primary-btn"} onClick={() => void metro.toggle()}>
-                {metro.running ? "정지" : "시작"}
+              <button
+                className={metro.running ? "danger-btn" : "primary-btn"}
+                data-testid={embedded ? "studio-metronome-toggle" : "global-metronome-toggle"}
+                onClick={() => void metro.toggle()}
+              >
+                {metro.running ? `정지 · ${metronomeShortcut}` : `시작 · ${metronomeShortcut}`}
               </button>
               <small className="muted">Bar {metro.bar} · Beat {metro.beat}</small>
             </div>
