@@ -36,7 +36,13 @@ test("E2E-28 journal template apply, manual search, and threaded comments", asyn
   await expect(page.getByTestId("journal-template-manager")).toHaveCount(0);
 
   await page.getByRole("button", { name: /글쓰기|Write/i }).click();
-  const composer = page.getByTestId("journal-composer-modal");
+  let composer = page.getByTestId("journal-composer-modal");
+  await expect(composer).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(composer).toHaveCount(0);
+
+  await page.getByRole("button", { name: /글쓰기|Write/i }).click();
+  composer = page.getByTestId("journal-composer-modal");
   await expect(composer).toBeVisible();
   await composer.getByLabel(/템플릿|Template/i).selectOption({ label: templateName });
   const textarea = composer.locator(".journal-editor-textarea");
@@ -51,6 +57,8 @@ test("E2E-28 journal template apply, manual search, and threaded comments", asyn
   await composer.locator(".journal-slash-item", { hasText: /next-action/i }).click();
   await expect(textarea).toHaveValue(/## 다음 액션/);
   await composer.getByLabel(/제목|Title/i).fill(firstTitle);
+  await composer.locator(".journal-link-input-row input").fill("https://www.youtube.com/watch?v=dQw4w9WgXcQ");
+  await composer.locator(".journal-link-input-row").getByRole("button", { name: /추가|Add/i }).click();
   await composer.getByRole("button", { name: /게시글 등록|Publish/i }).click();
   await expect(page.locator(".journal-board-row", { hasText: firstTitle }).first()).toBeVisible();
 
@@ -78,6 +86,22 @@ test("E2E-28 journal template apply, manual search, and threaded comments", asyn
   await expect(detail).toBeVisible();
   await expect(detail.locator(".journal-badge", { hasText: headerName })).toBeVisible();
   await expect(detail).toContainText("E2E 템플릿");
+  await expect(detail.locator("iframe.journal-youtube-frame")).toHaveCount(1);
+  await page.keyboard.press("Escape");
+  await expect(detail).toHaveCount(0);
+
+  await page.locator(".journal-board-row", { hasText: firstTitle }).first().click();
+  await expect(detail).toBeVisible();
+  await detail.getByRole("button", { name: /수정|Edit/i }).click();
+  await expect(detail).toHaveCount(0);
+  composer = page.getByTestId("journal-composer-modal");
+  await expect(composer).toBeVisible();
+  await expect(composer.getByLabel(/제목|Title/i)).toHaveValue(firstTitle);
+  await page.keyboard.press("Escape");
+  await expect(composer).toHaveCount(0);
+
+  await page.locator(".journal-board-row", { hasText: firstTitle }).first().click();
+  await expect(detail).toBeVisible();
 
   await detail.locator(".journal-comment-write-box textarea").fill("상위 댓글");
   await detail.getByRole("button", { name: /댓글 등록|Post Comment/i }).click();

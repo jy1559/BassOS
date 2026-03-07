@@ -14,7 +14,7 @@ import { JournalComposerModal } from "../components/journal/JournalComposerModal
 import type { JournalComposerSubmitPayload } from "../components/journal/JournalComposerModal";
 import { JournalDetailOverlay } from "../components/journal/JournalDetailOverlay";
 import { JournalManagerModal } from "../components/journal/JournalManagerModal";
-import { excerptFromMarkdown, formatJournalDate, RECORD_VIEW_KEY, withAlpha } from "../components/journal/journalUtils";
+import { excerptFromMarkdown, formatJournalDate, getYouTubeThumbnailUrl, isYouTubeUrl, RECORD_VIEW_KEY, withAlpha } from "../components/journal/journalUtils";
 import type { Lang } from "../i18n";
 import type {
   JournalHeaderPreset,
@@ -167,7 +167,7 @@ export function GalleryPage({ lang, catalogs, settings, onSettingsChange, onRefr
   };
 
   const submitComposer = async (payload: JournalComposerSubmitPayload, files: File[]) => {
-    if (!payload.title.trim() && !payload.body.trim() && files.length === 0) {
+    if (!payload.title.trim() && !payload.body.trim() && files.length === 0 && payload.external_attachments.length === 0) {
       setMessage(lang === "ko" ? "제목/본문/첨부 중 하나는 입력하세요." : "Fill title/body or add attachment.");
       return;
     }
@@ -282,10 +282,11 @@ export function GalleryPage({ lang, catalogs, settings, onSettingsChange, onRefr
             {items.map((item) => {
               const attachment = firstAttachment(item);
               const thumbUrl = attachment ? mediaUrl(attachment.path, attachment.url) : "";
+              const youtubeThumbUrl = attachment?.media_type === "video" && isYouTubeUrl(thumbUrl) ? getYouTubeThumbnailUrl(thumbUrl) : "";
               return (
                 <article key={item.post_id} className="record-post-card card journal-gallery-card" onClick={() => void openDetail(item.post_id)}>
                   <div className="journal-gallery-card-head"><span className="journal-badge" style={{ borderColor: item.header_color || "#5c6e7c", background: withAlpha(item.header_color || "#5c6e7c", 0.14) }}>{item.header_label}</span><small>{formatJournalDate(item.created_at)}</small></div>
-                  {attachment && thumbUrl ? attachment.media_type === "image" ? <img src={thumbUrl} alt={item.title} className="journal-gallery-cover" /> : attachment.media_type === "video" ? <video src={thumbUrl} className="journal-gallery-cover" muted /> : <div className="journal-gallery-audio">♪</div> : <div className="journal-gallery-text-cover">{excerptFromMarkdown(item.body || "", 84) || (lang === "ko" ? "텍스트 기록" : "Text note")}</div>}
+                  {attachment && thumbUrl ? attachment.media_type === "image" ? <img src={thumbUrl} alt={item.title} className="journal-gallery-cover" /> : attachment.media_type === "video" ? youtubeThumbUrl ? <div className="journal-gallery-youtube-wrap"><img src={youtubeThumbUrl} alt={item.title} className="journal-gallery-cover" /><span className="journal-gallery-youtube-badge">YouTube</span></div> : <video src={thumbUrl} className="journal-gallery-cover" muted /> : <div className="journal-gallery-audio">♪</div> : <div className="journal-gallery-text-cover">{excerptFromMarkdown(item.body || "", 84) || (lang === "ko" ? "텍스트 기록" : "Text note")}</div>}
                   <strong>{item.title || (lang === "ko" ? "무제" : "Untitled")}</strong>
                   <p>{excerptFromMarkdown(item.body || "", 90)}</p>
                   <div className="journal-gallery-card-foot"><span className="journal-badge subtle" style={{ borderColor: item.status_color || "#66727d", background: withAlpha(item.status_color || "#66727d", 0.12) }}>{item.status_label}</span><small>{lang === "ko" ? `댓글 ${item.comment_count}` : `${item.comment_count} comments`}</small></div>
@@ -307,7 +308,7 @@ export function GalleryPage({ lang, catalogs, settings, onSettingsChange, onRefr
         onClose={() => { setDetailPostId(""); setDetailItem(null); }}
         onPrev={() => { if (canPrev) void openDetail(items[detailIndex - 1].post_id); }}
         onNext={() => { if (canNext) void openDetail(items[detailIndex + 1].post_id); }}
-        onEdit={(item) => { setEditingItem(item); setComposerOpen(true); }}
+        onEdit={(item) => { setEditingItem(item); setComposerOpen(true); setDetailPostId(""); setDetailItem(null); }}
         onDelete={async (item) => { await deletePost(item); }}
         onCreateComment={async (body, parentCommentId) => { if (!detailPostId) return; await createRecordComment(detailPostId, { body, parent_comment_id: parentCommentId }); await refreshDetail(); await loadItems(appliedFilters); }}
         onUpdateComment={async (commentId, body) => { if (!detailPostId) return; await updateRecordComment(detailPostId, commentId, { body }); await refreshDetail(); await loadItems(appliedFilters); }}

@@ -1104,6 +1104,16 @@ def test_records_crud_and_attachment_limit(tmp_path):
             "body": "템포 점검",
             "post_type": "연습영상",
             "tags": '["연습영상","회고"]',
+            "external_attachments": json.dumps(
+                [
+                    {
+                        "media_type": "video",
+                        "url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+                        "title": "유튜브 회고",
+                    }
+                ],
+                ensure_ascii=False,
+            ),
             "files": [
                 (io.BytesIO(b"fake-image-bytes"), "snap.png"),
                 (io.BytesIO(b"fake-audio-bytes"), "take.mp3"),
@@ -1113,7 +1123,18 @@ def test_records_crud_and_attachment_limit(tmp_path):
     )
     assert media_post.status_code == 200
     media_item = media_post.get_json()["item"]
-    assert len(media_item["attachments"]) == 2
+    assert len(media_item["attachments"]) == 3
+    assert any(
+        item["media_type"] == "video" and item["url"] == "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
+        for item in media_item["attachments"]
+    )
+
+    detail_res = client.get(f"/api/records/{media_item['post_id']}")
+    assert detail_res.status_code == 200
+    assert any(
+        item["media_type"] == "video" and item["url"] == "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
+        for item in detail_res.get_json()["item"]["attachments"]
+    )
 
     list_res = client.get("/api/records/list?q=연습")
     assert list_res.status_code == 200
@@ -1121,10 +1142,33 @@ def test_records_crud_and_attachment_limit(tmp_path):
 
     update_res = client.put(
         f"/api/records/{media_item['post_id']}",
-        json={"title": "연습 영상 수정", "tags": ["연습영상", "수정됨"]},
+        json={
+            "title": "연습 영상 수정",
+            "tags": ["연습영상", "수정됨"],
+            "external_attachments": [
+                {
+                    "media_type": "video",
+                    "url": "https://youtu.be/5qap5aO4i9A",
+                    "title": "두 번째 링크",
+                }
+            ],
+        },
     )
     assert update_res.status_code == 200
     assert update_res.get_json()["item"]["title"] == "연습 영상 수정"
+    assert len(update_res.get_json()["item"]["attachments"]) == 4
+    assert any(item["url"] == "https://youtu.be/5qap5aO4i9A" for item in update_res.get_json()["item"]["attachments"])
+
+    update_limit_res = client.put(
+        f"/api/records/{media_item['post_id']}",
+        json={
+            "external_attachments": [
+                {"media_type": "video", "url": f"https://www.youtube.com/watch?v=limit{idx}"}
+                for idx in range(5)
+            ]
+        },
+    )
+    assert update_limit_res.status_code == 400
 
     attachment_id = update_res.get_json()["item"]["attachments"][0]["attachment_id"]
     att_update = client.put(

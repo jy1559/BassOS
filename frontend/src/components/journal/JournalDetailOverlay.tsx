@@ -1,8 +1,14 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { Lang } from "../../i18n";
 import type { RecordComment, RecordPost } from "../../types/models";
 import { JournalMarkdown } from "./JournalMarkdown";
-import { clampCommentDepth, formatJournalDate, withAlpha } from "./journalUtils";
+import {
+  clampCommentDepth,
+  formatJournalDate,
+  getYouTubeEmbedUrl,
+  isYouTubeUrl,
+  withAlpha,
+} from "./journalUtils";
 
 type DetailItem = RecordPost & { comments: RecordComment[] };
 
@@ -48,6 +54,7 @@ export function JournalDetailOverlay({
   const [editCommentId, setEditCommentId] = useState("");
   const [editCommentBody, setEditCommentBody] = useState("");
   const [busyComment, setBusyComment] = useState(false);
+  const modalRef = useRef<HTMLDivElement | null>(null);
 
   const commentMap = useMemo(() => {
     const map = new Map<string, number>();
@@ -59,14 +66,26 @@ export function JournalDetailOverlay({
     return map;
   }, [item?.comments]);
 
-  if (!item && !loading) return null;
-
   const resetCommentEditor = () => {
     setReplyTargetId("");
     setCommentBody("");
     setEditCommentId("");
     setEditCommentBody("");
   };
+
+  useEffect(() => {
+    if (!item && !loading) {
+      resetCommentEditor();
+    }
+  }, [item, loading]);
+
+  useEffect(() => {
+    if (item || loading) {
+      modalRef.current?.focus();
+    }
+  }, [item, loading]);
+
+  if (!item && !loading) return null;
 
   const submitComment = async () => {
     if (!commentBody.trim()) return;
@@ -94,7 +113,20 @@ export function JournalDetailOverlay({
 
   return (
     <div className="modal-backdrop journal-detail-backdrop" data-testid="journal-detail-overlay" onClick={onClose}>
-      <div className="modal journal-detail-modal" onClick={(event) => event.stopPropagation()}>
+      <div
+        ref={modalRef}
+        className="modal journal-detail-modal"
+        role="dialog"
+        aria-modal="true"
+        tabIndex={-1}
+        onClick={(event) => event.stopPropagation()}
+        onKeyDown={(event) => {
+          if (event.key === "Escape") {
+            event.preventDefault();
+            onClose();
+          }
+        }}
+      >
         <div className="journal-detail-head">
           <div className="journal-detail-head-main">
             <div className="journal-detail-pill-row">
@@ -216,12 +248,42 @@ export function JournalDetailOverlay({
                     const url = mediaUrl(attachment.path, attachment.url);
                     if (!url) return null;
                     if (attachment.media_type === "image") {
-                      return <img key={attachment.attachment_id} src={url} alt={attachment.title || item.title} className="journal-detail-thumb" />;
+                      return (
+                        <article key={attachment.attachment_id} className="journal-detail-media-item">
+                          <img src={url} alt={attachment.title || item.title} className="journal-detail-thumb" />
+                          {attachment.title ? <small>{attachment.title}</small> : null}
+                        </article>
+                      );
                     }
                     if (attachment.media_type === "video") {
-                      return <video key={attachment.attachment_id} src={url} className="journal-detail-thumb" controls />;
+                      const embedUrl = isYouTubeUrl(url) ? getYouTubeEmbedUrl(url) : "";
+                      if (embedUrl) {
+                        return (
+                          <article key={attachment.attachment_id} className="journal-detail-media-item">
+                            <iframe
+                              src={embedUrl}
+                              title={attachment.title || item.title || "YouTube"}
+                              className="journal-youtube-frame"
+                              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                              allowFullScreen
+                            />
+                            <small>{attachment.title || url}</small>
+                          </article>
+                        );
+                      }
+                      return (
+                        <article key={attachment.attachment_id} className="journal-detail-media-item">
+                          <video src={url} className="journal-detail-thumb" controls />
+                          {attachment.title ? <small>{attachment.title}</small> : null}
+                        </article>
+                      );
                     }
-                    return <audio key={attachment.attachment_id} src={url} controls />;
+                    return (
+                      <article key={attachment.attachment_id} className="journal-detail-media-item">
+                        <audio src={url} controls />
+                        {attachment.title ? <small>{attachment.title}</small> : null}
+                      </article>
+                    );
                   })}
                 </div>
               </section>

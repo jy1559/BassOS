@@ -159,3 +159,40 @@ export function filterSlashCommands(query: string): SlashCommandSpec[] {
     return target.includes(query);
   });
 }
+
+export function extractYouTubeVideoId(url: string): string {
+  const raw = String(url || "").trim();
+  if (!raw) return "";
+  try {
+    const parsed = new URL(raw);
+    const host = parsed.hostname.replace(/^www\./, "").toLowerCase();
+    if (host === "youtu.be") {
+      return parsed.pathname.replace(/^\/+/, "").split("/")[0] || "";
+    }
+    if (host === "youtube.com" || host === "m.youtube.com") {
+      if (parsed.pathname === "/watch") {
+        return parsed.searchParams.get("v") || "";
+      }
+      if (parsed.pathname.startsWith("/shorts/") || parsed.pathname.startsWith("/embed/")) {
+        return parsed.pathname.split("/")[2] || "";
+      }
+    }
+  } catch {
+    return "";
+  }
+  return "";
+}
+
+export function isYouTubeUrl(url: string): boolean {
+  return Boolean(extractYouTubeVideoId(url));
+}
+
+export function getYouTubeEmbedUrl(url: string): string {
+  const videoId = extractYouTubeVideoId(url);
+  return videoId ? `https://www.youtube.com/embed/${videoId}` : "";
+}
+
+export function getYouTubeThumbnailUrl(url: string): string {
+  const videoId = extractYouTubeVideoId(url);
+  return videoId ? `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg` : "";
+}

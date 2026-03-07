@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { Lang } from "../../i18n";
 import type {
   JournalHeaderPreset,
@@ -162,6 +162,7 @@ export function JournalManagerModal({
   const [headerDraft, setHeaderDraft] = useState<JournalHeaderPreset[]>([]);
   const [statusDraft, setStatusDraft] = useState<JournalStatusPreset[]>([]);
   const [templateDraft, setTemplateDraft] = useState<TemplateDraftRow[]>([]);
+  const modalRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     if (!open) return;
@@ -170,6 +171,11 @@ export function JournalManagerModal({
     setStatusDraft(statusCatalog);
     setTemplateDraft(templateCatalog.map((row) => ({ ...row, default_tags_input: row.default_tags.join(", ") })));
   }, [headerCatalog, open, statusCatalog, tagCatalog, templateCatalog]);
+
+  useEffect(() => {
+    if (!open) return;
+    modalRef.current?.focus();
+  }, [open]);
 
   if (!open || !panel) return null;
 
@@ -214,7 +220,20 @@ export function JournalManagerModal({
       }
       onClick={onClose}
     >
-      <div className="modal journal-manager-modal" onClick={(event) => event.stopPropagation()}>
+      <div
+        ref={modalRef}
+        className="modal journal-manager-modal"
+        role="dialog"
+        aria-modal="true"
+        tabIndex={-1}
+        onClick={(event) => event.stopPropagation()}
+        onKeyDown={(event) => {
+          if (event.key === "Escape") {
+            event.preventDefault();
+            onClose();
+          }
+        }}
+      >
         <div className="row">
           <h2>{title}</h2>
           <div className="row">

@@ -14,11 +14,19 @@ import {
   findSlashQuery,
   formatJournalDate,
   hasMeaningfulMeta,
+  isYouTubeUrl,
   normalizeJournalMeta,
   serializeJournalMeta,
   type JournalMetaDraft,
   type SlashCommandSpec,
 } from "./journalUtils";
+
+type JournalExternalAttachmentInput = {
+  media_type: "video";
+  url: string;
+  title: string;
+  notes: string;
+};
 
 export type JournalComposerSubmitPayload = {
   title: string;
@@ -33,6 +41,7 @@ export type JournalComposerSubmitPayload = {
   linked_drill_ids: string[];
   free_targets: string[];
   source_context: string;
+  external_attachments: JournalExternalAttachmentInput[];
 };
 
 type Props = {
@@ -55,6 +64,10 @@ type Props = {
 };
 
 type EditorTab = "write" | "preview";
+type GroupedRows = {
+  label: string;
+  items: Array<Record<string, string>>;
+};
 
 function dedupeLabels(labels: string[]): string[] {
   const seen = new Set<string>();
@@ -91,6 +104,17 @@ function mergeDrills(
   return Array.from(map.values());
 }
 
+function groupRows(rows: Array<Record<string, string>>, key: string, fallback: string): GroupedRows[] {
+  const groups = new Map<string, Array<Record<string, string>>>();
+  rows.forEach((row) => {
+    const label = String(row[key] || "").trim() || fallback;
+    groups.set(label, [...(groups.get(label) || []), row]);
+  });
+  return Array.from(groups.entries())
+    .sort((a, b) => a[0].localeCompare(b[0], "ko"))
+    .map(([label, items]) => ({ label, items }));
+}
+
 export function JournalComposerModal({
   open,
   lang,
@@ -116,29 +140,35 @@ export function JournalComposerModal({
   const [selectedDrillIds, setSelectedDrillIds] = useState<string[]>([]);
   const [selectedCatalogTagIds, setSelectedCatalogTagIds] = useState<string[]>([]);
   const [files, setFiles] = useState<File[]>([]);
+  const [videoLinks, setVideoLinks] = useState<string[]>([]);
+  const [pendingVideoLink, setPendingVideoLink] = useState("");
+  const [openSongGroups, setOpenSongGroups] = useState<string[]>([]);
+  const [openDrillGroups, setOpenDrillGroups] = useState<string[]>([]);
   const [editorTab, setEditorTab] = useState<EditorTab>("write");
   const [metaDraft, setMetaDraft] = useState<JournalMetaDraft>(emptyJournalMeta());
   const [slashQuery, setSlashQuery] = useState("");
   const [slashCommands, setSlashCommands] = useState<SlashCommandSpec[]>([]);
+  const modalRef = useRef<HTMLDivElement | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const activeTagCatalog = useMemo(
     () =>
       tagCatalog
-        .filter((item) => item.active !== false && String(item.label || "").trim())
+        .filter((entry) => entry.active !== false && String(entry.label || "").trim())
         .sort((a, b) => Number(a.order || 0) - Number(b.order || 0)),
     [tagCatalog]
   );
   const activeHeaderCatalog = useMemo(
-    () => headerCatalog.filter((item) => item.active !== false).sort((a, b) => a.order - b.order),
+    () => headerCatalog.filter((entry) => entry.active !== false).sort((a, b) => a.order - b.order),
     [headerCatalog]
   );
   const activeStatusCatalog = useMemo(
-    () => statusCatalog.filter((item) => item.active !== false).sort((a, b) => a.order - b.order),
+    () => statusCatalog.filter((entry) => entry.active !== false).sort((a, b) => a.order - b.order),
     [statusCatalog]
   );
   const activeTemplateCatalog = useMemo(
-    () => templateCatalog.filter((item) => item.active !== false).sort((a, b) => a.order - b.order),
+    () => templateCatalog.filter((entry) => entry.active !== false).sort((a, b) => a.order - b.order),
     [templateCatalog]
   );
   const mergedDrills = useMemo(
@@ -148,24 +178,77 @@ export function JournalComposerModal({
         .sort((a, b) => (a.name || "").localeCompare(b.name || "")),
     [catalogs.drill_library, catalogs.drills]
   );
+  const groupedSongs = useMemo(
+    () =>
+      groupRows(
+        catalogs.song_library
+          .filter((row) => String(row.library_id || "").trim())
+          .sort((a, b) => (a.title || "").localeCompare(b.title || "")),
+        "genre",
+        lang === "ko" ? "기타 장르" : "Other"
+      ),
+    [catalogs.song_library, lang]
+  );
+  const groupedDrills = useMemo(
+    () => groupRows(mergedDrills, "area", lang === "ko" ? "기타 유형" : "Other"),
+    [lang, mergedDrills]
+  );
+  const existingAttachmentCount = item?.attachments.length || 0;
+  const maxNewAttachmentCount = Math.max(0, 8 - existingAttachmentCount);
+  const newAttachmentCount = files.length + videoLinks.length;
+  const remainingAttachmentSlots = Math.max(0, maxNewAttachmentCount - newAttachmentCount);
+
+  const toggleInArray = (value: string, current: string[], setter: (next: string[]) => void) => {
+    setter(current.includes(value) ? current.filter((item) => item !== value) : [...current, value]);
+  };
+
+  const toggleGroup = (label: string, current: string[], setter: (next: string[]) => void) => {
+    setter(current.includes(label) ? current.filter((item) => item !== label) : [...current, label]);
+  };
+
+  const appendFiles = (incoming: File[]) => {
+    if (!incoming.length || maxNewAttachmentCount <= 0) return;
+    setFiles((prev) => {
+      const next = [...prev];
+      incoming.forEach((file) => {
+        if (next.some((item) => item.name === file.name && item.size === file.size && item.type === file.type)) return;
+        next.push(file);
+      });
+      return next.slice(0, maxNewAttachmentCount);
+    });
+  };
+
+  const removeFileAt = (index: number) => {
+    setFiles((prev) => prev.filter((_, itemIndex) => itemIndex !== index));
+  };
 
   useEffect(() => {
     if (!open) return;
-    const selectedHeaderId =
-      item?.header_id || activeHeaderCatalog[0]?.id || headerCatalog[0]?.id || "";
-    const selectedStatusId =
-      item?.status_id || activeStatusCatalog[0]?.id || statusCatalog[0]?.id || "";
+    const nextHeaderId = item?.header_id || activeHeaderCatalog[0]?.id || headerCatalog[0]?.id || "";
+    const nextStatusId = item?.status_id || activeStatusCatalog[0]?.id || statusCatalog[0]?.id || "";
+    const nextSongIds = item?.linked_song_ids || [];
+    const nextDrillIds = item?.linked_drill_ids || [];
     setTitle(item?.title || "");
     setBody(item?.body || "");
     setSourceContext(item?.source_context || "practice");
-    setHeaderId(selectedHeaderId);
-    setStatusId(selectedStatusId);
+    setHeaderId(nextHeaderId);
+    setStatusId(nextStatusId);
     setTemplateId(item?.template_id || "");
-    setSelectedSongIds(item?.linked_song_ids || []);
-    setSelectedDrillIds(item?.linked_drill_ids || []);
+    setSelectedSongIds(nextSongIds);
+    setSelectedDrillIds(nextDrillIds);
     setFiles([]);
+    setVideoLinks([]);
+    setPendingVideoLink("");
     setEditorTab("write");
     setMetaDraft(normalizeJournalMeta(item?.meta));
+    const nextOpenSongGroups = groupedSongs
+      .filter((group, index) => index < 2 || group.items.some((song) => nextSongIds.includes(String(song.library_id || ""))))
+      .map((group) => group.label);
+    const nextOpenDrillGroups = groupedDrills
+      .filter((group, index) => index < 2 || group.items.some((drill) => nextDrillIds.includes(String(drill.drill_id || ""))))
+      .map((group) => group.label);
+    setOpenSongGroups(dedupeLabels(nextOpenSongGroups));
+    setOpenDrillGroups(dedupeLabels(nextOpenDrillGroups));
     const selectedPresetIds = activeTagCatalog
       .filter((preset) => (item?.tags || []).some((tag) => tag.trim().toLowerCase() === preset.label.trim().toLowerCase()))
       .map((preset) => preset.id);
@@ -181,6 +264,8 @@ export function JournalComposerModal({
     activeHeaderCatalog,
     activeStatusCatalog,
     activeTagCatalog,
+    groupedDrills,
+    groupedSongs,
     headerCatalog,
     item,
     open,
@@ -195,6 +280,36 @@ export function JournalComposerModal({
     setSlashCommands(query ? filterSlashCommands(query) : []);
   }, [body, open]);
 
+  useEffect(() => {
+    if (!open) return;
+    modalRef.current?.focus();
+  }, [open]);
+
+  useEffect(() => {
+    if (!open) return;
+    const handlePaste = (event: ClipboardEvent) => {
+      const active = document.activeElement;
+      if (modalRef.current && active && !modalRef.current.contains(active)) return;
+      const clipboardItems = Array.from(event.clipboardData?.items || []);
+      const imageFiles = clipboardItems
+        .filter((clipboardItem) => clipboardItem.kind === "file" && clipboardItem.type.startsWith("image/"))
+        .map((clipboardItem) => clipboardItem.getAsFile())
+        .filter((clipboardItem): clipboardItem is File => Boolean(clipboardItem));
+      if (!imageFiles.length) return;
+      event.preventDefault();
+      appendFiles(
+        imageFiles.map(
+          (file, index) =>
+            new File([file], file.name || `clipboard-image-${Date.now()}-${index}.png`, {
+              type: file.type,
+            })
+        )
+      );
+    };
+    window.addEventListener("paste", handlePaste);
+    return () => window.removeEventListener("paste", handlePaste);
+  }, [open]);
+
   if (!open) return null;
 
   const selectedTemplate = activeTemplateCatalog.find((template) => template.id === templateId) || null;
@@ -202,9 +317,20 @@ export function JournalComposerModal({
     .map((id) => activeTagCatalog.find((row) => row.id === id)?.label || "")
     .filter(Boolean);
   const hasExistingAttachments = (item?.attachments || []).length > 0;
+  const attachmentLimitMessage =
+    lang === "ko"
+      ? "기존 첨부를 포함해 게시글당 최대 8개까지 보관할 수 있습니다."
+      : "You can keep up to 8 attachments per post, including existing ones.";
 
-  const toggleInArray = (value: string, current: string[], setter: (next: string[]) => void) => {
-    setter(current.includes(value) ? current.filter((item) => item !== value) : [...current, value]);
+  const addVideoLink = () => {
+    const trimmed = pendingVideoLink.trim();
+    if (!trimmed || !isYouTubeUrl(trimmed)) return;
+    if (newAttachmentCount >= maxNewAttachmentCount) {
+      window.alert(attachmentLimitMessage);
+      return;
+    }
+    setVideoLinks((prev) => dedupeLabels([...prev, trimmed]).slice(0, maxNewAttachmentCount));
+    setPendingVideoLink("");
   };
 
   const applyTemplate = (nextTemplateId: string) => {
@@ -218,6 +344,7 @@ export function JournalComposerModal({
       selectedSongIds.length ||
       selectedDrillIds.length ||
       files.length ||
+      videoLinks.length ||
       hasMeaningfulMeta(metaDraft)
     );
     if (dirty && !window.confirm(lang === "ko" ? "현재 입력값 위에 템플릿을 적용할까요?" : "Apply template over current draft?")) {
@@ -253,7 +380,11 @@ export function JournalComposerModal({
     const selectedHeaderLabel = header?.label || (lang === "ko" ? "자유기록" : "Record");
     const freeTagList = dedupeLabels(splitLooseTags(freeTags));
     const mergedTags = dedupeLabels([...selectedCatalogLabels, ...freeTagList]);
-    if (!title.trim() && !body.trim() && files.length === 0) return;
+    if (!title.trim() && !body.trim() && files.length === 0 && videoLinks.length === 0) return;
+    if (newAttachmentCount > maxNewAttachmentCount) {
+      window.alert(attachmentLimitMessage);
+      return;
+    }
     await onSubmit(
       {
         title: title.trim(),
@@ -268,6 +399,7 @@ export function JournalComposerModal({
         linked_drill_ids: selectedDrillIds,
         free_targets: freeTagList,
         source_context: sourceContext,
+        external_attachments: videoLinks.map((url) => ({ media_type: "video", url, title: "", notes: "" })),
       },
       files
     );
@@ -275,7 +407,20 @@ export function JournalComposerModal({
 
   return (
     <div className="modal-backdrop journal-composer-backdrop" data-testid="journal-composer-modal" onClick={onClose}>
-      <div className="modal journal-composer-modal" onClick={(event) => event.stopPropagation()}>
+      <div
+        ref={modalRef}
+        className="modal journal-composer-modal"
+        role="dialog"
+        aria-modal="true"
+        tabIndex={-1}
+        onClick={(event) => event.stopPropagation()}
+        onKeyDown={(event) => {
+          if (event.key === "Escape") {
+            event.preventDefault();
+            onClose();
+          }
+        }}
+      >
         <div className="journal-composer-head">
           <div>
             <h2>{item ? (lang === "ko" ? "게시글 수정" : "Edit Post") : (lang === "ko" ? "새 기록 쓰기" : "Write Entry")}</h2>
@@ -294,7 +439,9 @@ export function JournalComposerModal({
             <button className="ghost-btn compact-add-btn" onClick={() => onOpenManager("tags")}>
               {lang === "ko" ? "태그 관리" : "Tags"}
             </button>
-            <button className="ghost-btn" onClick={onClose}>{lang === "ko" ? "닫기" : "Close"}</button>
+            <button className="ghost-btn" onClick={onClose}>
+              {lang === "ko" ? "닫기" : "Close"}
+            </button>
           </div>
         </div>
 
@@ -422,28 +569,75 @@ export function JournalComposerModal({
 
             <section className="card journal-composer-side-card">
               <div className="row"><strong>{lang === "ko" ? "연결 곡" : "Linked Songs"}</strong></div>
-              <div className="journal-link-scroll">
-                {catalogs.song_library
-                  .filter((row) => String(row.library_id || "").trim())
-                  .sort((a, b) => (a.title || "").localeCompare(b.title || ""))
-                  .map((song) => (
-                    <label key={song.library_id} className="inline selectable-row">
-                      <input type="checkbox" checked={selectedSongIds.includes(song.library_id)} onChange={() => toggleInArray(song.library_id, selectedSongIds, setSelectedSongIds)} />
-                      <span>{song.title || song.library_id}</span>
-                    </label>
-                  ))}
+              <div className="journal-link-groups">
+                {groupedSongs.map((group) => {
+                  const selectedCount = group.items.filter((song) => selectedSongIds.includes(String(song.library_id || ""))).length;
+                  const openGroup = openSongGroups.includes(group.label);
+                  return (
+                    <section key={group.label} className="journal-link-group">
+                      <button className="ghost-btn journal-link-group-toggle" aria-expanded={openGroup} onClick={() => toggleGroup(group.label, openSongGroups, setOpenSongGroups)}>
+                        <span className="journal-link-group-title">
+                          <strong>{group.label}</strong>
+                          <small>{lang === "ko" ? "곡 장르" : "Song Genre"}</small>
+                        </span>
+                        <span className="journal-link-group-meta">
+                          <small>{selectedCount}/{group.items.length}</small>
+                          <strong>{openGroup ? "−" : "+"}</strong>
+                        </span>
+                      </button>
+                      {openGroup ? (
+                        <div className="journal-link-scroll">
+                          {group.items.map((song) => (
+                            <label key={song.library_id} className="inline selectable-row journal-link-row">
+                              <input type="checkbox" checked={selectedSongIds.includes(song.library_id)} onChange={() => toggleInArray(song.library_id, selectedSongIds, setSelectedSongIds)} />
+                              <span>
+                                <strong>{song.title || song.library_id}</strong>
+                                <small>{[song.artist, song.status].filter(Boolean).join(" · ") || song.library_id}</small>
+                              </span>
+                            </label>
+                          ))}
+                        </div>
+                      ) : null}
+                    </section>
+                  );
+                })}
               </div>
             </section>
 
             <section className="card journal-composer-side-card">
               <div className="row"><strong>{lang === "ko" ? "연결 드릴" : "Linked Drills"}</strong></div>
-              <div className="journal-link-scroll">
-                {mergedDrills.map((drill) => (
-                  <label key={drill.drill_id} className="inline selectable-row">
-                    <input type="checkbox" checked={selectedDrillIds.includes(drill.drill_id)} onChange={() => toggleInArray(drill.drill_id, selectedDrillIds, setSelectedDrillIds)} />
-                    <span>{drill.name || drill.drill_id}</span>
-                  </label>
-                ))}
+              <div className="journal-link-groups">
+                {groupedDrills.map((group) => {
+                  const selectedCount = group.items.filter((drill) => selectedDrillIds.includes(String(drill.drill_id || ""))).length;
+                  const openGroup = openDrillGroups.includes(group.label);
+                  return (
+                    <section key={group.label} className="journal-link-group">
+                      <button className="ghost-btn journal-link-group-toggle" aria-expanded={openGroup} onClick={() => toggleGroup(group.label, openDrillGroups, setOpenDrillGroups)}>
+                        <span className="journal-link-group-title">
+                          <strong>{group.label}</strong>
+                          <small>{lang === "ko" ? "드릴 유형" : "Drill Type"}</small>
+                        </span>
+                        <span className="journal-link-group-meta">
+                          <small>{selectedCount}/{group.items.length}</small>
+                          <strong>{openGroup ? "−" : "+"}</strong>
+                        </span>
+                      </button>
+                      {openGroup ? (
+                        <div className="journal-link-scroll">
+                          {group.items.map((drill) => (
+                            <label key={drill.drill_id} className="inline selectable-row journal-link-row">
+                              <input type="checkbox" checked={selectedDrillIds.includes(drill.drill_id)} onChange={() => toggleInArray(drill.drill_id, selectedDrillIds, setSelectedDrillIds)} />
+                              <span>
+                                <strong>{drill.name || drill.drill_id}</strong>
+                                <small>{[drill.area, drill.tags].filter(Boolean).join(" · ") || drill.drill_id}</small>
+                              </span>
+                            </label>
+                          ))}
+                        </div>
+                      ) : null}
+                    </section>
+                  );
+                })}
               </div>
             </section>
 
@@ -454,16 +648,85 @@ export function JournalComposerModal({
                   {lang === "ko" ? `기존 첨부 ${item?.attachments.length}개는 유지됩니다.` : `${item?.attachments.length} existing attachments will be kept.`}
                 </small>
               ) : null}
-              <input type="file" multiple accept="image/*,video/*,audio/*" onChange={(event) => setFiles(Array.from(event.target.files || []).slice(0, 8))} />
               <small className="muted">
-                {files.length ? files.map((file) => file.name).join(", ") : lang === "ko" ? "새 첨부 없음" : "No new files"}
+                {lang === "ko"
+                  ? `새로 추가 가능 ${remainingAttachmentSlots}개 / 총 8개 한도`
+                  : `${remainingAttachmentSlots} new slots left / 8 total max`}
               </small>
+              <small className="muted">
+                {lang === "ko" ? "영상은 파일 또는 유튜브 링크, 이미지는 파일 선택이나 클립보드 붙여넣기를 지원합니다." : "Videos support file upload or YouTube links. Images can be uploaded or pasted from clipboard."}
+              </small>
+              <input
+                ref={fileInputRef}
+                type="file"
+                hidden
+                multiple
+                accept="image/*,video/*,audio/*"
+                onChange={(event) => {
+                  appendFiles(Array.from(event.target.files || []));
+                  event.target.value = "";
+                }}
+              />
+              <div className="journal-upload-zone">
+                <div className="journal-upload-actions">
+                  <button className="ghost-btn" disabled={maxNewAttachmentCount <= 0} onClick={() => fileInputRef.current?.click()}>
+                    {lang === "ko" ? "파일 선택" : "Choose Files"}
+                  </button>
+                  <div className="journal-upload-inline-meta">
+                    <small className="muted">
+                      {lang === "ko" ? "이미지는 Ctrl+V 붙여넣기 가능" : "Paste images with Ctrl+V"}
+                    </small>
+                    <small className="muted">
+                      {lang === "ko" ? `새 첨부 ${newAttachmentCount}/${maxNewAttachmentCount}` : `${newAttachmentCount}/${maxNewAttachmentCount} new`}
+                    </small>
+                  </div>
+                </div>
+                <div className="journal-link-input-row">
+                  <input
+                    value={pendingVideoLink}
+                    onChange={(event) => setPendingVideoLink(event.target.value)}
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter") {
+                        event.preventDefault();
+                        addVideoLink();
+                      }
+                    }}
+                    placeholder={lang === "ko" ? "유튜브 링크 추가" : "Add YouTube link"}
+                  />
+                  <button className="ghost-btn" onClick={addVideoLink} disabled={!isYouTubeUrl(pendingVideoLink) || remainingAttachmentSlots <= 0}>
+                    {lang === "ko" ? "추가" : "Add"}
+                  </button>
+                </div>
+              </div>
+              <div className="journal-upload-list">
+                {files.map((file, index) => (
+                  <div key={`${file.name}_${file.size}_${index}`} className="journal-upload-item">
+                    <span>{file.name}</span>
+                    <small>{file.type || (lang === "ko" ? "파일" : "File")}</small>
+                    <button className="ghost-btn compact-add-btn" onClick={() => removeFileAt(index)}>
+                      {lang === "ko" ? "제거" : "Remove"}
+                    </button>
+                  </div>
+                ))}
+                {videoLinks.map((url, index) => (
+                  <div key={url} className="journal-upload-item">
+                    <span>{lang === "ko" ? `유튜브 링크 ${index + 1}` : `YouTube Link ${index + 1}`}</span>
+                    <small>{url}</small>
+                    <button className="ghost-btn compact-add-btn" onClick={() => setVideoLinks((prev) => prev.filter((item) => item !== url))}>
+                      {lang === "ko" ? "제거" : "Remove"}
+                    </button>
+                  </div>
+                ))}
+                {!files.length && !videoLinks.length ? (
+                  <small className="muted">{lang === "ko" ? "새 첨부 없음" : "No new attachments"}</small>
+                ) : null}
+              </div>
             </section>
           </aside>
         </div>
 
         <div className="modal-actions journal-composer-footer">
-          <button className="primary-btn" disabled={busy || (!title.trim() && !body.trim() && files.length === 0)} onClick={() => void submit()}>
+          <button className="primary-btn" disabled={busy || (!title.trim() && !body.trim() && files.length === 0 && videoLinks.length === 0)} onClick={() => void submit()}>
             {busy ? (lang === "ko" ? "저장 중..." : "Saving...") : item ? (lang === "ko" ? "수정 저장" : "Save Changes") : (lang === "ko" ? "게시글 등록" : "Publish")}
           </button>
           <button className="ghost-btn" onClick={onClose}>

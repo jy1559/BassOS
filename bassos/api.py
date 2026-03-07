@@ -320,6 +320,29 @@ def _request_object_value(key: str) -> dict[str, Any]:
     return value if isinstance(value, dict) else {}
 
 
+def _request_object_list_value(key: str) -> list[dict[str, Any]]:
+    def _parse(value: Any) -> list[dict[str, Any]]:
+        if isinstance(value, list):
+            return [item for item in value if isinstance(item, dict)]
+        raw = str(value or "").strip()
+        if not raw:
+            return []
+        try:
+            decoded = json.loads(raw)
+        except json.JSONDecodeError:
+            return []
+        return [item for item in decoded if isinstance(item, dict)] if isinstance(decoded, list) else []
+
+    if request.form and key in request.form:
+        values = request.form.getlist(key)
+        out: list[dict[str, Any]] = []
+        for value in values:
+            out.extend(_parse(value))
+        return out
+    payload = request.get_json(silent=True) or {}
+    return _parse(payload.get(key))
+
+
 def _infer_upload_media_type(filename: str, mimetype: str) -> str:
     guessed = (mimetype or "").lower()
     if guessed.startswith("image/"):
@@ -336,6 +359,34 @@ def _infer_upload_media_type(filename: str, mimetype: str) -> str:
     if ext in {".mp3", ".wav", ".ogg", ".m4a", ".flac"}:
         return "audio"
     return "image"
+
+
+def _normalize_external_record_attachments(
+    items: list[dict[str, Any]],
+    *,
+    start_sort_order: int,
+) -> tuple[list[dict[str, Any]], str]:
+    normalized: list[dict[str, Any]] = []
+    next_sort_order = max(1, start_sort_order)
+    for raw in items:
+        media_type = str(raw.get("media_type") or "video").strip().lower() or "video"
+        url = str(raw.get("url") or "").strip()
+        if media_type != "video":
+            return [], "외부 첨부는 현재 영상 링크만 지원합니다."
+        if not url:
+            return [], "외부 영상 링크 URL이 비어 있습니다."
+        normalized.append(
+            {
+                "media_type": "video",
+                "path": "",
+                "url": url,
+                "title": str(raw.get("title") or "").strip(),
+                "notes": str(raw.get("notes") or "").strip(),
+                "sort_order": to_int(raw.get("sort_order"), next_sort_order),
+            }
+        )
+        next_sort_order += 1
+    return normalized, ""
 
 
 def _to_bool_text(value: Any, default: bool = False) -> str:
@@ -1502,7 +1553,13 @@ def records_create() -> Response:
     if not files and request.files and "file" in request.files:
         files = [request.files["file"]]
     files = [item for item in files if item and (item.filename or "").strip()]
-    if len(files) > 8:
+    external_attachments, external_error = _normalize_external_record_attachments(
+        _request_object_list_value("external_attachments"),
+        start_sort_order=len(files) + 1,
+    )
+    if external_error:
+        return jsonify({"ok": False, "message": external_error}), 400
+    if len(files) + len(external_attachments) > 8:
         return jsonify({"ok": False, "message": "게시글 첨부는 최대 8개입니다."}), 400
 
     attachment_titles = _request_list_value("attachment_titles")
@@ -1533,6 +1590,7 @@ def records_create() -> Response:
                 "sort_order": idx,
             }
         )
+    attachments_payload.extend(external_attachments)
 
     payload = {
         "title": _request_value("title"),
@@ -1556,7 +1614,8 @@ def records_create() -> Response:
 @api_bp.put("/records/<post_id>")
 def records_update(post_id: str) -> Response:
     storage = _storage()
-    payload = request.get_json(silent=True) or {}
+    payload = dict(request.get_json(silent=True) or {})
+    payload.pop("external_attachments", None)
     if request.form:
         for key in ["title", "body", "post_type", "source_context", "header_id", "status_id", "template_id"]:
             if key in request.form:
@@ -1570,7 +1629,14 @@ def records_update(post_id: str) -> Response:
     if not files and request.files and "file" in request.files:
         files = [request.files["file"]]
     files = [item for item in files if item and (item.filename or "").strip()]
-    if len(files) > 8:
+    existing_attachment_count = sum(1 for item in storage.read_csv("record_attachments.csv") if item.get("post_id") == post_id)
+    external_attachments, external_error = _normalize_external_record_attachments(
+        _request_object_list_value("external_attachments"),
+        start_sort_order=existing_attachment_count + len(files) + 1,
+    )
+    if external_error:
+        return jsonify({"ok": False, "message": external_error}), 400
+    if existing_attachment_count + len(files) + len(external_attachments) > 8:
         return jsonify({"ok": False, "message": "게시글 첨부는 최대 8개입니다."}), 400
 
     attachment_titles = _request_list_value("attachment_titles")
@@ -1597,9 +1663,10 @@ def records_update(post_id: str) -> Response:
                 "url": "",
                 "title": attachment_titles[idx - 1] if idx - 1 < len(attachment_titles) else "",
                 "notes": attachment_notes[idx - 1] if idx - 1 < len(attachment_notes) else "",
-                "sort_order": idx,
+                "sort_order": existing_attachment_count + idx,
             }
         )
+    attachments_payload.extend(external_attachments)
 
     ok, message, item = _game().update_record(post_id, payload, attachments_payload)
     if not ok:

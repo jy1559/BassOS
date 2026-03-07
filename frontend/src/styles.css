@@ -6421,6 +6421,141 @@ textarea {
   gap: 6px;
 }
 
+.journal-link-groups {
+  display: grid;
+  gap: 10px;
+}
+
+.journal-link-group {
+  border: 1px solid color-mix(in srgb, var(--border) 88%, transparent);
+  border-radius: 14px;
+  overflow: hidden;
+  background: color-mix(in srgb, var(--panel) 95%, var(--accent-soft));
+}
+
+.journal-link-group-toggle {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 14px;
+  border: none;
+  border-radius: 0;
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--accent-soft) 68%, var(--panel)), color-mix(in srgb, var(--panel) 98%, transparent));
+}
+
+.journal-link-group-toggle:hover {
+  transform: none;
+  box-shadow: none;
+}
+
+.journal-link-group-title,
+.journal-link-group-meta {
+  display: grid;
+  gap: 2px;
+}
+
+.journal-link-group-title {
+  justify-items: start;
+  text-align: left;
+}
+
+.journal-link-group-title small,
+.journal-link-group-meta small {
+  color: var(--muted);
+}
+
+.journal-link-group-meta {
+  justify-items: end;
+}
+
+.journal-link-group .journal-link-scroll {
+  padding: 10px;
+  border-top: 1px solid color-mix(in srgb, var(--border) 82%, transparent);
+}
+
+.journal-link-row {
+  gap: 10px;
+  align-items: flex-start;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--panel) 82%, transparent);
+}
+
+.journal-link-row:hover {
+  background: color-mix(in srgb, var(--accent-soft) 65%, var(--panel));
+}
+
+.journal-link-row > span {
+  display: grid;
+  gap: 3px;
+}
+
+.journal-link-row small {
+  color: var(--muted);
+}
+
+.journal-upload-zone {
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+  border: 1px dashed color-mix(in srgb, var(--accent) 24%, var(--border));
+  border-radius: 14px;
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--accent-soft) 44%, transparent), color-mix(in srgb, var(--panel) 98%, transparent));
+}
+
+.journal-upload-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.journal-upload-inline-meta {
+  display: grid;
+  gap: 2px;
+  justify-items: end;
+}
+
+.journal-link-input-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: center;
+}
+
+.journal-upload-list {
+  display: grid;
+  gap: 8px;
+}
+
+.journal-upload-item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 6px 10px;
+  align-items: center;
+  padding: 10px 12px;
+  border: 1px solid color-mix(in srgb, var(--border) 90%, transparent);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--panel) 96%, var(--accent-soft));
+}
+
+.journal-upload-item > span,
+.journal-upload-item > small {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.journal-upload-item > small {
+  color: var(--muted);
+}
+
 .journal-composer-footer {
   justify-content: flex-end;
 }
@@ -6524,8 +6659,27 @@ textarea {
   gap: 10px;
 }
 
+.journal-detail-media-item {
+  display: grid;
+  gap: 8px;
+}
+
+.journal-detail-media-item > small {
+  color: var(--muted);
+  line-height: 1.45;
+}
+
+.journal-youtube-frame {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: #111;
+}
+
 .journal-detail-media-grid > video,
-.journal-detail-media-grid > audio {
+.journal-detail-media-grid > audio,
+.journal-detail-media-item > audio {
   width: 100%;
   border: 1px solid var(--border);
   border-radius: 12px;
@@ -6570,6 +6724,24 @@ textarea {
 .journal-comment-actions,
 .journal-comment-edit-actions {
   justify-content: flex-end;
+}
+
+.journal-gallery-youtube-wrap {
+  position: relative;
+}
+
+.journal-gallery-youtube-badge {
+  position: absolute;
+  right: 10px;
+  bottom: 10px;
+  padding: 5px 9px;
+  border-radius: 999px;
+  background: rgba(8, 13, 20, 0.78);
+  color: #f6f8fb;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  box-shadow: 0 8px 18px rgba(8, 13, 20, 0.24);
 }
 
 .journal-manager-modal {
@@ -6694,6 +6866,15 @@ textarea {
   .journal-composer-grid,
   .journal-meta-grid {
     grid-template-columns: 1fr;
+  }
+
+  .journal-link-input-row,
+  .journal-upload-item {
+    grid-template-columns: 1fr;
+  }
+
+  .journal-upload-inline-meta {
+    justify-items: start;
   }
 }
 
