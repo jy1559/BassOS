@@ -553,7 +553,6 @@ export type RecordPost = {
   linked_drill_ids: string[];
   linked_drill_titles?: string[];
   free_targets: string[];
-  source_context: string;
   attachments: RecordAttachment[];
   comment_count: number;
   latest_comment_at?: string;
@@ -583,7 +582,6 @@ export type JournalTemplatePreset = {
   description: string;
   header_id: string;
   default_tags: string[];
-  default_source_context: "practice" | "review" | "performance" | "archive";
   body_markdown: string;
   active: boolean;
   order: number;

@@ -331,9 +331,6 @@ def _normalize_journal_template_catalog(
         header_id = str(item.get("header_id") or "").strip()
         if header_id not in header_ids:
             header_id = fallback_header
-        source_context = str(item.get("default_source_context") or "practice").strip().lower()
-        if source_context not in {"practice", "review", "performance", "archive"}:
-            source_context = "practice"
         out.append(
             {
                 "id": entry_id,
@@ -341,7 +338,6 @@ def _normalize_journal_template_catalog(
                 "description": str(item.get("description") or "").strip(),
                 "header_id": header_id,
                 "default_tags": _normalize_template_tags(item.get("default_tags")),
-                "default_source_context": source_context,
                 "body_markdown": str(item.get("body_markdown") or ""),
                 "active": _normalize_catalog_active(item.get("active"), True),
                 "order": index,
@@ -1509,7 +1505,6 @@ class Storage:
                         "linked_song_ids": self._join_list([event.get("song_library_id", "")]),
                         "linked_drill_ids": self._join_list([event.get("drill_id", "")]),
                         "free_targets": "",
-                        "source_context": str(meta.get("source_context", "") or event.get("activity", "")),
                         "legacy_event_id": event_id,
                         "source": "migration",
                     }

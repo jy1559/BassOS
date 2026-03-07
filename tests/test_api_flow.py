@@ -1224,7 +1224,6 @@ def test_records_detail_filters_comments_and_meta(tmp_path):
             "linked_song_ids": ["L0001"],
             "linked_drill_ids": ["DL0001"],
             "free_targets": ["템포 96"],
-            "source_context": "practice",
         },
     )
     assert first_res.status_code == 200
@@ -1233,6 +1232,7 @@ def test_records_detail_filters_comments_and_meta(tmp_path):
     assert first_item["template_id"] == daily_template["id"]
     assert first_item["meta"]["practice_date"] == "2026-03-07"
     assert first_item["meta"]["duration_min"] == 55
+    assert "source_context" not in first_item
 
     second_res = client.post(
         "/api/records",
@@ -1247,7 +1247,6 @@ def test_records_detail_filters_comments_and_meta(tmp_path):
             "linked_song_ids": [],
             "linked_drill_ids": [],
             "free_targets": [],
-            "source_context": "review",
         },
     )
     assert second_res.status_code == 200
@@ -1261,6 +1260,7 @@ def test_records_detail_filters_comments_and_meta(tmp_path):
     assert detail_item["comments"] == []
     assert detail_item["linked_song_titles"]
     assert detail_item["linked_drill_titles"]
+    assert "source_context" not in detail_item
 
     search_res = client.get("/api/records/list?q=슬랩")
     assert search_res.status_code == 200

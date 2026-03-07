@@ -995,7 +995,6 @@ class GameService:
             "linked_drill_ids": linked_drill_ids,
             "linked_drill_titles": [drills.get(item, {}).get("name", item) for item in linked_drill_ids],
             "free_targets": free_targets,
-            "source_context": row.get("source_context", ""),
             "legacy_event_id": row.get("legacy_event_id", ""),
             "source": row.get("source", ""),
             "attachments": attachments,
@@ -1264,7 +1263,6 @@ class GameService:
             "linked_song_ids": _join_semicolon(parse_list(payload.get("linked_song_ids"))),
             "linked_drill_ids": _join_semicolon(parse_list(payload.get("linked_drill_ids"))),
             "free_targets": _join_semicolon(parse_list(payload.get("free_targets"))),
-            "source_context": str(payload.get("source_context") or ""),
             "legacy_event_id": str(payload.get("legacy_event_id") or ""),
             "source": str(payload.get("source") or "app"),
         }
@@ -1337,8 +1335,6 @@ class GameService:
         if payload.get("template_id") is not None:
             next_template_id = str(payload.get("template_id") or "").strip()
             target["template_id"] = next_template_id if next_template_id in template_by_id else ""
-        if payload.get("source_context") is not None:
-            target["source_context"] = str(payload.get("source_context") or "")
 
         if payload.get("tags") is not None:
             target["tags"] = parse_list(payload.get("tags"))

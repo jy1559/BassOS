@@ -111,9 +111,6 @@ function sanitizeTemplateCatalog(
       description: String(row.description || "").trim(),
       header_id: headerCatalog.some((item) => item.id === row.header_id) ? row.header_id : activeHeaderId,
       default_tags: dedupeLabels(splitLooseTags(row.default_tags_input || row.default_tags.join(", "))),
-      default_source_context: ["practice", "review", "performance", "archive"].includes(row.default_source_context)
-        ? row.default_source_context
-        : "practice",
       body_markdown: String(row.body_markdown || ""),
       active: row.active !== false,
       order: index,
@@ -251,12 +248,6 @@ export function JournalManagerModal({
                   <select value={row.header_id} onChange={(event) => setTemplateDraft((prev) => prev.map((item, i) => i === index ? { ...item, header_id: event.target.value } : item))}>
                     {headerCatalog.map((header) => <option key={header.id} value={header.id}>{header.label}</option>)}
                   </select>
-                  <select value={row.default_source_context} onChange={(event) => setTemplateDraft((prev) => prev.map((item, i) => i === index ? { ...item, default_source_context: event.target.value as JournalTemplatePreset["default_source_context"] } : item))}>
-                    <option value="practice">{lang === "ko" ? "연습" : "Practice"}</option>
-                    <option value="review">{lang === "ko" ? "회고" : "Review"}</option>
-                    <option value="performance">{lang === "ko" ? "합주/공연" : "Performance"}</option>
-                    <option value="archive">{lang === "ko" ? "아카이브" : "Archive"}</option>
-                  </select>
                 </div>
                 <input value={row.default_tags_input} onChange={(event) => setTemplateDraft((prev) => prev.map((item, i) => i === index ? { ...item, default_tags_input: event.target.value } : item))} placeholder={lang === "ko" ? "기본 태그(쉼표)" : "Default tags"} />
                 <textarea value={row.body_markdown} onChange={(event) => setTemplateDraft((prev) => prev.map((item, i) => i === index ? { ...item, body_markdown: event.target.value } : item))} rows={8} placeholder={lang === "ko" ? "템플릿 Markdown" : "Template Markdown"} />
@@ -274,7 +265,6 @@ export function JournalManagerModal({
                     header_id: headerCatalog[0]?.id || "",
                     default_tags: [],
                     default_tags_input: "",
-                    default_source_context: "practice",
                     body_markdown: "",
                     active: true,
                     order: prev.length,

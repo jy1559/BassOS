@@ -1624,7 +1624,6 @@ def records_create() -> Response:
         "linked_song_ids": _request_list_value("linked_song_ids"),
         "linked_drill_ids": _request_list_value("linked_drill_ids"),
         "free_targets": _request_list_value("free_targets"),
-        "source_context": _request_value("source_context"),
         "source": "app",
     }
     item = _game().create_record(payload, attachments_payload)
@@ -1637,7 +1636,7 @@ def records_update(post_id: str) -> Response:
     payload = dict(request.get_json(silent=True) or {})
     payload.pop("external_attachments", None)
     if request.form:
-        for key in ["title", "body", "post_type", "source_context", "header_id", "template_id"]:
+        for key in ["title", "body", "post_type", "header_id", "template_id"]:
             if key in request.form:
                 payload[key] = _request_value(key)
         if "meta" in request.form:

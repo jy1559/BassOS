@@ -659,7 +659,6 @@ export async function createRecordPost(
     linked_song_ids: string[];
     linked_drill_ids: string[];
     free_targets: string[];
-    source_context?: string;
     file_attachments?: Array<{
       title?: string;
       notes?: string;
@@ -684,7 +683,6 @@ export async function createRecordPost(
   formData.append("linked_song_ids", JSON.stringify(payload.linked_song_ids));
   formData.append("linked_drill_ids", JSON.stringify(payload.linked_drill_ids));
   formData.append("free_targets", JSON.stringify(payload.free_targets));
-  if (payload.source_context) formData.append("source_context", payload.source_context);
   if (payload.external_attachments?.length) {
     formData.append("external_attachments", JSON.stringify(payload.external_attachments));
   }
@@ -713,7 +711,6 @@ export async function updateRecordPost(
     linked_song_ids?: string[];
     linked_drill_ids?: string[];
     free_targets?: string[];
-    source_context?: string;
     file_attachments?: Array<{
       title?: string;
       notes?: string;
@@ -745,7 +742,6 @@ export async function updateRecordPost(
             formData.append("linked_drill_ids", JSON.stringify(patch.linked_drill_ids));
           }
           if (patch.free_targets !== undefined) formData.append("free_targets", JSON.stringify(patch.free_targets));
-          if (patch.source_context !== undefined) formData.append("source_context", patch.source_context);
           if (patch.external_attachments !== undefined) {
             formData.append("external_attachments", JSON.stringify(patch.external_attachments));
           }

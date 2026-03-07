@@ -105,7 +105,6 @@ def test_settings_migration_removes_journal_status_catalog(tmp_path: Path):
                         "header_id": "daily_practice",
                         "status_id": "draft",
                         "default_tags": ["일일연습"],
-                        "default_source_context": "practice",
                         "body_markdown": "## 포커스",
                         "active": True,
                         "order": 0,
@@ -121,3 +120,4 @@ def test_settings_migration_removes_journal_status_catalog(tmp_path: Path):
 
     assert "journal_status_catalog" not in profile
     assert "status_id" not in profile["journal_template_catalog"][0]
+    assert "default_source_context" not in profile["journal_template_catalog"][0]

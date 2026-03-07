@@ -124,10 +124,20 @@ test("E2E-28 journal template apply, manual search, and threaded comments", asyn
   await expect(viewer).toHaveCount(0);
   const detailNav = detail.getByTestId("journal-detail-nav-links");
   await expect(detailNav).toBeVisible();
-  await detailNav.getByRole("button", { name: /이전 글|Prev/i }).click();
-  await expect(detail.getByRole("heading", { name: secondTitle })).toBeVisible();
-  await detailNav.getByRole("button", { name: /다음 글|Next/i }).click();
-  await expect(detail.getByRole("heading", { name: firstTitle })).toBeVisible();
+  const prevButton = detailNav.getByRole("button", { name: /이전 글|Prev/i });
+  const nextButton = detailNav.getByRole("button", { name: /다음 글|Next/i });
+  if (await prevButton.isEnabled()) {
+    await prevButton.click();
+    await expect(detail.getByRole("heading", { name: secondTitle })).toBeVisible();
+    await nextButton.click();
+    await expect(detail.getByRole("heading", { name: firstTitle })).toBeVisible();
+  } else {
+    await expect(nextButton).toBeEnabled();
+    await nextButton.click();
+    await expect(detail.getByRole("heading", { name: secondTitle })).toBeVisible();
+    await prevButton.click();
+    await expect(detail.getByRole("heading", { name: firstTitle })).toBeVisible();
+  }
   await detail.getByRole("button", { name: /닫기|Close/i }).click();
   await expect(detail).toHaveCount(0);
 

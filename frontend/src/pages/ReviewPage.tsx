@@ -605,7 +605,7 @@ export function ReviewPage({ lang, refreshToken, catalogs }: Props) {
 
   const recordStats = useMemo(() => {
     const attachmentCounts = { image: 0, video: 0, audio: 0 };
-    const contextMap = new Map<string, number>();
+    const headerMap = new Map<string, number>();
     const linkMap = new Map<string, number>();
     const tagMap = new Map<string, number>();
     const freeMap = new Map<string, number>();
@@ -616,8 +616,8 @@ export function ReviewPage({ lang, refreshToken, catalogs }: Props) {
         if (attachment.media_type === "video") attachmentCounts.video += 1;
         if (attachment.media_type === "audio") attachmentCounts.audio += 1;
       });
-      const ctx = row.source_context || (lang === "ko" ? "미분류" : "Unknown");
-      contextMap.set(ctx, (contextMap.get(ctx) ?? 0) + 1);
+      const header = row.header_label || row.post_type || (lang === "ko" ? "미분류" : "Unknown");
+      headerMap.set(header, (headerMap.get(header) ?? 0) + 1);
 
       if (row.linked_song_ids?.length) {
         const key = lang === "ko" ? "연결 곡" : "Linked Songs";
@@ -652,7 +652,7 @@ export function ReviewPage({ lang, refreshToken, catalogs }: Props) {
       audioCount: attachmentCounts.audio,
       imageCount: attachmentCounts.image,
       rows: {
-        context: toRows(contextMap, "ctx"),
+        context: toRows(headerMap, "header"),
         linked: toRows(linkMap, "link"),
         tags: toRows(tagMap, "tag"),
         free: toRows(freeMap, "free"),
@@ -661,7 +661,7 @@ export function ReviewPage({ lang, refreshToken, catalogs }: Props) {
   }, [scopedRecords, lang]);
 
   const recordChartLabels: Record<keyof typeof recordStats.rows, string> = {
-    context: lang === "ko" ? "맥락별 분포" : "By Context",
+    context: lang === "ko" ? "말머리별 분포" : "By Header",
     linked: lang === "ko" ? "연결 곡/드릴 분포" : "Linked Song/Drill",
     tags: lang === "ko" ? "태그별 분포" : "Tags",
     free: lang === "ko" ? "자유 태그 분포" : "Free Tags",

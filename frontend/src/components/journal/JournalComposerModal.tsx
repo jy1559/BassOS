@@ -44,7 +44,6 @@ export type JournalComposerSubmitPayload = {
   linked_song_ids: string[];
   linked_drill_ids: string[];
   free_targets: string[];
-  source_context: string;
   file_attachments: JournalFileAttachmentInput[];
   external_attachments: JournalExternalAttachmentInput[];
   attachment_updates: JournalAttachmentUpdateInput[];
@@ -157,13 +156,6 @@ function groupRows(rows: Array<Record<string, string>>, key: string, fallback: s
     .map(([label, items]) => ({ label, items }));
 }
 
-function sourceContextLabel(value: string, lang: Lang): string {
-  if (value === "review") return lang === "ko" ? "회고" : "Review";
-  if (value === "performance") return lang === "ko" ? "합주/공연" : "Performance";
-  if (value === "archive") return lang === "ko" ? "아카이브" : "Archive";
-  return lang === "ko" ? "연습" : "Practice";
-}
-
 function attachmentKindLabel(mediaType: "image" | "video" | "audio", lang: Lang): string {
   if (mediaType === "video") return lang === "ko" ? "영상" : "Video";
   if (mediaType === "audio") return lang === "ko" ? "오디오" : "Audio";
@@ -236,7 +228,6 @@ function TemplatePickerModal({
               <article key={template.id} className={`journal-template-picker-card ${template.id === selectedTemplateId ? "is-selected" : ""}`}>
                 <div className="journal-template-picker-meta">
                   {header ? <span className="journal-badge subtle">{header.label}</span> : null}
-                  <small>{sourceContextLabel(template.default_source_context, lang)}</small>
                 </div>
                 <div className="journal-template-picker-copy">
                   <strong>{template.name}</strong>
@@ -279,7 +270,6 @@ export function JournalComposerModal({
 }: Props) {
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
-  const [sourceContext, setSourceContext] = useState("practice");
   const [headerId, setHeaderId] = useState("");
   const [templateId, setTemplateId] = useState("");
   const [freeTags, setFreeTags] = useState("");
@@ -488,7 +478,6 @@ export function JournalComposerModal({
     const nextDrillIds = item?.linked_drill_ids || [];
     setTitle(item?.title || "");
     setBody(item?.body || "");
-    setSourceContext(item?.source_context || "practice");
     setHeaderId(nextHeaderId);
     setTemplateId(item?.template_id || "");
     setSelectedSongIds(nextSongIds);
@@ -637,7 +626,6 @@ export function JournalComposerModal({
     setTemplateId(nextTemplateId);
     setHeaderId(template.header_id);
     setBody(template.body_markdown);
-    setSourceContext(template.default_source_context);
     setFreeTags(dedupeLabels(template.default_tags).join(", "));
   };
 
@@ -681,7 +669,6 @@ export function JournalComposerModal({
         linked_song_ids: selectedSongIds,
         linked_drill_ids: selectedDrillIds,
         free_targets: freeTagList,
-        source_context: sourceContext,
         file_attachments: fileAttachments.map(() => ({})),
         external_attachments: videoAttachments.map((attachment) => ({
           media_type: "video",
@@ -719,15 +706,6 @@ export function JournalComposerModal({
             {item?.created_at ? <small className="muted">{formatJournalDate(item.created_at)}</small> : null}
           </div>
           <div className="journal-composer-head-actions">
-            <button type="button" className="ghost-btn compact-add-btn" onClick={() => onOpenManager("headers")}>
-              {lang === "ko" ? "말머리 관리" : "Headers"}
-            </button>
-            <button type="button" className="ghost-btn compact-add-btn" onClick={() => onOpenManager("templates")}>
-              {lang === "ko" ? "템플릿 관리" : "Templates"}
-            </button>
-            <button type="button" className="ghost-btn compact-add-btn" onClick={() => onOpenManager("tags")}>
-              {lang === "ko" ? "태그 관리" : "Tags"}
-            </button>
             <button type="button" className="ghost-btn" onClick={onClose}>
               {lang === "ko" ? "닫기" : "Close"}
             </button>
@@ -737,11 +715,29 @@ export function JournalComposerModal({
         <div className="journal-composer-layout">
           <section className="journal-composer-main">
             <div className="journal-composer-title-row">
-              <label>
-                {lang === "ko" ? "제목" : "Title"}
+              <label className="journal-composer-header-inline">
+                <small>{lang === "ko" ? "말머리" : "Header"}</small>
+                <select value={headerId} onChange={(event) => setHeaderId(event.target.value)}>
+                  {activeHeaderCatalog.map((row) => (
+                    <option key={row.id} value={row.id}>{row.label}</option>
+                  ))}
+                </select>
+              </label>
+              <label className="journal-composer-title-field">
+                <span>{lang === "ko" ? "제목" : "Title"}</span>
                 <input value={title} onChange={(event) => setTitle(event.target.value)} />
               </label>
+              <div className="journal-composer-title-actions">
+                <button type="button" className="ghost-btn compact-add-btn" onClick={() => setTemplatePickerOpen(true)}>
+                  {lang === "ko" ? "템플릿 사용" : "Use Template"}
+                </button>
+              </div>
             </div>
+            {selectedTemplate ? (
+              <small className="muted journal-template-inline-summary">
+                {`${selectedTemplate.name} · ${currentTemplatePreview}`}
+              </small>
+            ) : null}
             {editorTab === "write" ? (
               <div className="journal-editor-wrap">
                 <textarea
@@ -781,47 +777,10 @@ export function JournalComposerModal({
 
           <aside className="journal-composer-side">
             <section className="card journal-composer-side-card">
-              <div className="journal-composer-control-grid">
-                <label>
-                  {lang === "ko" ? "말머리" : "Header"}
-                  <select value={headerId} onChange={(event) => setHeaderId(event.target.value)}>
-                    {activeHeaderCatalog.map((row) => (
-                      <option key={row.id} value={row.id}>{row.label}</option>
-                    ))}
-                  </select>
-                </label>
-                <label>
-                  {lang === "ko" ? "맥락" : "Context"}
-                  <select value={sourceContext} onChange={(event) => setSourceContext(event.target.value)}>
-                    <option value="practice">{lang === "ko" ? "연습" : "Practice"}</option>
-                    <option value="review">{lang === "ko" ? "회고" : "Review"}</option>
-                    <option value="performance">{lang === "ko" ? "합주/공연" : "Performance"}</option>
-                    <option value="archive">{lang === "ko" ? "아카이브" : "Archive"}</option>
-                  </select>
-                </label>
-              </div>
-              <div className="journal-template-current">
-                <div>
-                  <strong>{selectedTemplate ? selectedTemplate.name : lang === "ko" ? "선택된 템플릿 없음" : "No template selected"}</strong>
-                  <small>{currentTemplatePreview}</small>
-                </div>
-                {selectedTemplate ? <span className="journal-badge subtle">{sourceContextLabel(selectedTemplate.default_source_context, lang)}</span> : null}
-              </div>
-              <div className="journal-composer-control-actions">
-                <button type="button" className="ghost-btn compact-add-btn" onClick={() => setTemplatePickerOpen(true)}>
-                  {lang === "ko" ? "템플릿 사용" : "Use Template"}
-                </button>
-                <button type="button" className="ghost-btn compact-add-btn" onClick={() => onOpenManager("templates")}>
-                  {lang === "ko" ? "템플릿 관리" : "Manage"}
-                </button>
-              </div>
-            </section>
-
-            <section className="card journal-composer-side-card">
               <div className="row">
                 <strong>{lang === "ko" ? "태그" : "Tags"}</strong>
                 <button type="button" className="ghost-btn compact-add-btn" onClick={() => onOpenManager("tags")}>
-                  {lang === "ko" ? "관리" : "Manage"}
+                  {lang === "ko" ? "태그 관리" : "Tags"}
                 </button>
               </div>
               <div className="journal-chip-cloud">
@@ -849,7 +808,6 @@ export function JournalComposerModal({
               <button type="button" className="ghost-btn journal-link-section-toggle" aria-expanded={songSectionOpen} onClick={() => setSongSectionOpen((prev) => !prev)}>
                 <span className="journal-link-group-title">
                   <strong>{lang === "ko" ? "연결 곡" : "Linked Songs"}</strong>
-                  <small>{lang === "ko" ? "장르별로 접어서 선택" : "Fold by genre"}</small>
                 </span>
                 <span className="journal-link-group-meta">
                   <small>{selectedSongIds.length}</small>
@@ -866,7 +824,6 @@ export function JournalComposerModal({
                         <button type="button" className="ghost-btn journal-link-group-toggle" aria-expanded={openGroup} onClick={() => toggleGroup(group.label, openSongGroups, setOpenSongGroups)}>
                           <span className="journal-link-group-title">
                             <strong>{group.label}</strong>
-                            <small>{lang === "ko" ? "곡 장르" : "Song Genre"}</small>
                           </span>
                           <span className="journal-link-group-meta">
                             <small>{selectedCount}/{group.items.length}</small>
@@ -897,7 +854,6 @@ export function JournalComposerModal({
               <button type="button" className="ghost-btn journal-link-section-toggle" aria-expanded={drillSectionOpen} onClick={() => setDrillSectionOpen((prev) => !prev)}>
                 <span className="journal-link-group-title">
                   <strong>{lang === "ko" ? "연결 드릴" : "Linked Drills"}</strong>
-                  <small>{lang === "ko" ? "유형별로 접어서 선택" : "Fold by type"}</small>
                 </span>
                 <span className="journal-link-group-meta">
                   <small>{selectedDrillIds.length}</small>
@@ -914,7 +870,6 @@ export function JournalComposerModal({
                         <button type="button" className="ghost-btn journal-link-group-toggle" aria-expanded={openGroup} onClick={() => toggleGroup(group.label, openDrillGroups, setOpenDrillGroups)}>
                           <span className="journal-link-group-title">
                             <strong>{group.label}</strong>
-                            <small>{lang === "ko" ? "드릴 유형" : "Drill Type"}</small>
                           </span>
                           <span className="journal-link-group-meta">
                             <small>{selectedCount}/{group.items.length}</small>
@@ -952,9 +907,6 @@ export function JournalComposerModal({
                   </small>
                 </div>
                 <div className="journal-upload-head-actions">
-                  <button type="button" className="ghost-btn compact-add-btn" onClick={() => setEditorTab((prev) => (prev === "write" ? "preview" : "write"))}>
-                    {editorTab === "write" ? (lang === "ko" ? "미리보기" : "Preview") : (lang === "ko" ? "작성" : "Write")}
-                  </button>
                   <button type="button" className="ghost-btn compact-add-btn" disabled={maxNewAttachmentCount <= 0} onClick={() => fileInputRef.current?.click()}>
                     {lang === "ko" ? "첨부 추가" : "Add Files"}
                   </button>
@@ -1087,6 +1039,9 @@ export function JournalComposerModal({
         </div>
 
         <div className="modal-actions journal-composer-footer">
+          <button type="button" className="ghost-btn compact-add-btn" onClick={() => setEditorTab((prev) => (prev === "write" ? "preview" : "write"))}>
+            {editorTab === "write" ? (lang === "ko" ? "미리보기" : "Preview") : (lang === "ko" ? "작성" : "Write")}
+          </button>
           <button className="primary-btn" disabled={busy || (!title.trim() && !body.trim() && previewAttachments.length === 0)} onClick={() => void submit()}>
             {busy ? (lang === "ko" ? "저장 중..." : "Saving...") : item ? (lang === "ko" ? "수정 저장" : "Save Changes") : (lang === "ko" ? "게시글 등록" : "Publish")}
           </button>
