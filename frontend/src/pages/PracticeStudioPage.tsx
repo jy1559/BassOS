@@ -72,6 +72,77 @@ type PendingSwitchPrompt = {
 
 type PlaybackSurface = "none" | "video" | "metronome";
 
+type YoutubePlayerLike = {
+  playVideo?: () => void;
+  pauseVideo?: () => void;
+  seekTo?: (seconds: number, allowSeekAhead?: boolean) => void;
+  getCurrentTime?: () => number;
+  getPlayerState?: () => number;
+  destroy?: () => void;
+};
+
+type YoutubeNamespace = {
+  Player?: new (
+    element: string | HTMLElement,
+    options?: {
+      events?: {
+        onReady?: (event: { target: YoutubePlayerLike }) => void;
+        onStateChange?: (event: { data: number; target: YoutubePlayerLike }) => void;
+      };
+    }
+  ) => YoutubePlayerLike;
+};
+
+declare global {
+  interface Window {
+    YT?: YoutubeNamespace;
+    onYouTubeIframeAPIReady?: (() => void) | undefined;
+  }
+}
+
+const YOUTUBE_IFRAME_API_SCRIPT_ID = "bassos-youtube-iframe-api";
+let youtubeIframeApiPromise: Promise<YoutubeNamespace> | null = null;
+
+function loadYoutubeIframeApi(): Promise<YoutubeNamespace> {
+  if (typeof window === "undefined") {
+    return Promise.reject(new Error("window is unavailable"));
+  }
+  if (window.YT?.Player) {
+    return Promise.resolve(window.YT);
+  }
+  if (youtubeIframeApiPromise) {
+    return youtubeIframeApiPromise;
+  }
+  youtubeIframeApiPromise = new Promise<YoutubeNamespace>((resolve, reject) => {
+    const finish = () => {
+      if (window.YT?.Player) {
+        resolve(window.YT);
+      } else {
+        reject(new Error("YouTube IFrame API unavailable"));
+      }
+    };
+    const existingScript = document.getElementById(YOUTUBE_IFRAME_API_SCRIPT_ID) as HTMLScriptElement | null;
+    const previousReady = window.onYouTubeIframeAPIReady;
+    window.onYouTubeIframeAPIReady = () => {
+      previousReady?.();
+      finish();
+    };
+    if (!existingScript) {
+      const script = document.createElement("script");
+      script.id = YOUTUBE_IFRAME_API_SCRIPT_ID;
+      script.src = "https://www.youtube.com/iframe_api";
+      script.async = true;
+      script.onerror = () => reject(new Error("Failed to load YouTube IFrame API"));
+      document.head.appendChild(script);
+    }
+    window.setTimeout(() => finish(), 5000);
+  }).catch((error) => {
+    youtubeIframeApiPromise = null;
+    throw error;
+  });
+  return youtubeIframeApiPromise;
+}
+
 function toDatetimeLocalInput(raw: string | undefined, fallback = new Date()): string {
   if (raw) {
     const parsed = new Date(raw);
@@ -362,6 +433,7 @@ function parseBpm(value: string): number | null {
 }
 
 const VIDEO_PIN_STORAGE_KEY = "bassos.video.pins.v1";
+const SONG_VIDEO_IFRAME_ID = "bassos-song-video-iframe";
 
 function readVideoPinStore(): Record<string, number> {
   if (typeof window === "undefined") return {};
@@ -429,9 +501,21 @@ function isYoutubeMessageFromCurrentIframe(event: MessageEvent, iframe: HTMLIFra
   if (!iframe) return false;
   const sourceMatches = Boolean(iframe.contentWindow && event.source === iframe.contentWindow);
   if (sourceMatches) return true;
-  const origin = String(event.origin || "").toLowerCase();
-  if (!origin) return false;
-  return origin.includes("youtube.com") || origin.includes("youtube-nocookie.com");
+  let payload: unknown = event.data;
+  if (typeof payload === "string") {
+    const trimmed = payload.trim();
+    if (!trimmed || (!trimmed.startsWith("{") && !trimmed.startsWith("["))) return false;
+    try {
+      payload = JSON.parse(trimmed);
+    } catch {
+      return false;
+    }
+  }
+  if (!payload || typeof payload !== "object") return false;
+  const packet = payload as Record<string, unknown>;
+  const packetId = String(packet.id || "").trim();
+  if (!packetId) return false;
+  return packetId === String(iframe.id || "").trim();
 }
 
 function isFavorite(value: string): boolean {
@@ -562,6 +646,8 @@ export function PracticeStudioPage({
   const songVideoHostRef = useRef<HTMLDivElement | null>(null);
   const songVideoElementRef = useRef<HTMLVideoElement | null>(null);
   const songVideoIframeRef = useRef<HTMLIFrameElement | null>(null);
+  const songYoutubePlayerRef = useRef<YoutubePlayerLike | null>(null);
+  const songYoutubePlayerReadyRef = useRef(false);
   const [scoreContentTab, setScoreContentTab] = useState<"pdf" | "images">("pdf");
   const [scorePdfPage, setScorePdfPage] = useState(1);
   const [selectedScoreImage, setSelectedScoreImage] = useState("");
@@ -750,6 +836,7 @@ export function PracticeStudioPage({
     setIsSongVideoPlaying(false);
     setSongYoutubePlayerState(-1);
     setSongYoutubeCurrentSec(0);
+    songYoutubePlayerReadyRef.current = false;
   }, [selectedSongLink]);
 
   useEffect(() => {
@@ -1354,6 +1441,30 @@ export function PracticeStudioPage({
     iframe.contentWindow.postMessage(JSON.stringify({ event: "command", func, args }), "*");
   };
 
+  const readYoutubePlayerCurrentSecond = (): number | null => {
+    if (!songYoutubePlayerReadyRef.current) return null;
+    const player = songYoutubePlayerRef.current;
+    if (!player || typeof player.getCurrentTime !== "function") return null;
+    const second = Number(player.getCurrentTime());
+    if (!Number.isFinite(second) || second < 0) return null;
+    return second;
+  };
+
+  const readYoutubePlayerState = (): number | null => {
+    if (!songYoutubePlayerReadyRef.current) return null;
+    const player = songYoutubePlayerRef.current;
+    if (!player || typeof player.getPlayerState !== "function") return null;
+    const state = Number(player.getPlayerState());
+    if (!Number.isFinite(state)) return null;
+    return state;
+  };
+
+  const applyYoutubePlaybackState = (state: number) => {
+    setSongYoutubePlayerState(state);
+    if (state === 1 || state === 3) setIsSongVideoPlaying(true);
+    if (state === 0 || state === 2 || state === -1 || state === 5) setIsSongVideoPlaying(false);
+  };
+
   const shiftScoreImage = (direction: -1 | 1) => {
     if (!songScoreImages.length) return;
     setSelectedScoreImage((prev) => {
@@ -1374,6 +1485,10 @@ export function PracticeStudioPage({
       return !node.paused && !node.ended;
     }
     if (songEmbed) {
+      const playerState = readYoutubePlayerState();
+      if (playerState !== null) {
+        return playerState === 1 || playerState === 3;
+      }
       return songYoutubePlayerState === 1 || songYoutubePlayerState === 3 || isSongVideoPlaying;
     }
     return false;
@@ -1393,12 +1508,15 @@ export function PracticeStudioPage({
       return;
     }
     if (songEmbed && songVideoIframeRef.current) {
+      const player = songYoutubePlayerRef.current;
       if (currentlyPlaying) {
-        postYoutubeCommand("pauseVideo");
+        if (player?.pauseVideo) player.pauseVideo();
+        else postYoutubeCommand("pauseVideo");
         setIsSongVideoPlaying(false);
         setSongYoutubePlayerState(2);
       } else {
-        postYoutubeCommand("playVideo");
+        if (player?.playVideo) player.playVideo();
+        else postYoutubeCommand("playVideo");
         setIsSongVideoPlaying(true);
         setSongYoutubePlayerState(1);
       }
@@ -1412,7 +1530,9 @@ export function PracticeStudioPage({
       return;
     }
     if (songEmbed && songVideoIframeRef.current) {
-      postYoutubeCommand("pauseVideo");
+      const player = songYoutubePlayerRef.current;
+      if (player?.pauseVideo) player.pauseVideo();
+      else postYoutubeCommand("pauseVideo");
       setIsSongVideoPlaying(false);
       setSongYoutubePlayerState(2);
     }
@@ -1423,7 +1543,9 @@ export function PracticeStudioPage({
       return Math.max(0, Number(songVideoElementRef.current.currentTime || 0));
     }
     if (songEmbed) {
-      return Math.max(0, Number(songYoutubeCurrentSec || 0));
+      const playerSecond = readYoutubePlayerCurrentSecond();
+      if (playerSecond !== null) return Math.max(0, playerSecond);
+      return Math.max(0, Number(songYoutubeCurrentSecRef.current || 0));
     }
     return 0;
   };
@@ -1433,12 +1555,26 @@ export function PracticeStudioPage({
     if (!songEmbed || !iframe?.contentWindow) {
       return Promise.resolve(Math.max(0, Number(songYoutubeCurrentSecRef.current || 0)));
     }
+    const directSecond = readYoutubePlayerCurrentSecond();
+    if (directSecond !== null && directSecond > 0) {
+      return Promise.resolve(Math.max(0, directSecond));
+    }
+    if (directSecond !== null) {
+      const state = readYoutubePlayerState();
+      if (state !== 1 && state !== 3) {
+        return Promise.resolve(Math.max(0, directSecond));
+      }
+    }
     return new Promise<number>((resolve) => {
       let settled = false;
+      const startedAt = Date.now();
+      let timeoutId = 0;
+      let pollId = 0;
       const finish = (value: number) => {
         if (settled) return;
         settled = true;
         window.clearTimeout(timeoutId);
+        window.clearInterval(pollId);
         window.removeEventListener("message", onMessage);
         resolve(Math.max(0, Number(value || 0)));
       };
@@ -1449,7 +1585,21 @@ export function PracticeStudioPage({
         setSongYoutubeCurrentSec(currentTime);
         finish(currentTime);
       };
-      const timeoutId = window.setTimeout(() => {
+      pollId = window.setInterval(() => {
+        const playerSecond = readYoutubePlayerCurrentSecond();
+        if (playerSecond !== null) {
+          setSongYoutubeCurrentSec(playerSecond);
+          const state = readYoutubePlayerState();
+          if (playerSecond > 0 || (state !== 1 && state !== 3)) {
+            finish(playerSecond);
+            return;
+          }
+        }
+        if (Date.now() - startedAt > 760) {
+          finish(Math.max(0, Number(songYoutubeCurrentSecRef.current || 0)));
+        }
+      }, 90);
+      timeoutId = window.setTimeout(() => {
         finish(Math.max(0, Number(songYoutubeCurrentSecRef.current || 0)));
       }, 720);
       window.addEventListener("message", onMessage);
@@ -1468,8 +1618,14 @@ export function PracticeStudioPage({
       return;
     }
     if (songEmbed && songVideoIframeRef.current) {
-      postYoutubeCommand("seekTo", [targetSecond, true]);
-      if (shouldResume) postYoutubeCommand("playVideo");
+      const player = songYoutubePlayerRef.current;
+      if (player?.seekTo) {
+        player.seekTo(targetSecond, true);
+        if (shouldResume && player.playVideo) player.playVideo();
+      } else {
+        postYoutubeCommand("seekTo", [targetSecond, true]);
+        if (shouldResume) postYoutubeCommand("playVideo");
+      }
     }
   };
 
@@ -1494,15 +1650,29 @@ export function PracticeStudioPage({
       );
     };
     if (songEmbed) {
-      void requestFreshYoutubeCurrentSecond().then((second) => {
-        if (second > 0 || !isSongVideoPlayingNow()) {
-          commit(second);
-          return;
-        }
-        window.setTimeout(() => {
-          void requestFreshYoutubeCurrentSecond().then((retrySecond) => commit(retrySecond));
-        }, 220);
-      });
+      const stableFallbackSecond = Math.max(0, Number(songYoutubeCurrentSecRef.current || 0));
+      void requestFreshYoutubeCurrentSecond()
+        .then(async (second) => {
+          let resolvedSecond = Math.max(
+            0,
+            second,
+            stableFallbackSecond,
+            Number(readYoutubePlayerCurrentSecond() || 0),
+          );
+          if (resolvedSecond <= 0) {
+            await new Promise((resolve) => window.setTimeout(resolve, 220));
+            const retrySecond = await requestFreshYoutubeCurrentSecond();
+            resolvedSecond = Math.max(
+              0,
+              resolvedSecond,
+              retrySecond,
+              Number(readYoutubePlayerCurrentSecond() || 0),
+              Number(songYoutubeCurrentSecRef.current || 0),
+            );
+          }
+          commit(resolvedSecond);
+        })
+        .catch(() => commit(stableFallbackSecond));
       return;
     }
     commit(getCurrentSongVideoSecond());
@@ -1526,6 +1696,90 @@ export function PracticeStudioPage({
     }
     seekSongVideoTo(songVideoPinSec);
   };
+
+  useEffect(() => {
+    if (!songEmbed) {
+      const player = songYoutubePlayerRef.current;
+      songYoutubePlayerRef.current = null;
+      songYoutubePlayerReadyRef.current = false;
+      if (player?.destroy) {
+        try {
+          player.destroy();
+        } catch {
+          // Ignore player destroy failures.
+        }
+      }
+      return;
+    }
+    const iframe = songVideoIframeRef.current;
+    if (!iframe) return;
+    let cancelled = false;
+
+    const initYoutubePlayer = async () => {
+      try {
+        const YT = await loadYoutubeIframeApi();
+        if (cancelled || !YT.Player) return;
+
+        const prevPlayer = songYoutubePlayerRef.current;
+        songYoutubePlayerRef.current = null;
+        songYoutubePlayerReadyRef.current = false;
+        if (prevPlayer?.destroy) {
+          try {
+            prevPlayer.destroy();
+          } catch {
+            // Ignore player destroy failures.
+          }
+        }
+
+        const player = new YT.Player(iframe, {
+          events: {
+            onReady: (event) => {
+              if (cancelled) return;
+              songYoutubePlayerRef.current = event.target;
+              songYoutubePlayerReadyRef.current = true;
+              const second = Number(event.target.getCurrentTime?.() ?? 0);
+              if (Number.isFinite(second) && second >= 0) {
+                setSongYoutubeCurrentSec(second);
+              }
+              const state = Number(event.target.getPlayerState?.() ?? -1);
+              if (Number.isFinite(state)) {
+                applyYoutubePlaybackState(state);
+              }
+            },
+            onStateChange: (event) => {
+              if (cancelled) return;
+              const state = Number(event.data);
+              if (!Number.isFinite(state)) return;
+              applyYoutubePlaybackState(state);
+              const second = readYoutubePlayerCurrentSecond();
+              if (second !== null) {
+                setSongYoutubeCurrentSec(second);
+              }
+            },
+          },
+        });
+        songYoutubePlayerRef.current = player;
+      } catch {
+        songYoutubePlayerReadyRef.current = false;
+        // Keep postMessage fallback path when API bootstrap fails.
+      }
+    };
+
+    void initYoutubePlayer();
+    return () => {
+      cancelled = true;
+      const player = songYoutubePlayerRef.current;
+      songYoutubePlayerRef.current = null;
+      songYoutubePlayerReadyRef.current = false;
+      if (player?.destroy) {
+        try {
+          player.destroy();
+        } catch {
+          // Ignore player destroy failures.
+        }
+      }
+    };
+  }, [songEmbed, selectedSongLink]);
 
   useEffect(() => {
     if (!songEmbed) {
@@ -1787,6 +2041,7 @@ export function PracticeStudioPage({
         {songEmbed ? (
           <div className="studio-video-wrap" ref={songVideoHostRef}>
             <iframe
+              id={SONG_VIDEO_IFRAME_ID}
               ref={songVideoIframeRef}
               className="studio-video studio-song-iframe studio-song-iframe-hero"
               src={songEmbed}
