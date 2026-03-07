@@ -433,6 +433,7 @@ function parseBpm(value: string): number | null {
 }
 
 const VIDEO_PIN_STORAGE_KEY = "bassos.video.pins.v1";
+const SONG_VIDEO_SELECTION_STORAGE_KEY = "bassos.song.video.selection.v1";
 const SONG_VIDEO_IFRAME_ID = "bassos-song-video-iframe";
 
 function readVideoPinStore(): Record<string, number> {
@@ -457,6 +458,34 @@ function writeVideoPinStore(store: Record<string, number>): void {
   if (typeof window === "undefined") return;
   try {
     window.localStorage.setItem(VIDEO_PIN_STORAGE_KEY, JSON.stringify(store));
+  } catch {
+    // Ignore local storage write errors.
+  }
+}
+
+function readSongVideoSelectionStore(): Record<string, string> {
+  if (typeof window === "undefined") return {};
+  try {
+    const raw = window.localStorage.getItem(SONG_VIDEO_SELECTION_STORAGE_KEY);
+    if (!raw) return {};
+    const parsed = JSON.parse(raw) as Record<string, unknown>;
+    const next: Record<string, string> = {};
+    for (const [key, value] of Object.entries(parsed || {})) {
+      const songId = String(key || "").trim();
+      const link = String(value || "").trim();
+      if (!songId || !link) continue;
+      next[songId] = link;
+    }
+    return next;
+  } catch {
+    return {};
+  }
+}
+
+function writeSongVideoSelectionStore(store: Record<string, string>): void {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(SONG_VIDEO_SELECTION_STORAGE_KEY, JSON.stringify(store));
   } catch {
     // Ignore local storage write errors.
   }
@@ -659,6 +688,7 @@ export function PracticeStudioPage({
   const [backingBpmMin, setBackingBpmMin] = useState("");
   const [backingBpmMax, setBackingBpmMax] = useState("");
   const songYoutubeCurrentSecRef = useRef(0);
+  const prevSelectedSongIdRef = useRef(String(hud.active_session?.song_library_id || ""));
   const activeStart = hud.active_session?.start_at ? new Date(hud.active_session.start_at).getTime() : 0;
   const setMetronomeProfileKey = metronome.setProfileKey;
 
@@ -823,14 +853,56 @@ export function PracticeStudioPage({
   const songLinks = useMemo(() => songVideoOptions.map((option) => option.value), [songVideoOptions]);
 
   useEffect(() => {
-    if (!songLinks.length) {
-      setSelectedSongLink("");
+    const currentSongId = String(songId || "").trim();
+    const prevSongId = prevSelectedSongIdRef.current;
+    const songChanged = prevSongId !== currentSongId;
+    prevSelectedSongIdRef.current = currentSongId;
+
+    if (!currentSongId) {
+      if (selectedSongLink) setSelectedSongLink("");
       return;
     }
-    if (selectedSongLink && !songLinks.includes(selectedSongLink)) {
-      setSelectedSongLink("");
+
+    const savedLink = String(readSongVideoSelectionStore()[currentSongId] || "").trim();
+    const savedLinkValid = Boolean(savedLink && songLinks.includes(savedLink));
+    const currentLinkValid = Boolean(selectedSongLink && songLinks.includes(selectedSongLink));
+
+    if (songChanged) {
+      if (savedLinkValid) {
+        if (selectedSongLink !== savedLink) setSelectedSongLink(savedLink);
+        return;
+      }
+      if (selectedSongLink) setSelectedSongLink("");
+      return;
     }
-  }, [songLinks, selectedSongLink]);
+
+    if (!selectedSongLink) {
+      if (savedLinkValid) setSelectedSongLink(savedLink);
+      return;
+    }
+
+    if (!currentLinkValid) {
+      if (savedLinkValid) {
+        setSelectedSongLink(savedLink);
+      } else {
+        setSelectedSongLink("");
+      }
+    }
+  }, [songId, songLinks, selectedSongLink]);
+
+  const handleSongVideoSourceChange = (nextLinkRaw: string) => {
+    const nextLink = String(nextLinkRaw || "").trim();
+    setSelectedSongLink(nextLink);
+    const currentSongId = String(songId || "").trim();
+    if (!currentSongId) return;
+    const store = readSongVideoSelectionStore();
+    if (nextLink) {
+      store[currentSongId] = nextLink;
+    } else {
+      delete store[currentSongId];
+    }
+    writeSongVideoSelectionStore(store);
+  };
 
   useEffect(() => {
     setIsSongVideoPlaying(false);
@@ -2145,7 +2217,7 @@ export function PracticeStudioPage({
           ) : null}
           <label className="studio-source-select song-video-source-select">
             {lang === "ko" ? "영상 소스" : "Video Source"}
-            <select value={selectedSongLink} onChange={(event) => setSelectedSongLink(event.target.value)}>
+            <select value={selectedSongLink} onChange={(event) => handleSongVideoSourceChange(event.target.value)}>
               <option value="">{lang === "ko" ? "(영상 숨기기)" : "(Hide video)"}</option>
               {songLinkGroups.map((group) => (
                 <optgroup key={group.key} label={group.label}>
