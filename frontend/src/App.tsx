@@ -1279,7 +1279,6 @@ export default function App() {
               isActive={tab === "practice"}
               pipMode={settings.ui.practice_video_pip_mode ?? "mini"}
               tabSwitchPlayback={settings.ui.practice_video_tab_switch_playback ?? "continue"}
-              onPipModeChange={(nextMode) => void patchUiSettings({ practice_video_pip_mode: nextMode })}
               onSessionPipVideoChange={handleSessionPipVideoChange}
               onSessionPipVideoControlChange={handleSessionPipVideoControlChange}
               onSessionCompleted={(result) => onSessionCompleted(result, "normal")}

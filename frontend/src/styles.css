@@ -1946,6 +1946,10 @@ button:disabled {
   gap: 6px;
 }
 
+.metronome-pip-settings .metronome-subdivision-select {
+  min-width: 0;
+}
+
 .metronome-pip-bpm-compact {
   display: inline-flex;
   align-items: center;
@@ -6729,23 +6733,48 @@ textarea {
 
 .song-video-controls {
   display: grid;
-  gap: 8px;
+  gap: 10px;
 }
 
-.song-video-pip-row {
-  display: grid;
-  gap: 6px;
-}
-
-.song-video-pin-row {
-  display: grid;
-  gap: 6px;
-}
-
-.song-video-shortcut-row {
+.song-video-action-row {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
+  align-items: center;
+  gap: 10px;
+}
+
+.song-video-action-row .compact-add-btn {
+  min-height: 31px;
+  padding: 5px 11px;
+}
+
+.song-video-pin-status {
+  margin-top: -2px;
+}
+
+.studio-control-surface {
+  border-radius: 12px;
+}
+
+.studio-control-surface.active {
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 48%, transparent);
+}
+
+.studio-metronome-surface.active {
+  box-shadow:
+    var(--shadow),
+    0 0 0 2px color-mix(in srgb, var(--accent) 50%, transparent);
+}
+
+.studio-video-surface {
+  border: 1px solid color-mix(in srgb, var(--border) 90%, transparent);
+  border-radius: 12px;
+  padding: 8px;
+  background: color-mix(in srgb, var(--panel) 94%, var(--accent-soft));
+}
+
+.studio-video-surface.active {
+  border-color: color-mix(in srgb, var(--accent) 60%, var(--border));
 }
 
 .studio-mini-player {
@@ -7539,14 +7568,21 @@ textarea {
   margin: 0;
 }
 
-.metronome-subdivision-toggle {
-  align-self: end;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  white-space: nowrap;
-  font-size: 12px;
+.metronome-subdivision-select {
+  flex: 1 1 156px;
+  min-width: 132px;
+  display: grid;
+  gap: 4px;
+}
+
+.metronome-subdivision-select small {
   color: var(--muted);
+  font-size: 11px;
+}
+
+.metronome-subdivision-select select {
+  min-height: 30px;
+  padding: 4px 8px;
 }
 
 .metronome-visual {
@@ -7573,8 +7609,8 @@ textarea {
 }
 
 .metronome-visual-hero .metronome-sub-light {
-  flex: 0 0 14px;
-  width: 14px;
+  flex: 0 0 24px;
+  width: 24px;
 }
 
 .metronome-light {
@@ -7601,8 +7637,8 @@ textarea {
 }
 
 .metronome-sub-light {
-  flex: 0 0 7px;
-  width: 7px;
+  flex: 0 0 12px;
+  width: 12px;
   aspect-ratio: 1 / 1;
   border-radius: 999px;
   border: 1px solid color-mix(in srgb, var(--border) 80%, transparent);
@@ -8333,10 +8369,10 @@ textarea {
     -webkit-line-clamp: 3;
     line-clamp: 3;
   }
-  .song-video-shortcut-row {
+  .song-video-action-row {
     width: 100%;
   }
-  .song-video-shortcut-row .compact-add-btn {
+  .song-video-action-row .compact-add-btn {
     flex: 1 1 160px;
   }
   .studio-score-actions .compact-add-btn {

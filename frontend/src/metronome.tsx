@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, useMemo, useRef, useState } from 
 import { createPortal } from "react-dom";
 
 type WaveKey = OscillatorType;
+type SubdivisionMode = "none" | "eighth" | "sixteenth" | "triplet";
 
 type MetronomePreset = {
   bpm: number;
@@ -9,7 +10,7 @@ type MetronomePreset = {
   signatureBottom: number;
   accentInput: string;
   masterVolume: number;
-  showSubdivision: boolean;
+  subdivisionMode: SubdivisionMode;
 };
 
 type MetronomeContextValue = {
@@ -24,7 +25,8 @@ type MetronomeContextValue = {
   signatureBottom: number;
   accentInput: string;
   masterVolume: number;
-  showSubdivision: boolean;
+  subdivisionMode: SubdivisionMode;
+  subdivisionStepsPerBeat: number;
   error: string;
   showAdvanced: boolean;
   strongHz: number;
@@ -40,7 +42,7 @@ type MetronomeContextValue = {
   setSignatureBottom: (value: number) => void;
   setAccentInput: (value: string) => void;
   setMasterVolume: (value: number) => void;
-  setShowSubdivision: (value: boolean) => void;
+  setSubdivisionMode: (value: SubdivisionMode) => void;
   setShowAdvanced: (value: boolean) => void;
   setStrongHz: (value: number) => void;
   setWeakHz: (value: number) => void;
@@ -69,6 +71,25 @@ const SIGNATURE_PRESETS: Array<{ top: number; bottom: number; label: string }> =
   { top: 7, bottom: 8, label: "7/8" },
   { top: 3, bottom: 3, label: "3/3" },
 ];
+const SUBDIVISION_OPTIONS: Array<{ value: SubdivisionMode; label: string; ko: string }> = [
+  { value: "none", label: "None", ko: "없음" },
+  { value: "eighth", label: "1/8", ko: "8분음표" },
+  { value: "sixteenth", label: "1/16", ko: "16분음표" },
+  { value: "triplet", label: "Triplet", ko: "셋잇단" },
+];
+
+function normalizeSubdivisionMode(raw: unknown): SubdivisionMode {
+  const token = String(raw || "").trim().toLowerCase();
+  if (token === "eighth" || token === "sixteenth" || token === "triplet" || token === "none") return token;
+  return "none";
+}
+
+function subdivisionStepsPerBeat(mode: SubdivisionMode): number {
+  if (mode === "eighth") return 2;
+  if (mode === "sixteenth") return 4;
+  if (mode === "triplet") return 3;
+  return 1;
+}
 
 function clampInt(value: number, min: number, max: number, fallback: number): number {
   if (!Number.isFinite(value)) return fallback;
@@ -108,8 +129,11 @@ function normalizePreset(raw: unknown): MetronomePreset | null {
   const signatureBottom = clampInt(Number(item.signatureBottom), 1, 16, 4);
   const accentInput = String(item.accentInput || "1").trim() || "1";
   const masterVolume = clampFloat(Number(item.masterVolume), 0.01, 1, 0.65);
-  const showSubdivision = Boolean(item.showSubdivision);
-  return { bpm, signatureTop, signatureBottom, accentInput, masterVolume, showSubdivision };
+  let subdivisionMode = normalizeSubdivisionMode(item.subdivisionMode);
+  if (subdivisionMode === "none" && typeof item.showSubdivision === "boolean") {
+    subdivisionMode = item.showSubdivision ? "eighth" : "none";
+  }
+  return { bpm, signatureTop, signatureBottom, accentInput, masterVolume, subdivisionMode };
 }
 
 function readPresetStore(): Record<string, MetronomePreset> {
@@ -154,7 +178,7 @@ export function MetronomeProvider({ children }: ProviderProps) {
   const [signatureBottom, setSignatureBottom] = useState(4);
   const [accentInput, setAccentInput] = useState("1");
   const [masterVolume, setMasterVolume] = useState(0.65);
-  const [showSubdivision, setShowSubdivision] = useState(false);
+  const [subdivisionMode, setSubdivisionMode] = useState<SubdivisionMode>("none");
   const [error, setError] = useState("");
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [strongHz, setStrongHz] = useState(1350);
@@ -166,6 +190,7 @@ export function MetronomeProvider({ children }: ProviderProps) {
   const [profileKey, setProfileKey] = useState("");
 
   const accentBeats = useMemo(() => parseAccentBeats(accentInput, signatureTop), [accentInput, signatureTop]);
+  const stepsPerBeat = useMemo(() => subdivisionStepsPerBeat(subdivisionMode), [subdivisionMode]);
   const audioRef = useRef<AudioContext | null>(null);
   const timerRef = useRef<number | null>(null);
   const beatRef = useRef(1);
@@ -260,14 +285,15 @@ export function MetronomeProvider({ children }: ProviderProps) {
     }
 
     const beatIntervalMs = Math.max(40, Math.round((60 / Math.max(BPM_MIN, bpm)) * 1000));
-    const visualIntervalMs = Math.max(20, Math.round(beatIntervalMs / 2));
+    const visualIntervalMs = Math.max(12, Math.round(beatIntervalMs / Math.max(1, stepsPerBeat)));
 
     const tick = () => {
-      const maxStep = Math.max(2, signatureTop * 2);
+      const maxStep = Math.max(1, signatureTop * Math.max(1, stepsPerBeat));
       const currentStep = Math.max(1, Math.min(maxStep, visualStepRef.current));
-      const currentBeat = Math.ceil(currentStep / 2);
+      const currentBeat = Math.floor((currentStep - 1) / Math.max(1, stepsPerBeat)) + 1;
+      const currentSubStep = (currentStep - 1) % Math.max(1, stepsPerBeat);
       const currentBar = barRef.current;
-      const isMainBeat = currentStep % 2 === 1;
+      const isMainBeat = currentSubStep === 0;
       if (isMainBeat) {
         const isAccent = accentBeats.has(currentBeat);
         const hz = isAccent ? strongHz : weakHz;
@@ -299,7 +325,7 @@ export function MetronomeProvider({ children }: ProviderProps) {
         timerRef.current = null;
       }
     };
-  }, [running, bpm, signatureTop, accentBeats, strongHz, weakHz, strongWave, weakWave, masterVolume, strongGain, weakGain]);
+  }, [running, bpm, signatureTop, accentBeats, strongHz, weakHz, strongWave, weakWave, masterVolume, strongGain, weakGain, stepsPerBeat]);
 
   useEffect(() => {
     if (profileHydrateTimerRef.current !== null) {
@@ -319,7 +345,7 @@ export function MetronomeProvider({ children }: ProviderProps) {
       setSignatureBottom(preset.signatureBottom);
       setAccentInput(preset.accentInput || "1");
       setMasterVolume(preset.masterVolume);
-      setShowSubdivision(Boolean(preset.showSubdivision));
+      setSubdivisionMode(preset.subdivisionMode);
       setError("");
     }
     profileHydrateTimerRef.current = window.setTimeout(() => {
@@ -344,7 +370,7 @@ export function MetronomeProvider({ children }: ProviderProps) {
       signatureBottom,
       accentInput,
       masterVolume,
-      showSubdivision,
+      subdivisionMode,
     };
     const prevPreset = store[profileKey];
     if (
@@ -354,13 +380,13 @@ export function MetronomeProvider({ children }: ProviderProps) {
       prevPreset.signatureBottom === nextPreset.signatureBottom &&
       prevPreset.accentInput === nextPreset.accentInput &&
       Math.abs(prevPreset.masterVolume - nextPreset.masterVolume) < 0.0001 &&
-      prevPreset.showSubdivision === nextPreset.showSubdivision
+      prevPreset.subdivisionMode === nextPreset.subdivisionMode
     ) {
       return;
     }
     store[profileKey] = nextPreset;
     writePresetStore(store);
-  }, [profileKey, bpm, signatureTop, signatureBottom, accentInput, masterVolume, showSubdivision]);
+  }, [profileKey, bpm, signatureTop, signatureBottom, accentInput, masterVolume, subdivisionMode]);
 
   useEffect(() => {
     return () => {
@@ -390,7 +416,8 @@ export function MetronomeProvider({ children }: ProviderProps) {
     signatureBottom,
     accentInput,
     masterVolume,
-    showSubdivision,
+    subdivisionMode,
+    subdivisionStepsPerBeat: stepsPerBeat,
     error,
     showAdvanced,
     strongHz,
@@ -406,7 +433,7 @@ export function MetronomeProvider({ children }: ProviderProps) {
     setSignatureBottom: (value) => setSignatureBottom(clampInt(value, 1, 16, 4)),
     setAccentInput,
     setMasterVolume: (value) => setMasterVolume(clampFloat(value, 0.01, 1, 0.65)),
-    setShowSubdivision,
+    setSubdivisionMode: (value) => setSubdivisionMode(normalizeSubdivisionMode(value)),
     setShowAdvanced,
     setStrongHz: (value) => setStrongHz(clampInt(value, 300, 3200, 1350)),
     setWeakHz: (value) => setWeakHz(clampInt(value, 200, 2800, 900)),
@@ -443,8 +470,8 @@ export function MetronomePipPanel({
   const metro = useMetronome();
   const beats = Array.from({ length: metro.signatureTop }).map((_, idx) => idx + 1);
   const accentSet = useMemo(() => parseAccentBeats(metro.accentInput, metro.signatureTop), [metro.accentInput, metro.signatureTop]);
-  const visualBeat = Math.max(1, Math.ceil(metro.visualStep / 2));
-  const isSubdivisionStep = metro.visualStep % 2 === 0;
+  const visualBeat = Math.max(1, Math.floor((metro.visualStep - 1) / Math.max(1, metro.subdivisionStepsPerBeat)) + 1);
+  const visualSubStep = (metro.visualStep - 1) % Math.max(1, metro.subdivisionStepsPerBeat);
   const [settingsOpen, setSettingsOpen] = useState(false);
 
   useEffect(() => {
@@ -462,8 +489,7 @@ export function MetronomePipPanel({
       <div className="metronome-pip-main">
         <div className="metronome-visual metronome-pip-visual">
           {beats.flatMap((value) => {
-            const mainActive = metro.running && !isSubdivisionStep && value === visualBeat;
-            const subdivisionActive = metro.running && isSubdivisionStep && value === visualBeat;
+            const mainActive = metro.running && visualSubStep === 0 && value === visualBeat;
             const accent = accentSet.has(value);
             const nodes = [
               <span
@@ -471,11 +497,11 @@ export function MetronomePipPanel({
                 className={`metronome-light ${mainActive ? "active" : ""} ${accent ? "accent" : ""}`}
               />,
             ];
-            if (metro.showSubdivision && value < metro.signatureTop) {
+            for (let sub = 1; sub < metro.subdivisionStepsPerBeat; sub += 1) {
               nodes.push(
                 <span
-                  key={`pip_sub_${value}`}
-                  className={`metronome-sub-light ${subdivisionActive ? "active" : ""}`}
+                  key={`pip_sub_${value}_${sub}`}
+                  className={`metronome-sub-light ${metro.running && value === visualBeat && visualSubStep === sub ? "active" : ""}`}
                 />
               );
             }
@@ -542,9 +568,15 @@ export function MetronomePipPanel({
               );
             })}
           </div>
-          <label className="inline metronome-subdivision-toggle">
-            <input type="checkbox" checked={metro.showSubdivision} onChange={(event) => metro.setShowSubdivision(event.target.checked)} />
-            <span>사이음시각화</span>
+          <label className="metronome-subdivision-select">
+            <small>사이박</small>
+            <select value={metro.subdivisionMode} onChange={(event) => metro.setSubdivisionMode(event.target.value as SubdivisionMode)}>
+              {SUBDIVISION_OPTIONS.map((item) => (
+                <option key={`pip_subdivision_${item.value}`} value={item.value}>
+                  {item.ko}
+                </option>
+              ))}
+            </select>
           </label>
           <label className="metronome-volume-inline">
             <small>VOL</small>
@@ -567,8 +599,8 @@ export function GlobalMetronomeDock({ embedded = false }: { embedded?: boolean }
   const [embeddedExpanded, setEmbeddedExpanded] = useState(false);
   const beats = Array.from({ length: metro.signatureTop }).map((_, idx) => idx + 1);
   const accentSet = useMemo(() => parseAccentBeats(metro.accentInput, metro.signatureTop), [metro.accentInput, metro.signatureTop]);
-  const visualBeat = Math.max(1, Math.ceil(metro.visualStep / 2));
-  const isSubdivisionStep = metro.visualStep % 2 === 0;
+  const visualBeat = Math.max(1, Math.floor((metro.visualStep - 1) / Math.max(1, metro.subdivisionStepsPerBeat)) + 1);
+  const visualSubStep = (metro.visualStep - 1) % Math.max(1, metro.subdivisionStepsPerBeat);
   const showDock = embedded ? embeddedExpanded : metro.open;
   const toggleDock = () => {
     if (embedded) {
@@ -605,8 +637,7 @@ export function GlobalMetronomeDock({ embedded = false }: { embedded?: boolean }
           <div className="metronome-main-row">
             <div className="metronome-visual metronome-visual-hero">
               {beats.flatMap((value) => {
-                const mainActive = metro.running && !isSubdivisionStep && value === visualBeat;
-                const subdivisionActive = metro.running && isSubdivisionStep && value === visualBeat;
+                const mainActive = metro.running && visualSubStep === 0 && value === visualBeat;
                 const accent = accentSet.has(value);
                 const nodes = [
                   <span
@@ -615,11 +646,11 @@ export function GlobalMetronomeDock({ embedded = false }: { embedded?: boolean }
                     title={`Beat ${value}`}
                   />,
                 ];
-                if (metro.showSubdivision && value < metro.signatureTop) {
+                for (let sub = 1; sub < metro.subdivisionStepsPerBeat; sub += 1) {
                   nodes.push(
                     <span
-                      key={`hero_sub_${value}`}
-                      className={`metronome-sub-light ${subdivisionActive ? "active" : ""}`}
+                      key={`hero_sub_${value}_${sub}`}
+                      className={`metronome-sub-light ${metro.running && value === visualBeat && visualSubStep === sub ? "active" : ""}`}
                       title="Subdivision"
                     />
                   );
@@ -682,9 +713,15 @@ export function GlobalMetronomeDock({ embedded = false }: { embedded?: boolean }
               </div>
             </div>
 
-            <label className="inline metronome-subdivision-toggle">
-              <input type="checkbox" checked={metro.showSubdivision} onChange={(event) => metro.setShowSubdivision(event.target.checked)} />
-              <span>사이음시각화</span>
+            <label className="metronome-subdivision-select">
+              <small>사이박</small>
+              <select value={metro.subdivisionMode} onChange={(event) => metro.setSubdivisionMode(event.target.value as SubdivisionMode)}>
+                {SUBDIVISION_OPTIONS.map((item) => (
+                  <option key={`subdivision_${item.value}`} value={item.value}>
+                    {item.ko}
+                  </option>
+                ))}
+              </select>
             </label>
 
             <label className="metronome-volume-inline">

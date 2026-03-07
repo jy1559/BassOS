@@ -44,7 +44,6 @@ type Props = {
   isActive: boolean;
   pipMode: "mini" | "none";
   tabSwitchPlayback: "continue" | "pause" | "pip_only";
-  onPipModeChange: (mode: "mini" | "none") => void;
   onSessionPipVideoChange?: (payload: SessionPipVideoPayload | null) => void;
   onSessionPipVideoControlChange?: (payload: SessionPipVideoControlPayload | null) => void;
   onSessionCompleted?: (result: SessionStopResult) => void;
@@ -70,6 +69,8 @@ type PendingSwitchPrompt = {
   nextId: string;
   underMin: boolean;
 };
+
+type PlaybackSurface = "none" | "video" | "metronome";
 
 function toDatetimeLocalInput(raw: string | undefined, fallback = new Date()): string {
   if (raw) {
@@ -471,7 +472,6 @@ export function PracticeStudioPage({
   isActive,
   pipMode,
   tabSwitchPlayback,
-  onPipModeChange,
   onSessionPipVideoChange,
   onSessionPipVideoControlChange,
   onSessionCompleted,
@@ -508,9 +508,11 @@ export function PracticeStudioPage({
   const [switchTimeEndAtInput, setSwitchTimeEndAtInput] = useState("");
   const [switchTimeBusy, setSwitchTimeBusy] = useState(false);
   const [showSwitchTimeUnderMinAlert, setShowSwitchTimeUnderMinAlert] = useState(false);
+  const [activePlaybackSurface, setActivePlaybackSurface] = useState<PlaybackSurface>("none");
 
   const [selectedSongLink, setSelectedSongLink] = useState("");
   const [isSongVideoPlaying, setIsSongVideoPlaying] = useState(false);
+  const [songYoutubePlayerState, setSongYoutubePlayerState] = useState(-1);
   const [songYoutubeCurrentSec, setSongYoutubeCurrentSec] = useState(0);
   const [songVideoPinSec, setSongVideoPinSec] = useState<number | null>(null);
   const [songSplitDirection, setSongSplitDirection] = useState<"horizontal" | "vertical">("horizontal");
@@ -705,8 +707,19 @@ export function PracticeStudioPage({
 
   useEffect(() => {
     setIsSongVideoPlaying(false);
+    setSongYoutubePlayerState(-1);
     setSongYoutubeCurrentSec(0);
   }, [selectedSongLink]);
+
+  useEffect(() => {
+    if (!isActive) {
+      setActivePlaybackSurface("none");
+      return;
+    }
+    if (activePlaybackSurface === "video" && (practiceType !== "song" || !selectedSongLink)) {
+      setActivePlaybackSurface("none");
+    }
+  }, [activePlaybackSurface, isActive, practiceType, selectedSongLink]);
 
   useEffect(() => {
     if (practiceType !== "drill") return;
@@ -889,6 +902,16 @@ export function PracticeStudioPage({
   const currentVideoPinKey = useMemo(() => String(selectedSongLink || "").trim(), [selectedSongLink]);
   const backingEmbed = useMemo(() => toYoutubeEmbed(selectedBacking?.youtube_url || ""), [selectedBacking?.youtube_url]);
   const drillImages = useMemo(() => drillImageSources(drill), [drill]);
+  const songVideoPlaying = useMemo(() => {
+    if (songDirectVideo && songVideoElementRef.current) {
+      const node = songVideoElementRef.current;
+      return !node.paused && !node.ended;
+    }
+    if (songEmbed) {
+      return songYoutubePlayerState === 1 || songYoutubePlayerState === 3 || isSongVideoPlaying;
+    }
+    return false;
+  }, [songDirectVideo, songEmbed, songYoutubePlayerState, isSongVideoPlaying]);
 
   useEffect(() => {
     if (!currentVideoPinKey) {
@@ -1300,10 +1323,22 @@ export function PracticeStudioPage({
     setScorePdfPage((prev) => Math.max(1, prev + direction));
   };
 
+  const isSongVideoPlayingNow = (): boolean => {
+    if (songDirectVideo && songVideoElementRef.current) {
+      const node = songVideoElementRef.current;
+      return !node.paused && !node.ended;
+    }
+    if (songEmbed) {
+      return songYoutubePlayerState === 1 || songYoutubePlayerState === 3 || isSongVideoPlaying;
+    }
+    return false;
+  };
+
   const toggleSongVideoPlayback = () => {
+    const currentlyPlaying = isSongVideoPlayingNow();
     if (songDirectVideo && songVideoElementRef.current) {
       const target = songVideoElementRef.current;
-      if (target.paused) {
+      if (target.paused || target.ended) {
         void target.play().catch(() => undefined);
         setIsSongVideoPlaying(true);
       } else {
@@ -1313,12 +1348,14 @@ export function PracticeStudioPage({
       return;
     }
     if (songEmbed && songVideoIframeRef.current) {
-      if (isSongVideoPlaying) {
+      if (currentlyPlaying) {
         postYoutubeCommand("pauseVideo");
         setIsSongVideoPlaying(false);
+        setSongYoutubePlayerState(2);
       } else {
         postYoutubeCommand("playVideo");
         setIsSongVideoPlaying(true);
+        setSongYoutubePlayerState(1);
       }
     }
   };
@@ -1332,11 +1369,8 @@ export function PracticeStudioPage({
     if (songEmbed && songVideoIframeRef.current) {
       postYoutubeCommand("pauseVideo");
       setIsSongVideoPlaying(false);
+      setSongYoutubePlayerState(2);
     }
-  };
-
-  const switchPipMode = (nextMode: "mini" | "none") => {
-    onPipModeChange(nextMode);
   };
 
   const getCurrentSongVideoSecond = () => {
@@ -1351,15 +1385,16 @@ export function PracticeStudioPage({
 
   const seekSongVideoTo = (second: number) => {
     const targetSecond = Math.max(0, Number(second || 0));
+    const shouldResume = isSongVideoPlayingNow();
     if (songDirectVideo && songVideoElementRef.current) {
       const target = songVideoElementRef.current;
       target.currentTime = targetSecond;
-      if (isSongVideoPlaying) void target.play().catch(() => undefined);
+      if (shouldResume) void target.play().catch(() => undefined);
       return;
     }
     if (songEmbed && songVideoIframeRef.current) {
       postYoutubeCommand("seekTo", [targetSecond, true]);
-      if (isSongVideoPlaying) postYoutubeCommand("playVideo");
+      if (shouldResume) postYoutubeCommand("playVideo");
     }
   };
 
@@ -1403,7 +1438,10 @@ export function PracticeStudioPage({
   };
 
   useEffect(() => {
-    if (!songEmbed) return;
+    if (!songEmbed) {
+      setSongYoutubePlayerState(-1);
+      return;
+    }
     const iframe = songVideoIframeRef.current;
     if (!iframe) return;
 
@@ -1423,6 +1461,7 @@ export function PracticeStudioPage({
 
     const infoTimer = window.setInterval(() => {
       send("getCurrentTime");
+      send("getPlayerState");
     }, 450);
 
     const onMessage = (event: MessageEvent) => {
@@ -1441,10 +1480,22 @@ export function PracticeStudioPage({
       const data = payload as Record<string, unknown>;
       if (data.event === "onStateChange") {
         const state = Number(data.info);
-        if (state === 1) setIsSongVideoPlaying(true);
-        if (state === 0 || state === 2) setIsSongVideoPlaying(false);
+        if (Number.isFinite(state)) {
+          setSongYoutubePlayerState(state);
+          if (state === 1 || state === 3) setIsSongVideoPlaying(true);
+          if (state === 0 || state === 2 || state === -1 || state === 5) setIsSongVideoPlaying(false);
+        }
       }
       const info = data.info;
+      if (typeof info === "number") {
+        if (Number.isFinite(info)) {
+          const state = Number(info);
+          setSongYoutubePlayerState(state);
+          if (state === 1 || state === 3) setIsSongVideoPlaying(true);
+          if (state === 0 || state === 2 || state === -1 || state === 5) setIsSongVideoPlaying(false);
+        }
+        return;
+      }
       if (!info || typeof info !== "object") return;
       const infoObj = info as Record<string, unknown>;
       const currentTime = Number(infoObj.currentTime);
@@ -1452,8 +1503,11 @@ export function PracticeStudioPage({
         setSongYoutubeCurrentSec(currentTime);
       }
       const playerState = Number(infoObj.playerState);
-      if (playerState === 1) setIsSongVideoPlaying(true);
-      if (playerState === 0 || playerState === 2) setIsSongVideoPlaying(false);
+      if (Number.isFinite(playerState)) {
+        setSongYoutubePlayerState(playerState);
+        if (playerState === 1 || playerState === 3) setIsSongVideoPlaying(true);
+        if (playerState === 0 || playerState === 2 || playerState === -1 || playerState === 5) setIsSongVideoPlaying(false);
+      }
     };
 
     window.addEventListener("message", onMessage);
@@ -1516,6 +1570,40 @@ export function PracticeStudioPage({
   }, [zoomAsset, selectedScoreImage, songScorePdf, scorePdfPage]);
 
   useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (!isActive) return;
+      if (showStopModal || pendingSwitchPrompt || showSwitchTimeEditor || showSwitchTimeUnderMinAlert) return;
+      if (isEditableTarget(event.target)) return;
+      const isSpaceKey = event.key === " " || event.key === "Spacebar" || event.code === "Space";
+      if (!isSpaceKey) return;
+      if (activePlaybackSurface === "metronome") {
+        event.preventDefault();
+        void metronome.toggle();
+        return;
+      }
+      if (activePlaybackSurface === "video" && practiceType === "song") {
+        event.preventDefault();
+        toggleSongVideoPlayback();
+      }
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [
+    isActive,
+    showStopModal,
+    pendingSwitchPrompt,
+    showSwitchTimeEditor,
+    showSwitchTimeUnderMinAlert,
+    activePlaybackSurface,
+    practiceType,
+    metronome,
+    songEmbed,
+    songDirectVideo,
+    songYoutubePlayerState,
+    isSongVideoPlaying,
+  ]);
+
+  useEffect(() => {
     if (practiceType !== "song") return;
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape" && zoomAsset) {
@@ -1524,11 +1612,6 @@ export function PracticeStudioPage({
         return;
       }
       if (isEditableTarget(event.target)) return;
-      if (event.key === " ") {
-        event.preventDefault();
-        toggleSongVideoPlayback();
-        return;
-      }
       if (event.key === "ArrowLeft" || event.key === "ArrowRight") {
         const direction: -1 | 1 = event.key === "ArrowLeft" ? -1 : 1;
         if (zoomAsset?.kind === "image" || (scoreContentTab === "images" && songScoreImages.length)) {
@@ -1607,7 +1690,11 @@ export function PracticeStudioPage({
       return <small className="muted">{lang === "ko" ? "등록된 영상 링크가 없습니다." : "No video links found."}</small>;
     }
     return (
-      <>
+      <div
+        className={`studio-video-surface studio-control-surface ${activePlaybackSurface === "video" ? "active" : ""}`}
+        onMouseDownCapture={() => setActivePlaybackSurface("video")}
+        onFocusCapture={() => setActivePlaybackSurface("video")}
+      >
         <div className="song-video-controls">
           <label className="studio-source-select">
             {lang === "ko" ? "영상 소스" : "Video Source"}
@@ -1623,9 +1710,11 @@ export function PracticeStudioPage({
               ))}
             </select>
           </label>
-          <div className="song-video-shortcut-row">
+          <div className="song-video-action-row">
             <button type="button" className="ghost-btn compact-add-btn" onClick={toggleSongVideoPlayback}>
-              {lang === "ko" ? "재생/일시정지 (Space)" : "Play/Pause (Space)"}
+              {songVideoPlaying
+                ? (lang === "ko" ? "일시정지 (Space)" : "Pause (Space)")
+                : (lang === "ko" ? "재생 (Space)" : "Play (Space)")}
             </button>
             <button type="button" className="ghost-btn compact-add-btn" onClick={resetSongVideoToStart}>
               {lang === "ko" ? "처음으로 (Z)" : "Restart (Z)"}
@@ -1633,45 +1722,21 @@ export function PracticeStudioPage({
             <button type="button" className="ghost-btn compact-add-btn" onClick={toggleSongVideoFullscreen}>
               {lang === "ko" ? "영상 전체화면 (F)" : "Video Fullscreen (F)"}
             </button>
+            <button type="button" className="ghost-btn compact-add-btn" onClick={saveSongVideoPinAtCurrent}>
+              {lang === "ko" ? "핀 저장" : "Pin"}
+            </button>
+            <button type="button" className="ghost-btn compact-add-btn" onClick={jumpSongVideoToPin}>
+              {songVideoPinSec === null ? (lang === "ko" ? "처음으로" : "Restart") : (lang === "ko" ? "핀으로" : "To Pin")}
+            </button>
+            <button type="button" className="ghost-btn compact-add-btn" onClick={clearSongVideoPin} disabled={songVideoPinSec === null}>
+              {lang === "ko" ? "핀 해제" : "Clear Pin"}
+            </button>
           </div>
-          <div className="song-video-pip-row">
-            <small className="muted">{lang === "ko" ? "PIP 모드" : "PIP mode"}</small>
-            <div className="switch-row">
-              <button
-                type="button"
-                className={`ghost-btn compact-add-btn ${pipMode === "mini" ? "active-mini" : ""}`}
-                onClick={() => switchPipMode("mini")}
-              >
-                Mini
-              </button>
-              <button
-                type="button"
-                className={`ghost-btn compact-add-btn ${pipMode === "none" ? "active-mini" : ""}`}
-                onClick={() => switchPipMode("none")}
-              >
-                Off
-              </button>
-            </div>
-          </div>
-          <div className="song-video-pin-row">
-            <small className="muted">{lang === "ko" ? "영상 핀" : "Video pin"}</small>
-            <div className="switch-row">
-              <button type="button" className="ghost-btn compact-add-btn" onClick={saveSongVideoPinAtCurrent}>
-                {lang === "ko" ? "현재 위치 핀" : "Pin Current"}
-              </button>
-              <button type="button" className="ghost-btn compact-add-btn" onClick={jumpSongVideoToPin}>
-                {songVideoPinSec === null ? (lang === "ko" ? "처음으로" : "Restart") : (lang === "ko" ? "핀으로" : "To Pin")}
-              </button>
-              <button type="button" className="ghost-btn compact-add-btn" onClick={clearSongVideoPin} disabled={songVideoPinSec === null}>
-                {lang === "ko" ? "핀 해제" : "Clear Pin"}
-              </button>
-            </div>
-            {songVideoPinSec !== null ? (
-              <small className="muted">
-                {lang === "ko" ? `저장된 핀: ${formatVideoSecond(songVideoPinSec)}` : `Pinned at: ${formatVideoSecond(songVideoPinSec)}`}
-              </small>
-            ) : null}
-          </div>
+          {songVideoPinSec !== null ? (
+            <small className="muted song-video-pin-status">
+              {lang === "ko" ? `저장된 핀: ${formatVideoSecond(songVideoPinSec)}` : `Pinned at: ${formatVideoSecond(songVideoPinSec)}`}
+            </small>
+          ) : null}
         </div>
 
         {songEmbed ? (
@@ -1694,8 +1759,14 @@ export function PracticeStudioPage({
               src={songDirectVideo}
               controls
               playsInline
-              onPlay={() => setIsSongVideoPlaying(true)}
-              onPause={() => setIsSongVideoPlaying(false)}
+              onPlay={() => {
+                setIsSongVideoPlaying(true);
+                setSongYoutubePlayerState(1);
+              }}
+              onPause={() => {
+                setIsSongVideoPlaying(false);
+                setSongYoutubePlayerState(2);
+              }}
               onTimeUpdate={(event) => setSongYoutubeCurrentSec(Math.max(0, Number(event.currentTarget.currentTime || 0)))}
             />
           </div>
@@ -1718,7 +1789,7 @@ export function PracticeStudioPage({
         ) : (
           <small className="muted">{lang === "ko" ? "등록된 영상 링크가 없습니다." : "No video links found."}</small>
         )}
-      </>
+      </div>
     );
   };
 
@@ -2013,7 +2084,7 @@ export function PracticeStudioPage({
       targetKind: "song",
       targetId: activeSessionSongId,
       canControl: true,
-      isPlaying: isSongVideoPlaying,
+      isPlaying: songVideoPlaying,
       hasPin: songVideoPinSec !== null,
       togglePlayback: toggleSongVideoPlayback,
       savePinAtCurrent: saveSongVideoPinAtCurrent,
@@ -2024,7 +2095,7 @@ export function PracticeStudioPage({
   }, [
     activeSessionId,
     activeSessionSongId,
-    isSongVideoPlaying,
+    songVideoPlaying,
     onSessionPipVideoControlChange,
     songVideoPinSec,
     showMiniDock,
@@ -2318,7 +2389,11 @@ export function PracticeStudioPage({
         )}
       </section>
 
-      <section className="card">
+      <section
+        className={`card studio-control-surface studio-metronome-surface ${activePlaybackSurface === "metronome" ? "active" : ""}`}
+        onMouseDownCapture={() => setActivePlaybackSurface("metronome")}
+        onFocusCapture={() => setActivePlaybackSurface("metronome")}
+      >
         <div className="row">
           <h2>{lang === "ko" ? "메트로놈" : "Metronome"}</h2>
           <small className="muted">{lang === "ko" ? "탭 이동 시 PiP로 유지됩니다." : "Stays active as PiP across tabs."}</small>
