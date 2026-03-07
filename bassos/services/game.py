@@ -1105,10 +1105,14 @@ class GameService:
         self,
         limit: int = 500,
         query: str = "",
+        search_scope: str = "",
         post_type: str = "",
         media_type: str = "",
         song_library_id: str = "",
         drill_id: str = "",
+        tag_labels: list[str] | None = None,
+        song_library_ids: list[str] | None = None,
+        drill_ids: list[str] | None = None,
         header_id: str = "",
         status_id: str = "",
         template_id: str = "",
@@ -1131,6 +1135,18 @@ class GameService:
         normalized_media_type = media_type.strip().lower()
         normalized_post_type = post_type.strip()
         normalized_sort = str(sort or "created_desc").strip().lower()
+        normalized_search_scope = str(search_scope or "").strip().lower()
+        normalized_tag_labels = {str(item).strip().lower() for item in (tag_labels or []) if str(item).strip()}
+        normalized_song_ids = {
+            str(item).strip()
+            for item in ([song_library_id] + list(song_library_ids or []))
+            if str(item).strip()
+        }
+        normalized_drill_ids = {
+            str(item).strip()
+            for item in ([drill_id] + list(drill_ids or []))
+            if str(item).strip()
+        }
 
         items: list[dict[str, Any]] = []
         for row in posts:
@@ -1148,9 +1164,9 @@ class GameService:
 
             if normalized_post_type and normalized.get("post_type") != normalized_post_type:
                 continue
-            if song_library_id and song_library_id not in normalized.get("linked_song_ids", []):
+            if normalized_song_ids and not normalized_song_ids.intersection(set(normalized.get("linked_song_ids", []))):
                 continue
-            if drill_id and drill_id not in normalized.get("linked_drill_ids", []):
+            if normalized_drill_ids and not normalized_drill_ids.intersection(set(normalized.get("linked_drill_ids", []))):
                 continue
             if header_id and normalized.get("header_id") != header_id:
                 continue
@@ -1158,26 +1174,56 @@ class GameService:
                 continue
             if template_id and normalized.get("template_id") != template_id:
                 continue
+            if normalized_tag_labels:
+                item_tags = {str(item).strip().lower() for item in normalized.get("tags", []) if str(item).strip()}
+                if not item_tags.intersection(normalized_tag_labels):
+                    continue
             if normalized_media_type and normalized_media_type != "all":
                 if not any(att.get("media_type") == normalized_media_type for att in normalized.get("attachments", [])):
                     continue
             if needle:
-                haystack = " ".join(
-                    [
-                        normalized.get("title", ""),
-                        normalized.get("body", ""),
-                        normalized.get("post_type", ""),
-                        normalized.get("header_label", ""),
-                        normalized.get("status_label", ""),
-                        " ".join(normalized.get("tags", [])),
-                        " ".join(normalized.get("linked_song_ids", [])),
-                        " ".join(normalized.get("linked_song_titles", [])),
-                        " ".join(normalized.get("linked_drill_ids", [])),
-                        " ".join(normalized.get("linked_drill_titles", [])),
-                        " ".join(normalized.get("free_targets", [])),
-                        json.dumps(normalized.get("meta", {}), ensure_ascii=False),
-                    ]
-                ).lower()
+                if normalized_search_scope == "title":
+                    haystack = str(normalized.get("title", "")).lower()
+                elif normalized_search_scope == "title_body":
+                    haystack = " ".join(
+                        [
+                            normalized.get("title", ""),
+                            normalized.get("body", ""),
+                        ]
+                    ).lower()
+                elif normalized_search_scope == "tags":
+                    haystack = " ".join(normalized.get("tags", [])).lower()
+                elif normalized_search_scope == "song":
+                    haystack = " ".join(
+                        [
+                            " ".join(normalized.get("linked_song_ids", [])),
+                            " ".join(normalized.get("linked_song_titles", [])),
+                        ]
+                    ).lower()
+                elif normalized_search_scope == "drill":
+                    haystack = " ".join(
+                        [
+                            " ".join(normalized.get("linked_drill_ids", [])),
+                            " ".join(normalized.get("linked_drill_titles", [])),
+                        ]
+                    ).lower()
+                else:
+                    haystack = " ".join(
+                        [
+                            normalized.get("title", ""),
+                            normalized.get("body", ""),
+                            normalized.get("post_type", ""),
+                            normalized.get("header_label", ""),
+                            normalized.get("status_label", ""),
+                            " ".join(normalized.get("tags", [])),
+                            " ".join(normalized.get("linked_song_ids", [])),
+                            " ".join(normalized.get("linked_song_titles", [])),
+                            " ".join(normalized.get("linked_drill_ids", [])),
+                            " ".join(normalized.get("linked_drill_titles", [])),
+                            " ".join(normalized.get("free_targets", [])),
+                            json.dumps(normalized.get("meta", {}), ensure_ascii=False),
+                        ]
+                    ).lower()
                 if needle not in haystack:
                     continue
             items.append(normalized)

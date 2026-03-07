@@ -612,10 +612,14 @@ export async function getGallery(limit = 500): Promise<GalleryItem[]> {
 export async function getRecords(params?: {
   limit?: number;
   q?: string;
+  search_scope?: "title" | "title_body" | "tags" | "song" | "drill";
   post_type?: string;
   media_type?: "all" | "image" | "video" | "audio";
   song_library_id?: string;
   drill_id?: string;
+  tag_labels?: string[];
+  song_library_ids?: string[];
+  drill_ids?: string[];
   header_id?: string;
   status_id?: string;
   template_id?: string;
@@ -624,10 +628,14 @@ export async function getRecords(params?: {
   const query = new URLSearchParams();
   query.set("limit", String(params?.limit ?? 500));
   if (params?.q) query.set("q", params.q);
+  if (params?.search_scope) query.set("search_scope", params.search_scope);
   if (params?.post_type) query.set("post_type", params.post_type);
   if (params?.media_type && params.media_type !== "all") query.set("media_type", params.media_type);
   if (params?.song_library_id) query.set("song_library_id", params.song_library_id);
   if (params?.drill_id) query.set("drill_id", params.drill_id);
+  params?.tag_labels?.forEach((value) => query.append("tag_labels", value));
+  params?.song_library_ids?.forEach((value) => query.append("song_library_ids", value));
+  params?.drill_ids?.forEach((value) => query.append("drill_ids", value));
   if (params?.header_id) query.set("header_id", params.header_id);
   if (params?.status_id) query.set("status_id", params.status_id);
   if (params?.template_id) query.set("template_id", params.template_id);

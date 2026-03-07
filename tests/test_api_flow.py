@@ -1276,6 +1276,26 @@ def test_records_detail_filters_comments_and_meta(tmp_path):
     assert first_item["post_id"] in search_ids
     assert second_item["post_id"] not in search_ids
 
+    title_only_res = client.get("/api/records/list?q=타이밍&search_scope=title")
+    assert title_only_res.status_code == 200
+    assert {item["post_id"] for item in title_only_res.get_json()["items"]} == set()
+
+    title_body_res = client.get("/api/records/list?q=타이밍&search_scope=title_body")
+    assert title_body_res.status_code == 200
+    assert {item["post_id"] for item in title_body_res.get_json()["items"]} == {first_item["post_id"]}
+
+    tag_res = client.get("/api/records/list?search_scope=tags&tag_labels=루틴")
+    assert tag_res.status_code == 200
+    assert {item["post_id"] for item in tag_res.get_json()["items"]} == {first_item["post_id"]}
+
+    song_res = client.get("/api/records/list?search_scope=song&song_library_ids=L0001")
+    assert song_res.status_code == 200
+    assert {item["post_id"] for item in song_res.get_json()["items"]} == {first_item["post_id"]}
+
+    drill_res = client.get("/api/records/list?search_scope=drill&drill_ids=DL0001")
+    assert drill_res.status_code == 200
+    assert {item["post_id"] for item in drill_res.get_json()["items"]} == {first_item["post_id"]}
+
     header_res = client.get(f"/api/records/list?header_id={daily_header['id']}")
     assert header_res.status_code == 200
     header_ids = {item["post_id"] for item in header_res.get_json()["items"]}

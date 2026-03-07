@@ -102,6 +102,40 @@ export function formatJournalDate(raw: string): string {
   return raw.replace("T", " ").slice(0, 16);
 }
 
+function parseJournalDate(raw: string): Date | null {
+  if (!raw) return null;
+  const parsed = new Date(raw);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+}
+
+function padTwo(value: number): string {
+  return String(value).padStart(2, "0");
+}
+
+export function formatJournalBoardDate(raw: string, now = new Date()): string {
+  const parsed = parseJournalDate(raw);
+  if (!parsed) return formatJournalDate(raw);
+  if (
+    parsed.getFullYear() === now.getFullYear() &&
+    parsed.getMonth() === now.getMonth() &&
+    parsed.getDate() === now.getDate()
+  ) {
+    return `${padTwo(parsed.getHours())}:${padTwo(parsed.getMinutes())}`;
+  }
+  if (parsed.getFullYear() === now.getFullYear()) {
+    return `${padTwo(parsed.getMonth() + 1)}.${padTwo(parsed.getDate())}`;
+  }
+  return `${padTwo(parsed.getFullYear() % 100)}.${padTwo(parsed.getMonth() + 1)}.${padTwo(parsed.getDate())}`;
+}
+
+export function formatJournalBoardTitle(raw: string, commentCount: number, fallback: string, limit = 36): string {
+  const title = String(raw || "").trim() || fallback;
+  const suffix = commentCount > 0 ? `(${commentCount})` : "";
+  if (title.length + suffix.length <= limit) return `${title}${suffix}`;
+  const room = Math.max(1, limit - suffix.length - 3);
+  return `${title.slice(0, room).trim()}...${suffix}`;
+}
+
 export function stripMarkdown(text: string): string {
   return (text || "")
     .replace(/```[\s\S]*?```/g, " ")

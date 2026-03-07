@@ -144,6 +144,8 @@ export function JournalComposerModal({
   const [pendingVideoLink, setPendingVideoLink] = useState("");
   const [openSongGroups, setOpenSongGroups] = useState<string[]>([]);
   const [openDrillGroups, setOpenDrillGroups] = useState<string[]>([]);
+  const [songSectionOpen, setSongSectionOpen] = useState(false);
+  const [drillSectionOpen, setDrillSectionOpen] = useState(false);
   const [editorTab, setEditorTab] = useState<EditorTab>("write");
   const [metaDraft, setMetaDraft] = useState<JournalMetaDraft>(emptyJournalMeta());
   const [slashQuery, setSlashQuery] = useState("");
@@ -249,6 +251,8 @@ export function JournalComposerModal({
       .map((group) => group.label);
     setOpenSongGroups(dedupeLabels(nextOpenSongGroups));
     setOpenDrillGroups(dedupeLabels(nextOpenDrillGroups));
+    setSongSectionOpen(Boolean(nextSongIds.length));
+    setDrillSectionOpen(Boolean(nextDrillIds.length));
     const selectedPresetIds = activeTagCatalog
       .filter((preset) => (item?.tags || []).some((tag) => tag.trim().toLowerCase() === preset.label.trim().toLowerCase()))
       .map((preset) => preset.id);
@@ -447,11 +451,14 @@ export function JournalComposerModal({
 
         <div className="journal-composer-layout">
           <section className="journal-composer-main">
-            <div className="journal-composer-grid">
+            <div className="journal-composer-title-row">
               <label>
                 {lang === "ko" ? "제목" : "Title"}
                 <input value={title} onChange={(event) => setTitle(event.target.value)} />
               </label>
+            </div>
+
+            <div className="journal-composer-meta-row">
               <label>
                 {lang === "ko" ? "말머리" : "Header"}
                 <select value={headerId} onChange={(event) => setHeaderId(event.target.value)}>
@@ -488,15 +495,6 @@ export function JournalComposerModal({
               </label>
             </div>
 
-            <div className="journal-editor-tab-row">
-              <button className={`ghost-btn ${editorTab === "write" ? "active-mini" : ""}`} onClick={() => setEditorTab("write")}>
-                {lang === "ko" ? "작성" : "Write"}
-              </button>
-              <button className={`ghost-btn ${editorTab === "preview" ? "active-mini" : ""}`} onClick={() => setEditorTab("preview")}>
-                {lang === "ko" ? "미리보기" : "Preview"}
-              </button>
-            </div>
-
             {editorTab === "write" ? (
               <div className="journal-editor-wrap">
                 <textarea
@@ -523,6 +521,95 @@ export function JournalComposerModal({
                 <JournalMarkdown body={body || (selectedTemplate?.body_markdown || "")} />
               </div>
             )}
+
+            <section className="card journal-composer-inline-card">
+              <div className="row journal-upload-head">
+                <div className="journal-upload-head-title">
+                  <strong>{lang === "ko" ? "첨부" : "Attachments"}</strong>
+                  <small className="muted">
+                    {lang === "ko" ? "이미지 업로드/붙여넣기, 영상 업로드/유튜브 링크, 오디오 업로드" : "Image upload/paste, video upload/YouTube link, audio upload"}
+                  </small>
+                </div>
+                <div className="journal-upload-head-actions">
+                  <button className="ghost-btn compact-add-btn" onClick={() => setEditorTab((prev) => (prev === "write" ? "preview" : "write"))}>
+                    {editorTab === "write" ? (lang === "ko" ? "미리보기" : "Preview") : (lang === "ko" ? "작성" : "Write")}
+                  </button>
+                  <button className="ghost-btn compact-add-btn" disabled={maxNewAttachmentCount <= 0} onClick={() => fileInputRef.current?.click()}>
+                    {lang === "ko" ? "첨부 추가" : "Add Files"}
+                  </button>
+                </div>
+              </div>
+              {hasExistingAttachments ? (
+                <small className="muted">
+                  {lang === "ko" ? `기존 첨부 ${item?.attachments.length}개는 유지됩니다.` : `${item?.attachments.length} existing attachments will be kept.`}
+                </small>
+              ) : null}
+              <small className="muted">
+                {lang === "ko"
+                  ? `새로 추가 가능 ${remainingAttachmentSlots}개 / 총 8개 한도`
+                  : `${remainingAttachmentSlots} new slots left / 8 total max`}
+              </small>
+              <input
+                ref={fileInputRef}
+                type="file"
+                hidden
+                multiple
+                accept="image/*,video/*,audio/*"
+                onChange={(event) => {
+                  appendFiles(Array.from(event.target.files || []));
+                  event.target.value = "";
+                }}
+              />
+              <div className="journal-upload-zone">
+                <div className="journal-upload-inline-meta">
+                  <small className="muted">
+                    {lang === "ko" ? "이미지는 Ctrl+V로 바로 붙여넣을 수 있습니다." : "Paste images directly with Ctrl+V."}
+                  </small>
+                  <small className="muted">
+                    {lang === "ko" ? `새 첨부 ${newAttachmentCount}/${maxNewAttachmentCount}` : `${newAttachmentCount}/${maxNewAttachmentCount} new`}
+                  </small>
+                </div>
+                <div className="journal-link-input-row">
+                  <input
+                    value={pendingVideoLink}
+                    onChange={(event) => setPendingVideoLink(event.target.value)}
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter") {
+                        event.preventDefault();
+                        addVideoLink();
+                      }
+                    }}
+                    placeholder={lang === "ko" ? "유튜브 링크 추가" : "Add YouTube link"}
+                  />
+                  <button className="ghost-btn compact-add-btn" onClick={addVideoLink} disabled={!isYouTubeUrl(pendingVideoLink) || remainingAttachmentSlots <= 0}>
+                    {lang === "ko" ? "링크 추가" : "Add Link"}
+                  </button>
+                </div>
+              </div>
+              <div className="journal-upload-list">
+                {files.map((file, index) => (
+                  <div key={`${file.name}_${file.size}_${index}`} className="journal-upload-item">
+                    <span>{file.name}</span>
+                    <small>{file.type || (lang === "ko" ? "파일" : "File")}</small>
+                    <button className="ghost-btn compact-add-btn" onClick={() => removeFileAt(index)}>
+                      {lang === "ko" ? "제거" : "Remove"}
+                    </button>
+                  </div>
+                ))}
+                {videoLinks.map((url, index) => (
+                  <div key={url} className="journal-upload-item">
+                    <span>{lang === "ko" ? `유튜브 링크 ${index + 1}` : `YouTube Link ${index + 1}`}</span>
+                    <small>{url}</small>
+                    <button className="ghost-btn compact-add-btn" onClick={() => setVideoLinks((prev) => prev.filter((item) => item !== url))}>
+                      {lang === "ko" ? "제거" : "Remove"}
+                    </button>
+                  </div>
+                ))}
+                {!files.length && !videoLinks.length ? (
+                  <small className="muted">{lang === "ko" ? "새 첨부 없음" : "No new attachments"}</small>
+                ) : null}
+              </div>
+            </section>
           </section>
 
           <aside className="journal-composer-side">
@@ -568,159 +655,99 @@ export function JournalComposerModal({
             </section>
 
             <section className="card journal-composer-side-card">
-              <div className="row"><strong>{lang === "ko" ? "연결 곡" : "Linked Songs"}</strong></div>
-              <div className="journal-link-groups">
-                {groupedSongs.map((group) => {
-                  const selectedCount = group.items.filter((song) => selectedSongIds.includes(String(song.library_id || ""))).length;
-                  const openGroup = openSongGroups.includes(group.label);
-                  return (
-                    <section key={group.label} className="journal-link-group">
-                      <button className="ghost-btn journal-link-group-toggle" aria-expanded={openGroup} onClick={() => toggleGroup(group.label, openSongGroups, setOpenSongGroups)}>
-                        <span className="journal-link-group-title">
-                          <strong>{group.label}</strong>
-                          <small>{lang === "ko" ? "곡 장르" : "Song Genre"}</small>
-                        </span>
-                        <span className="journal-link-group-meta">
-                          <small>{selectedCount}/{group.items.length}</small>
-                          <strong>{openGroup ? "−" : "+"}</strong>
-                        </span>
-                      </button>
-                      {openGroup ? (
-                        <div className="journal-link-scroll">
-                          {group.items.map((song) => (
-                            <label key={song.library_id} className="inline selectable-row journal-link-row">
-                              <input type="checkbox" checked={selectedSongIds.includes(song.library_id)} onChange={() => toggleInArray(song.library_id, selectedSongIds, setSelectedSongIds)} />
-                              <span>
-                                <strong>{song.title || song.library_id}</strong>
-                                <small>{[song.artist, song.status].filter(Boolean).join(" · ") || song.library_id}</small>
-                              </span>
-                            </label>
-                          ))}
-                        </div>
-                      ) : null}
-                    </section>
-                  );
-                })}
-              </div>
-            </section>
-
-            <section className="card journal-composer-side-card">
-              <div className="row"><strong>{lang === "ko" ? "연결 드릴" : "Linked Drills"}</strong></div>
-              <div className="journal-link-groups">
-                {groupedDrills.map((group) => {
-                  const selectedCount = group.items.filter((drill) => selectedDrillIds.includes(String(drill.drill_id || ""))).length;
-                  const openGroup = openDrillGroups.includes(group.label);
-                  return (
-                    <section key={group.label} className="journal-link-group">
-                      <button className="ghost-btn journal-link-group-toggle" aria-expanded={openGroup} onClick={() => toggleGroup(group.label, openDrillGroups, setOpenDrillGroups)}>
-                        <span className="journal-link-group-title">
-                          <strong>{group.label}</strong>
-                          <small>{lang === "ko" ? "드릴 유형" : "Drill Type"}</small>
-                        </span>
-                        <span className="journal-link-group-meta">
-                          <small>{selectedCount}/{group.items.length}</small>
-                          <strong>{openGroup ? "−" : "+"}</strong>
-                        </span>
-                      </button>
-                      {openGroup ? (
-                        <div className="journal-link-scroll">
-                          {group.items.map((drill) => (
-                            <label key={drill.drill_id} className="inline selectable-row journal-link-row">
-                              <input type="checkbox" checked={selectedDrillIds.includes(drill.drill_id)} onChange={() => toggleInArray(drill.drill_id, selectedDrillIds, setSelectedDrillIds)} />
-                              <span>
-                                <strong>{drill.name || drill.drill_id}</strong>
-                                <small>{[drill.area, drill.tags].filter(Boolean).join(" · ") || drill.drill_id}</small>
-                              </span>
-                            </label>
-                          ))}
-                        </div>
-                      ) : null}
-                    </section>
-                  );
-                })}
-              </div>
-            </section>
-
-            <section className="card journal-composer-side-card">
-              <div className="row"><strong>{lang === "ko" ? "첨부" : "Attachments"}</strong></div>
-              {hasExistingAttachments ? (
-                <small className="muted">
-                  {lang === "ko" ? `기존 첨부 ${item?.attachments.length}개는 유지됩니다.` : `${item?.attachments.length} existing attachments will be kept.`}
-                </small>
+              <button className="ghost-btn journal-link-section-toggle" aria-expanded={songSectionOpen} onClick={() => setSongSectionOpen((prev) => !prev)}>
+                <span className="journal-link-group-title">
+                  <strong>{lang === "ko" ? "연결 곡" : "Linked Songs"}</strong>
+                  <small>{lang === "ko" ? "필요할 때만 펼쳐서 선택" : "Open only when needed"}</small>
+                </span>
+                <span className="journal-link-group-meta">
+                  <small>{selectedSongIds.length}</small>
+                  <strong>{songSectionOpen ? "−" : "+"}</strong>
+                </span>
+              </button>
+              {songSectionOpen ? (
+                <div className="journal-link-groups">
+                  {groupedSongs.map((group) => {
+                    const selectedCount = group.items.filter((song) => selectedSongIds.includes(String(song.library_id || ""))).length;
+                    const openGroup = openSongGroups.includes(group.label);
+                    return (
+                      <section key={group.label} className="journal-link-group">
+                        <button className="ghost-btn journal-link-group-toggle" aria-expanded={openGroup} onClick={() => toggleGroup(group.label, openSongGroups, setOpenSongGroups)}>
+                          <span className="journal-link-group-title">
+                            <strong>{group.label}</strong>
+                            <small>{lang === "ko" ? "곡 장르" : "Song Genre"}</small>
+                          </span>
+                          <span className="journal-link-group-meta">
+                            <small>{selectedCount}/{group.items.length}</small>
+                            <strong>{openGroup ? "−" : "+"}</strong>
+                          </span>
+                        </button>
+                        {openGroup ? (
+                          <div className="journal-link-scroll">
+                            {group.items.map((song) => (
+                              <label key={song.library_id} className="inline selectable-row journal-link-row">
+                                <input type="checkbox" checked={selectedSongIds.includes(song.library_id)} onChange={() => toggleInArray(song.library_id, selectedSongIds, setSelectedSongIds)} />
+                                <span>
+                                  <strong>{song.title || song.library_id}</strong>
+                                  <small>{[song.artist, song.status].filter(Boolean).join(" · ") || song.library_id}</small>
+                                </span>
+                              </label>
+                            ))}
+                          </div>
+                        ) : null}
+                      </section>
+                    );
+                  })}
+                </div>
               ) : null}
-              <small className="muted">
-                {lang === "ko"
-                  ? `새로 추가 가능 ${remainingAttachmentSlots}개 / 총 8개 한도`
-                  : `${remainingAttachmentSlots} new slots left / 8 total max`}
-              </small>
-              <small className="muted">
-                {lang === "ko" ? "영상은 파일 또는 유튜브 링크, 이미지는 파일 선택이나 클립보드 붙여넣기를 지원합니다." : "Videos support file upload or YouTube links. Images can be uploaded or pasted from clipboard."}
-              </small>
-              <input
-                ref={fileInputRef}
-                type="file"
-                hidden
-                multiple
-                accept="image/*,video/*,audio/*"
-                onChange={(event) => {
-                  appendFiles(Array.from(event.target.files || []));
-                  event.target.value = "";
-                }}
-              />
-              <div className="journal-upload-zone">
-                <div className="journal-upload-actions">
-                  <button className="ghost-btn" disabled={maxNewAttachmentCount <= 0} onClick={() => fileInputRef.current?.click()}>
-                    {lang === "ko" ? "파일 선택" : "Choose Files"}
-                  </button>
-                  <div className="journal-upload-inline-meta">
-                    <small className="muted">
-                      {lang === "ko" ? "이미지는 Ctrl+V 붙여넣기 가능" : "Paste images with Ctrl+V"}
-                    </small>
-                    <small className="muted">
-                      {lang === "ko" ? `새 첨부 ${newAttachmentCount}/${maxNewAttachmentCount}` : `${newAttachmentCount}/${maxNewAttachmentCount} new`}
-                    </small>
-                  </div>
+            </section>
+
+            <section className="card journal-composer-side-card">
+              <button className="ghost-btn journal-link-section-toggle" aria-expanded={drillSectionOpen} onClick={() => setDrillSectionOpen((prev) => !prev)}>
+                <span className="journal-link-group-title">
+                  <strong>{lang === "ko" ? "연결 드릴" : "Linked Drills"}</strong>
+                  <small>{lang === "ko" ? "필요할 때만 펼쳐서 선택" : "Open only when needed"}</small>
+                </span>
+                <span className="journal-link-group-meta">
+                  <small>{selectedDrillIds.length}</small>
+                  <strong>{drillSectionOpen ? "−" : "+"}</strong>
+                </span>
+              </button>
+              {drillSectionOpen ? (
+                <div className="journal-link-groups">
+                  {groupedDrills.map((group) => {
+                    const selectedCount = group.items.filter((drill) => selectedDrillIds.includes(String(drill.drill_id || ""))).length;
+                    const openGroup = openDrillGroups.includes(group.label);
+                    return (
+                      <section key={group.label} className="journal-link-group">
+                        <button className="ghost-btn journal-link-group-toggle" aria-expanded={openGroup} onClick={() => toggleGroup(group.label, openDrillGroups, setOpenDrillGroups)}>
+                          <span className="journal-link-group-title">
+                            <strong>{group.label}</strong>
+                            <small>{lang === "ko" ? "드릴 유형" : "Drill Type"}</small>
+                          </span>
+                          <span className="journal-link-group-meta">
+                            <small>{selectedCount}/{group.items.length}</small>
+                            <strong>{openGroup ? "−" : "+"}</strong>
+                          </span>
+                        </button>
+                        {openGroup ? (
+                          <div className="journal-link-scroll">
+                            {group.items.map((drill) => (
+                              <label key={drill.drill_id} className="inline selectable-row journal-link-row">
+                                <input type="checkbox" checked={selectedDrillIds.includes(drill.drill_id)} onChange={() => toggleInArray(drill.drill_id, selectedDrillIds, setSelectedDrillIds)} />
+                                <span>
+                                  <strong>{drill.name || drill.drill_id}</strong>
+                                  <small>{[drill.area, drill.tags].filter(Boolean).join(" · ") || drill.drill_id}</small>
+                                </span>
+                              </label>
+                            ))}
+                          </div>
+                        ) : null}
+                      </section>
+                    );
+                  })}
                 </div>
-                <div className="journal-link-input-row">
-                  <input
-                    value={pendingVideoLink}
-                    onChange={(event) => setPendingVideoLink(event.target.value)}
-                    onKeyDown={(event) => {
-                      if (event.key === "Enter") {
-                        event.preventDefault();
-                        addVideoLink();
-                      }
-                    }}
-                    placeholder={lang === "ko" ? "유튜브 링크 추가" : "Add YouTube link"}
-                  />
-                  <button className="ghost-btn" onClick={addVideoLink} disabled={!isYouTubeUrl(pendingVideoLink) || remainingAttachmentSlots <= 0}>
-                    {lang === "ko" ? "추가" : "Add"}
-                  </button>
-                </div>
-              </div>
-              <div className="journal-upload-list">
-                {files.map((file, index) => (
-                  <div key={`${file.name}_${file.size}_${index}`} className="journal-upload-item">
-                    <span>{file.name}</span>
-                    <small>{file.type || (lang === "ko" ? "파일" : "File")}</small>
-                    <button className="ghost-btn compact-add-btn" onClick={() => removeFileAt(index)}>
-                      {lang === "ko" ? "제거" : "Remove"}
-                    </button>
-                  </div>
-                ))}
-                {videoLinks.map((url, index) => (
-                  <div key={url} className="journal-upload-item">
-                    <span>{lang === "ko" ? `유튜브 링크 ${index + 1}` : `YouTube Link ${index + 1}`}</span>
-                    <small>{url}</small>
-                    <button className="ghost-btn compact-add-btn" onClick={() => setVideoLinks((prev) => prev.filter((item) => item !== url))}>
-                      {lang === "ko" ? "제거" : "Remove"}
-                    </button>
-                  </div>
-                ))}
-                {!files.length && !videoLinks.length ? (
-                  <small className="muted">{lang === "ko" ? "새 첨부 없음" : "No new attachments"}</small>
-                ) : null}
-              </div>
+              ) : null}
             </section>
           </aside>
         </div>

@@ -343,6 +343,24 @@ def _request_object_list_value(key: str) -> list[dict[str, Any]]:
     return _parse(payload.get(key))
 
 
+def _request_query_list_value(key: str) -> list[str]:
+    values = request.args.getlist(key)
+    if not values and key in request.args:
+        values = [str(request.args.get(key, "") or "")]
+    out: list[str] = []
+    for value in values:
+        out.extend(_parse_list_payload(value))
+    deduped: list[str] = []
+    seen: set[str] = set()
+    for value in out:
+        lowered = value.lower()
+        if lowered in seen:
+            continue
+        seen.add(lowered)
+        deduped.append(value)
+    return deduped
+
+
 def _infer_upload_media_type(filename: str, mimetype: str) -> str:
     guessed = (mimetype or "").lower()
     if guessed.startswith("image/"):
@@ -1525,10 +1543,14 @@ def records_list() -> Response:
     items = _game().list_records(
         limit=limit,
         query=str(request.args.get("q") or ""),
+        search_scope=str(request.args.get("search_scope") or ""),
         post_type=str(request.args.get("post_type") or ""),
         media_type=str(request.args.get("media_type") or ""),
         song_library_id=str(request.args.get("song_library_id") or ""),
         drill_id=str(request.args.get("drill_id") or ""),
+        tag_labels=_request_query_list_value("tag_labels"),
+        song_library_ids=_request_query_list_value("song_library_ids"),
+        drill_ids=_request_query_list_value("drill_ids"),
         header_id=str(request.args.get("header_id") or ""),
         status_id=str(request.args.get("status_id") or ""),
         template_id=str(request.args.get("template_id") or ""),

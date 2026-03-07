@@ -44,6 +44,9 @@ test("E2E-28 journal template apply, manual search, and threaded comments", asyn
   await page.getByRole("button", { name: /글쓰기|Write/i }).click();
   composer = page.getByTestId("journal-composer-modal");
   await expect(composer).toBeVisible();
+  await expect(composer.locator(".journal-link-group")).toHaveCount(0);
+  await composer.locator(".journal-link-section-toggle", { hasText: /연결 곡|Linked Songs/i }).click();
+  await expect(composer.locator(".journal-link-group").first()).toBeVisible();
   await composer.getByLabel(/템플릿|Template/i).selectOption({ label: templateName });
   const textarea = composer.locator(".journal-editor-textarea");
   await expect(textarea).toHaveValue(/E2E 템플릿/);
@@ -70,6 +73,7 @@ test("E2E-28 journal template apply, manual search, and threaded comments", asyn
   await expect(page.locator(".journal-board-row", { hasText: secondTitle }).first()).toBeVisible();
 
   const rowsBeforeSearch = await page.locator(".journal-board-row").count();
+  await page.getByLabel(/검색 기준|Mode/i).selectOption("title");
   await page.getByLabel(/검색어|Search/i).fill(firstTitle);
   await page.waitForTimeout(250);
   await expect(page.locator(".journal-board-row")).toHaveCount(rowsBeforeSearch);
@@ -115,4 +119,7 @@ test("E2E-28 journal template apply, manual search, and threaded comments", asyn
   await rootComment.getByRole("button", { name: /삭제|Delete/i }).click();
   await expect(detail).toContainText(/삭제된 댓글입니다.|Deleted comment\./);
   await expect(detail.locator(".journal-comment-row", { hasText: "답글 내용" }).first()).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(detail).toHaveCount(0);
+  await expect(page.locator(".journal-board-row", { hasText: `${firstTitle}(2)` }).first()).toBeVisible();
 });
