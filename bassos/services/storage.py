@@ -20,9 +20,13 @@ from bassos.constants import (
     DASHBOARD_LAYOUT_LEGACY_DEFAULT,
     DRILL_LIBRARY_HEADERS,
     EVENT_HEADERS,
+    JOURNAL_HEADER_CATALOG_DEFAULTS,
+    JOURNAL_STATUS_CATALOG_DEFAULTS,
+    JOURNAL_TEMPLATE_CATALOG_DEFAULTS,
     LEVEL_BALANCE_V2,
     QUEST_HEADERS,
     RECORD_ATTACHMENT_HEADERS,
+    RECORD_COMMENT_HEADERS,
     RECORD_POST_HEADERS,
     SETTINGS_DEFAULTS,
     SONG_LIBRARY_HEADERS,
@@ -120,6 +124,14 @@ _SHORTCUT_SUPPORTED_CODES = {
     *[f"Key{chr(code)}" for code in range(ord("A"), ord("Z") + 1)],
 }
 
+_PREVIOUS_PIN_SHORTCUT_DEFAULTS = {
+    "video_pin_save": {"code": "KeyP", "ctrl": False, "alt": False, "shift": False},
+    "video_pin_jump": {"code": "KeyJ", "ctrl": False, "alt": False, "shift": False},
+    "video_pin_clear": {"code": "KeyP", "ctrl": False, "alt": False, "shift": True},
+}
+
+_PREVIOUS_PIN_JUMP_SHORTCUT_DEFAULT = {"code": "KeyY", "ctrl": False, "alt": False, "shift": False}
+
 
 def _drill_tag_key(raw: str | None) -> str:
     return str(raw or "").strip().lower().replace(" ", "").replace("_", "").replace("-", "").replace("&", "and")
@@ -188,6 +200,191 @@ _DRILL_TAG_ALIAS = {
     _drill_tag_key("speed"): "스피드",
     _drill_tag_key("스피드"): "스피드",
 }
+
+
+def _deep_copy_json(value: Any) -> Any:
+    return json.loads(json.dumps(value, ensure_ascii=False))
+
+
+def _catalog_slug(value: str, prefix: str, index: int) -> str:
+    text = str(value or "").strip()
+    normalized = []
+    previous_sep = False
+    for ch in text:
+        if ch.isalnum():
+            normalized.append(ch.lower())
+            previous_sep = False
+            continue
+        if previous_sep:
+            continue
+        normalized.append("_")
+        previous_sep = True
+    slug = "".join(normalized).strip("_")
+    return slug or f"{prefix}_{index}"
+
+
+def _normalize_catalog_color(raw: Any, fallback: str) -> str:
+    token = str(raw or "").strip()
+    if len(token) == 7 and token.startswith("#") and all(ch in "0123456789abcdefABCDEF" for ch in token[1:]):
+        return token
+    return fallback
+
+
+def _normalize_catalog_active(raw: Any, default: bool = True) -> bool:
+    if raw is None:
+        return default
+    if isinstance(raw, bool):
+        return raw
+    return str(raw).strip().lower() in {"1", "true", "yes", "on"}
+
+
+def _normalize_journal_tag_catalog(raw: Any) -> list[dict[str, Any]]:
+    if not isinstance(raw, list):
+        return []
+    out: list[dict[str, Any]] = []
+    seen: set[str] = set()
+    for index, item in enumerate(raw):
+        if not isinstance(item, dict):
+            continue
+        label = str(item.get("label") or "").strip()
+        if not label:
+            continue
+        lowered = label.lower()
+        if lowered in seen:
+            continue
+        seen.add(lowered)
+        out.append(
+            {
+                "id": str(item.get("id") or _catalog_slug(label, "tag", index)).strip(),
+                "label": label,
+                "category": str(item.get("category") or "기타").strip() or "기타",
+                "active": _normalize_catalog_active(item.get("active"), True),
+                "order": index,
+            }
+        )
+    return out
+
+
+def _normalize_journal_header_catalog(raw: Any) -> list[dict[str, Any]]:
+    source = raw if isinstance(raw, list) and raw else _deep_copy_json(JOURNAL_HEADER_CATALOG_DEFAULTS)
+    out: list[dict[str, Any]] = []
+    seen_ids: set[str] = set()
+    for index, item in enumerate(source):
+        if not isinstance(item, dict):
+            continue
+        label = str(item.get("label") or "").strip()
+        if not label:
+            continue
+        entry_id = str(item.get("id") or _catalog_slug(label, "header", index)).strip()
+        lowered = entry_id.lower()
+        if lowered in seen_ids:
+            continue
+        seen_ids.add(lowered)
+        fallback = JOURNAL_HEADER_CATALOG_DEFAULTS[min(index, len(JOURNAL_HEADER_CATALOG_DEFAULTS) - 1)]
+        out.append(
+            {
+                "id": entry_id,
+                "label": label,
+                "color": _normalize_catalog_color(item.get("color"), str(fallback.get("color") or "#5c6e7c")),
+                "active": _normalize_catalog_active(item.get("active"), True),
+                "order": index,
+            }
+        )
+    return out or _deep_copy_json(JOURNAL_HEADER_CATALOG_DEFAULTS)
+
+
+def _normalize_journal_status_catalog(raw: Any) -> list[dict[str, Any]]:
+    source = raw if isinstance(raw, list) and raw else _deep_copy_json(JOURNAL_STATUS_CATALOG_DEFAULTS)
+    out: list[dict[str, Any]] = []
+    seen_ids: set[str] = set()
+    for index, item in enumerate(source):
+        if not isinstance(item, dict):
+            continue
+        label = str(item.get("label") or "").strip()
+        if not label:
+            continue
+        entry_id = str(item.get("id") or _catalog_slug(label, "status", index)).strip()
+        lowered = entry_id.lower()
+        if lowered in seen_ids:
+            continue
+        seen_ids.add(lowered)
+        fallback = JOURNAL_STATUS_CATALOG_DEFAULTS[min(index, len(JOURNAL_STATUS_CATALOG_DEFAULTS) - 1)]
+        out.append(
+            {
+                "id": entry_id,
+                "label": label,
+                "color": _normalize_catalog_color(item.get("color"), str(fallback.get("color") or "#66727d")),
+                "active": _normalize_catalog_active(item.get("active"), True),
+                "order": index,
+            }
+        )
+    return out or _deep_copy_json(JOURNAL_STATUS_CATALOG_DEFAULTS)
+
+
+def _normalize_template_tags(raw: Any) -> list[str]:
+    if isinstance(raw, list):
+        values = raw
+    else:
+        values = str(raw or "").replace(",", ";").split(";")
+    out: list[str] = []
+    seen: set[str] = set()
+    for item in values:
+        token = str(item or "").strip()
+        lowered = token.lower()
+        if not token or lowered in seen:
+            continue
+        seen.add(lowered)
+        out.append(token)
+    return out
+
+
+def _normalize_journal_template_catalog(
+    raw: Any,
+    header_catalog: list[dict[str, Any]],
+    status_catalog: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    source = raw if isinstance(raw, list) and raw else _deep_copy_json(JOURNAL_TEMPLATE_CATALOG_DEFAULTS)
+    header_ids = {str(item.get("id") or "") for item in header_catalog}
+    status_ids = {str(item.get("id") or "") for item in status_catalog}
+    fallback_header = str(header_catalog[0].get("id") or "daily_practice")
+    fallback_status = str(status_catalog[0].get("id") or "draft")
+    out: list[dict[str, Any]] = []
+    seen_ids: set[str] = set()
+    for index, item in enumerate(source):
+        if not isinstance(item, dict):
+            continue
+        name = str(item.get("name") or "").strip()
+        if not name:
+            continue
+        entry_id = str(item.get("id") or _catalog_slug(name, "template", index)).strip()
+        lowered = entry_id.lower()
+        if lowered in seen_ids:
+            continue
+        seen_ids.add(lowered)
+        header_id = str(item.get("header_id") or "").strip()
+        if header_id not in header_ids:
+            header_id = fallback_header
+        status_id = str(item.get("status_id") or "").strip()
+        if status_id not in status_ids:
+            status_id = fallback_status
+        source_context = str(item.get("default_source_context") or "practice").strip().lower()
+        if source_context not in {"practice", "review", "performance", "archive"}:
+            source_context = "practice"
+        out.append(
+            {
+                "id": entry_id,
+                "name": name,
+                "description": str(item.get("description") or "").strip(),
+                "header_id": header_id,
+                "status_id": status_id,
+                "default_tags": _normalize_template_tags(item.get("default_tags")),
+                "default_source_context": source_context,
+                "body_markdown": str(item.get("body_markdown") or ""),
+                "active": _normalize_catalog_active(item.get("active"), True),
+                "order": index,
+            }
+        )
+    return out or _deep_copy_json(JOURNAL_TEMPLATE_CATALOG_DEFAULTS)
 
 
 @dataclass
@@ -598,6 +795,16 @@ class Storage:
             "shift": bool(raw.get("shift")),
         }
 
+    def _shortcut_binding_matches(self, raw: Any, expected: dict[str, Any] | None) -> bool:
+        if not isinstance(raw, dict) or not isinstance(expected, dict):
+            return False
+        return (
+            str(raw.get("code") or "").strip() == str(expected.get("code") or "").strip()
+            and bool(raw.get("ctrl")) == bool(expected.get("ctrl"))
+            and bool(raw.get("alt")) == bool(expected.get("alt"))
+            and bool(raw.get("shift")) == bool(expected.get("shift"))
+        )
+
     def _normalize_keyboard_shortcuts(self, raw: Any) -> dict[str, Any]:
         default_shortcuts = SETTINGS_DEFAULTS["ui"]["keyboard_shortcuts"]
         default_bindings = default_shortcuts.get("bindings", {})
@@ -733,6 +940,16 @@ class Storage:
             merged_ui_style[key] = merged_map
         quest_settings["ui_style"] = merged_ui_style
         profile["quest_settings"] = quest_settings
+        profile["journal_tag_catalog"] = _normalize_journal_tag_catalog(profile.get("journal_tag_catalog"))
+        header_catalog = _normalize_journal_header_catalog(profile.get("journal_header_catalog"))
+        status_catalog = _normalize_journal_status_catalog(profile.get("journal_status_catalog"))
+        profile["journal_header_catalog"] = header_catalog
+        profile["journal_status_catalog"] = status_catalog
+        profile["journal_template_catalog"] = _normalize_journal_template_catalog(
+            profile.get("journal_template_catalog"),
+            header_catalog,
+            status_catalog,
+        )
 
         ui = merged.setdefault("ui", {})
         raw_ui = source.get("ui")
@@ -784,7 +1001,8 @@ class Storage:
         if dashboard_version not in {"legacy", "focus"}:
             dashboard_version = "legacy" if bool(profile.get("onboarded")) else "focus"
         ui["dashboard_version"] = dashboard_version
-        ui["keyboard_shortcuts"] = self._normalize_keyboard_shortcuts(ui.get("keyboard_shortcuts"))
+        source_keyboard_shortcuts = raw_ui.get("keyboard_shortcuts") if "keyboard_shortcuts" in raw_ui else ui.get("keyboard_shortcuts")
+        ui["keyboard_shortcuts"] = self._normalize_keyboard_shortcuts(source_keyboard_shortcuts)
         ui.pop("dashboard_bg_mode", None)
         ui.pop("dashboard_live_motion", None)
         ui.pop("dashboard_layout", None)
@@ -816,6 +1034,7 @@ class Storage:
 
     def _migrate_settings(self) -> None:
         settings = self.read_json("settings.json")
+        source_settings = json.loads(json.dumps(settings, ensure_ascii=False))
         current_version = int(settings.get("policy_version", 1))
         merged = self._merge_defaults(settings, SETTINGS_DEFAULTS)
 
@@ -999,7 +1218,67 @@ class Storage:
         if current_version < 14:
             merged["policy_version"] = 14
 
-        merged = self.normalize_settings(merged, source_settings=settings)
+        if current_version < 15:
+            ui = merged.setdefault("ui", {})
+            shortcuts = ui.get("keyboard_shortcuts")
+            if isinstance(shortcuts, dict):
+                bindings = shortcuts.get("bindings")
+                if isinstance(bindings, dict):
+                    source_ui = source_settings.setdefault("ui", {})
+                    if not isinstance(source_ui, dict):
+                        source_ui = {}
+                        source_settings["ui"] = source_ui
+                    source_shortcuts = source_ui.setdefault("keyboard_shortcuts", {})
+                    if not isinstance(source_shortcuts, dict):
+                        source_shortcuts = {}
+                        source_ui["keyboard_shortcuts"] = source_shortcuts
+                    source_bindings = source_shortcuts.setdefault("bindings", {})
+                    if not isinstance(source_bindings, dict):
+                        source_bindings = {}
+                        source_shortcuts["bindings"] = source_bindings
+                    default_bindings = SETTINGS_DEFAULTS["ui"]["keyboard_shortcuts"]["bindings"]
+                    for action_id, previous_default in _PREVIOUS_PIN_SHORTCUT_DEFAULTS.items():
+                        current_binding = source_bindings.get(action_id, bindings.get(action_id))
+                        if self._shortcut_binding_matches(current_binding, previous_default):
+                            next_binding = default_bindings.get(action_id)
+                            bindings[action_id] = dict(next_binding) if isinstance(next_binding, dict) else next_binding
+                            source_bindings[action_id] = dict(next_binding) if isinstance(next_binding, dict) else next_binding
+            merged["policy_version"] = 15
+
+        if current_version < 16:
+            ui = merged.setdefault("ui", {})
+            shortcuts = ui.get("keyboard_shortcuts")
+            if isinstance(shortcuts, dict):
+                bindings = shortcuts.get("bindings")
+                if isinstance(bindings, dict):
+                    source_ui = source_settings.setdefault("ui", {})
+                    if not isinstance(source_ui, dict):
+                        source_ui = {}
+                        source_settings["ui"] = source_ui
+                    source_shortcuts = source_ui.setdefault("keyboard_shortcuts", {})
+                    if not isinstance(source_shortcuts, dict):
+                        source_shortcuts = {}
+                        source_ui["keyboard_shortcuts"] = source_shortcuts
+                    source_bindings = source_shortcuts.setdefault("bindings", {})
+                    if not isinstance(source_bindings, dict):
+                        source_bindings = {}
+                        source_shortcuts["bindings"] = source_bindings
+                    current_binding = source_bindings.get("video_pin_jump", bindings.get("video_pin_jump"))
+                    if self._shortcut_binding_matches(current_binding, _PREVIOUS_PIN_JUMP_SHORTCUT_DEFAULT):
+                        next_binding = SETTINGS_DEFAULTS["ui"]["keyboard_shortcuts"]["bindings"].get("video_pin_jump")
+                        bindings["video_pin_jump"] = dict(next_binding) if isinstance(next_binding, dict) else next_binding
+                        source_bindings["video_pin_jump"] = dict(next_binding) if isinstance(next_binding, dict) else next_binding
+            merged["policy_version"] = 16
+
+        if current_version < 17:
+            profile = merged.setdefault("profile", {})
+            profile.setdefault("journal_tag_catalog", [])
+            profile.setdefault("journal_header_catalog", _deep_copy_json(JOURNAL_HEADER_CATALOG_DEFAULTS))
+            profile.setdefault("journal_status_catalog", _deep_copy_json(JOURNAL_STATUS_CATALOG_DEFAULTS))
+            profile.setdefault("journal_template_catalog", _deep_copy_json(JOURNAL_TEMPLATE_CATALOG_DEFAULTS))
+            merged["policy_version"] = 17
+
+        merged = self.normalize_settings(merged, source_settings=source_settings)
 
         self.write_json("settings.json", merged)
 
@@ -1140,96 +1419,174 @@ class Storage:
     def _migrate_records(self) -> None:
         post_headers = self.read_csv_headers("record_posts.csv")
         att_headers = self.read_csv_headers("record_attachments.csv")
+        comment_headers = self.read_csv_headers("record_comments.csv")
         posts = self.read_csv("record_posts.csv")
         attachments = self.read_csv("record_attachments.csv")
+        comments = self.read_csv("record_comments.csv")
         if post_headers != RECORD_POST_HEADERS:
             self.write_csv("record_posts.csv", posts, headers=RECORD_POST_HEADERS)
             posts = self.read_csv("record_posts.csv")
         if att_headers != RECORD_ATTACHMENT_HEADERS:
             self.write_csv("record_attachments.csv", attachments, headers=RECORD_ATTACHMENT_HEADERS)
             attachments = self.read_csv("record_attachments.csv")
+        if comment_headers != RECORD_COMMENT_HEADERS:
+            self.write_csv("record_comments.csv", comments, headers=RECORD_COMMENT_HEADERS)
+            comments = self.read_csv("record_comments.csv")
 
-        events = self.read_csv("events.csv")
-        if not events:
-            return
+        settings = self.read_json("settings.json")
+        profile = settings.setdefault("profile", {})
+        header_catalog = _normalize_journal_header_catalog(profile.get("journal_header_catalog"))
+        status_catalog = _normalize_journal_status_catalog(profile.get("journal_status_catalog"))
+        header_ids = {str(item.get("id") or "") for item in header_catalog}
+        header_labels = {str(item.get("label") or "").strip().lower(): str(item.get("id") or "") for item in header_catalog}
+        archived_status_id = next(
+            (str(item.get("id") or "") for item in status_catalog if str(item.get("label") or "").strip() == "보관"),
+            "archived",
+        )
+        catalog_changed = False
 
-        existing_legacy_ids = {row.get("legacy_event_id", "") for row in posts if row.get("legacy_event_id")}
-        changed = False
+        def ensure_header(label: str, preferred_id: str = "") -> str:
+            nonlocal catalog_changed
+            normalized_label = str(label or "").strip() or "자유기록"
+            lowered = normalized_label.lower()
+            if preferred_id and preferred_id in header_ids:
+                header_labels[lowered] = preferred_id
+                return preferred_id
+            if lowered in header_labels:
+                return header_labels[lowered]
+            entry_id = str(preferred_id or _catalog_slug(normalized_label, "header", len(header_catalog))).strip()
+            base_id = entry_id
+            suffix = 1
+            while entry_id in header_ids:
+                suffix += 1
+                entry_id = f"{base_id}_{suffix}"
+            header_catalog.append(
+                {
+                    "id": entry_id,
+                    "label": normalized_label,
+                    "color": "#5c6e7c",
+                    "active": True,
+                    "order": len(header_catalog),
+                }
+            )
+            header_ids.add(entry_id)
+            header_labels[lowered] = entry_id
+            catalog_changed = True
+            return entry_id
 
-        for event in events:
-            event_id = event.get("event_id", "")
-            if not event_id or event_id in existing_legacy_ids:
-                continue
-            event_type = (event.get("event_type") or "").upper()
-            has_media = bool(event.get("evidence_path") or event.get("evidence_url"))
-            if event_type not in {"GALLERY_UPLOAD", "SESSION"}:
-                continue
-            if not has_media:
-                continue
-
-            meta = {}
-            raw_meta = event.get("meta_json") or ""
+        post_rows_changed = False
+        for row in posts:
+            label = str(row.get("post_type") or "").strip() or "자유기록"
+            if row.get("post_type") != label:
+                row["post_type"] = label
+                post_rows_changed = True
+            current_header_id = str(row.get("header_id") or "").strip()
+            resolved_header_id = ensure_header(label, current_header_id)
+            if row.get("header_id") != resolved_header_id:
+                row["header_id"] = resolved_header_id
+                post_rows_changed = True
+            current_status_id = str(row.get("status_id") or "").strip()
+            if not current_status_id or current_status_id not in {str(item.get("id") or "") for item in status_catalog}:
+                row["status_id"] = archived_status_id
+                post_rows_changed = True
+            template_id = str(row.get("template_id") or "").strip()
+            if row.get("template_id") != template_id:
+                row["template_id"] = template_id
+                post_rows_changed = True
+            raw_meta = str(row.get("meta_json") or "").strip()
+            next_meta = "{}"
             if raw_meta:
                 try:
-                    decoded = json.loads(raw_meta)
-                    if isinstance(decoded, dict):
-                        meta = decoded
+                    decoded_meta = json.loads(raw_meta)
+                    if isinstance(decoded_meta, dict):
+                        next_meta = json.dumps(decoded_meta, ensure_ascii=False)
                 except json.JSONDecodeError:
-                    meta = {}
+                    next_meta = "{}"
+            if row.get("meta_json") != next_meta:
+                row["meta_json"] = next_meta
+                post_rows_changed = True
 
-            media_type = self._infer_media_type(
-                event.get("evidence_type", ""),
-                event.get("evidence_path", ""),
-                event.get("evidence_url", ""),
-            )
-            manual_tags = [str(item).strip() for item in meta.get("manual_tags", []) if str(item).strip()]
-            tags = manual_tags + self._sanitize_legacy_tags(event.get("tags", ""), media_type)
-            post_type = (
-                "?곗뒿?뱀쓬"
-                if media_type == "audio"
-                else "?곗뒿?곸긽"
-                if media_type == "video"
-                else "?먯쑀湲곕줉"
-            )
-            created_at = event.get("created_at", "")
-            post_id = f"POST_{uuid.uuid4().hex[:12]}"
+        events = self.read_csv("events.csv")
+        changed = post_rows_changed
+        if events:
+            existing_legacy_ids = {row.get("legacy_event_id", "") for row in posts if row.get("legacy_event_id")}
+            for event in events:
+                event_id = event.get("event_id", "")
+                if not event_id or event_id in existing_legacy_ids:
+                    continue
+                event_type = (event.get("event_type") or "").upper()
+                has_media = bool(event.get("evidence_path") or event.get("evidence_url"))
+                if event_type not in {"GALLERY_UPLOAD", "SESSION"}:
+                    continue
+                if not has_media:
+                    continue
 
-            posts.append(
-                {
-                    "post_id": post_id,
-                    "created_at": created_at,
-                    "updated_at": created_at,
-                    "title": event.get("title", "") or post_type,
-                    "body": event.get("notes", ""),
-                    "post_type": post_type,
-                    "tags": self._join_list(tags),
-                    "linked_song_ids": self._join_list([event.get("song_library_id", "")]),
-                    "linked_drill_ids": self._join_list([event.get("drill_id", "")]),
-                    "free_targets": "",
-                    "source_context": str(meta.get("source_context", "") or event.get("activity", "")),
-                    "legacy_event_id": event_id,
-                    "source": "migration",
-                }
-            )
-            attachments.append(
-                {
-                    "attachment_id": f"ATT_{uuid.uuid4().hex[:12]}",
-                    "post_id": post_id,
-                    "created_at": created_at,
-                    "media_type": media_type,
-                    "path": event.get("evidence_path", ""),
-                    "url": event.get("evidence_url", ""),
-                    "title": event.get("title", ""),
-                    "notes": event.get("notes", ""),
-                    "sort_order": "1",
-                }
-            )
-            existing_legacy_ids.add(event_id)
-            changed = True
+                meta = {}
+                raw_meta = event.get("meta_json") or ""
+                if raw_meta:
+                    try:
+                        decoded = json.loads(raw_meta)
+                        if isinstance(decoded, dict):
+                            meta = decoded
+                    except json.JSONDecodeError:
+                        meta = {}
 
+                media_type = self._infer_media_type(
+                    event.get("evidence_type", ""),
+                    event.get("evidence_path", ""),
+                    event.get("evidence_url", ""),
+                )
+                manual_tags = [str(item).strip() for item in meta.get("manual_tags", []) if str(item).strip()]
+                tags = manual_tags + self._sanitize_legacy_tags(event.get("tags", ""), media_type)
+                post_type = "영상회고" if media_type == "video" else "일일연습"
+                header_id = ensure_header(post_type)
+                created_at = event.get("created_at", "")
+                post_id = f"POST_{uuid.uuid4().hex[:12]}"
+
+                posts.append(
+                    {
+                        "post_id": post_id,
+                        "created_at": created_at,
+                        "updated_at": created_at,
+                        "title": event.get("title", "") or post_type,
+                        "body": event.get("notes", ""),
+                        "post_type": post_type,
+                        "header_id": header_id,
+                        "status_id": archived_status_id,
+                        "template_id": "",
+                        "meta_json": "{}",
+                        "tags": self._join_list(tags),
+                        "linked_song_ids": self._join_list([event.get("song_library_id", "")]),
+                        "linked_drill_ids": self._join_list([event.get("drill_id", "")]),
+                        "free_targets": "",
+                        "source_context": str(meta.get("source_context", "") or event.get("activity", "")),
+                        "legacy_event_id": event_id,
+                        "source": "migration",
+                    }
+                )
+                attachments.append(
+                    {
+                        "attachment_id": f"ATT_{uuid.uuid4().hex[:12]}",
+                        "post_id": post_id,
+                        "created_at": created_at,
+                        "media_type": media_type,
+                        "path": event.get("evidence_path", ""),
+                        "url": event.get("evidence_url", ""),
+                        "title": event.get("title", ""),
+                        "notes": event.get("notes", ""),
+                        "sort_order": "1",
+                    }
+                )
+                existing_legacy_ids.add(event_id)
+                changed = True
+
+        if catalog_changed:
+            profile["journal_header_catalog"] = header_catalog
+            self.write_json("settings.json", self.normalize_settings(settings, source_settings=settings))
         if changed:
             self.write_csv("record_posts.csv", posts, headers=RECORD_POST_HEADERS)
-            self.write_csv("record_attachments.csv", attachments, headers=RECORD_ATTACHMENT_HEADERS)
+        self.write_csv("record_attachments.csv", attachments, headers=RECORD_ATTACHMENT_HEADERS)
+        self.write_csv("record_comments.csv", comments, headers=RECORD_COMMENT_HEADERS)
 
     def _normalize_csv_encodings(self) -> None:
         for path in sorted(self.paths.runtime_data.glob("*.csv"), key=lambda item: item.name.lower()):

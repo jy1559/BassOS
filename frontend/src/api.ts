@@ -15,6 +15,7 @@ import type {
   MockDataStatus,
   MockDatasetInfo,
   RecordAttachment,
+  RecordComment,
   RecordPost,
   SessionItem,
   SessionFinalizeInput,
@@ -615,6 +616,10 @@ export async function getRecords(params?: {
   media_type?: "all" | "image" | "video" | "audio";
   song_library_id?: string;
   drill_id?: string;
+  header_id?: string;
+  status_id?: string;
+  template_id?: string;
+  sort?: "created_desc" | "updated_desc";
 }): Promise<RecordPost[]> {
   const query = new URLSearchParams();
   query.set("limit", String(params?.limit ?? 500));
@@ -623,8 +628,17 @@ export async function getRecords(params?: {
   if (params?.media_type && params.media_type !== "all") query.set("media_type", params.media_type);
   if (params?.song_library_id) query.set("song_library_id", params.song_library_id);
   if (params?.drill_id) query.set("drill_id", params.drill_id);
+  if (params?.header_id) query.set("header_id", params.header_id);
+  if (params?.status_id) query.set("status_id", params.status_id);
+  if (params?.template_id) query.set("template_id", params.template_id);
+  if (params?.sort) query.set("sort", params.sort);
   const data = await call<{ items: RecordPost[]; ok: true }>(`/api/records/list?${query.toString()}`);
   return data.items;
+}
+
+export async function getRecordPostDetail(postId: string): Promise<RecordPost & { comments: RecordComment[] }> {
+  const data = await call<{ item: RecordPost & { comments: RecordComment[] }; ok: true }>(`/api/records/${postId}`);
+  return data.item;
 }
 
 export async function createRecordPost(
@@ -632,6 +646,10 @@ export async function createRecordPost(
     title: string;
     body: string;
     post_type: string;
+    header_id?: string;
+    status_id?: string;
+    template_id?: string;
+    meta?: Record<string, unknown>;
     tags: string[];
     linked_song_ids: string[];
     linked_drill_ids: string[];
@@ -644,6 +662,10 @@ export async function createRecordPost(
   formData.append("title", payload.title);
   formData.append("body", payload.body);
   formData.append("post_type", payload.post_type);
+  if (payload.header_id) formData.append("header_id", payload.header_id);
+  if (payload.status_id) formData.append("status_id", payload.status_id);
+  if (payload.template_id) formData.append("template_id", payload.template_id);
+  if (payload.meta) formData.append("meta", JSON.stringify(payload.meta));
   formData.append("tags", JSON.stringify(payload.tags));
   formData.append("linked_song_ids", JSON.stringify(payload.linked_song_ids));
   formData.append("linked_drill_ids", JSON.stringify(payload.linked_drill_ids));
@@ -663,16 +685,45 @@ export async function updateRecordPost(
     title?: string;
     body?: string;
     post_type?: string;
+    header_id?: string;
+    status_id?: string;
+    template_id?: string;
+    meta?: Record<string, unknown>;
     tags?: string[];
     linked_song_ids?: string[];
     linked_drill_ids?: string[];
     free_targets?: string[];
     source_context?: string;
-  }
+  },
+  files: File[] = []
 ): Promise<RecordPost> {
+  const body =
+    files.length > 0
+      ? (() => {
+          const formData = new FormData();
+          if (patch.title !== undefined) formData.append("title", patch.title);
+          if (patch.body !== undefined) formData.append("body", patch.body);
+          if (patch.post_type !== undefined) formData.append("post_type", patch.post_type);
+          if (patch.header_id !== undefined) formData.append("header_id", patch.header_id);
+          if (patch.status_id !== undefined) formData.append("status_id", patch.status_id);
+          if (patch.template_id !== undefined) formData.append("template_id", patch.template_id);
+          if (patch.meta !== undefined) formData.append("meta", JSON.stringify(patch.meta));
+          if (patch.tags !== undefined) formData.append("tags", JSON.stringify(patch.tags));
+          if (patch.linked_song_ids !== undefined) {
+            formData.append("linked_song_ids", JSON.stringify(patch.linked_song_ids));
+          }
+          if (patch.linked_drill_ids !== undefined) {
+            formData.append("linked_drill_ids", JSON.stringify(patch.linked_drill_ids));
+          }
+          if (patch.free_targets !== undefined) formData.append("free_targets", JSON.stringify(patch.free_targets));
+          if (patch.source_context !== undefined) formData.append("source_context", patch.source_context);
+          files.forEach((file) => formData.append("files", file));
+          return formData;
+        })()
+      : JSON.stringify(patch);
   const data = await call<{ item: RecordPost; ok: true }>(`/api/records/${postId}`, {
     method: "PUT",
-    body: JSON.stringify(patch),
+    body,
   });
   return data.item;
 }
@@ -698,6 +749,38 @@ export async function updateRecordAttachment(
     }
   );
   return data.attachment;
+}
+
+export async function getRecordComments(postId: string): Promise<RecordComment[]> {
+  const data = await call<{ items: RecordComment[]; ok: true }>(`/api/records/${postId}/comments`);
+  return data.items;
+}
+
+export async function createRecordComment(
+  postId: string,
+  payload: { body: string; parent_comment_id?: string }
+): Promise<RecordComment> {
+  const data = await call<{ item: RecordComment; ok: true }>(`/api/records/${postId}/comments`, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+  return data.item;
+}
+
+export async function updateRecordComment(
+  postId: string,
+  commentId: string,
+  payload: { body: string }
+): Promise<RecordComment> {
+  const data = await call<{ item: RecordComment; ok: true }>(`/api/records/${postId}/comments/${commentId}`, {
+    method: "PUT",
+    body: JSON.stringify(payload),
+  });
+  return data.item;
+}
+
+export async function deleteRecordComment(postId: string, commentId: string): Promise<void> {
+  await call(`/api/records/${postId}/comments/${commentId}`, { method: "DELETE" });
 }
 
 export async function uploadGalleryFile(

@@ -9,7 +9,7 @@ from datetime import date, timedelta
 from pathlib import Path
 from typing import Any
 
-from bassos.constants import ACTIVITY_TO_TAG, RECORD_ATTACHMENT_HEADERS, RECORD_POST_HEADERS, SUB_ACTIVITY_TO_TAG
+from bassos.constants import ACTIVITY_TO_TAG, RECORD_ATTACHMENT_HEADERS, RECORD_COMMENT_HEADERS, RECORD_POST_HEADERS, SUB_ACTIVITY_TO_TAG
 from bassos.services.achievements import auto_grant_claims, reconcile_auto_claims
 from bassos.services.calculations import (
     compute_level_summary,
@@ -900,20 +900,97 @@ class GameService:
         attachments = self.storage.read_csv("record_attachments.csv")
         return posts, attachments
 
+    def _record_comment_rows(self) -> list[dict[str, str]]:
+        return self.storage.read_csv("record_comments.csv")
+
+    def _record_catalogs(
+        self,
+    ) -> tuple[
+        dict[str, dict[str, Any]],
+        dict[str, dict[str, Any]],
+        dict[str, dict[str, Any]],
+        dict[str, dict[str, Any]],
+    ]:
+        settings = self.storage.read_json("settings.json")
+        profile = settings.get("profile") if isinstance(settings.get("profile"), dict) else {}
+        header_catalog = profile.get("journal_header_catalog") if isinstance(profile, dict) else []
+        status_catalog = profile.get("journal_status_catalog") if isinstance(profile, dict) else []
+        template_catalog = profile.get("journal_template_catalog") if isinstance(profile, dict) else []
+
+        header_by_id: dict[str, dict[str, Any]] = {}
+        header_by_label: dict[str, dict[str, Any]] = {}
+        status_by_id: dict[str, dict[str, Any]] = {}
+        template_by_id: dict[str, dict[str, Any]] = {}
+
+        if isinstance(header_catalog, list):
+            for item in header_catalog:
+                if not isinstance(item, dict):
+                    continue
+                entry_id = str(item.get("id") or "").strip()
+                label = str(item.get("label") or "").strip()
+                if entry_id:
+                    header_by_id[entry_id] = item
+                if label:
+                    header_by_label[label.lower()] = item
+        if isinstance(status_catalog, list):
+            for item in status_catalog:
+                if not isinstance(item, dict):
+                    continue
+                entry_id = str(item.get("id") or "").strip()
+                if entry_id:
+                    status_by_id[entry_id] = item
+        if isinstance(template_catalog, list):
+            for item in template_catalog:
+                if not isinstance(item, dict):
+                    continue
+                entry_id = str(item.get("id") or "").strip()
+                if entry_id:
+                    template_by_id[entry_id] = item
+        return header_by_id, header_by_label, status_by_id, template_by_id
+
     def _normalize_record_post(
         self,
         row: dict[str, str],
         attachment_rows: list[dict[str, str]],
+        comment_rows: list[dict[str, str]],
         songs: dict[str, dict[str, str]],
         drills: dict[str, dict[str, str]],
+        header_by_id: dict[str, dict[str, Any]],
+        header_by_label: dict[str, dict[str, Any]],
+        status_by_id: dict[str, dict[str, Any]],
+        template_by_id: dict[str, dict[str, Any]],
     ) -> dict[str, Any]:
         linked_song_ids = _split_semicolon(row.get("linked_song_ids"))
         linked_drill_ids = _split_semicolon(row.get("linked_drill_ids"))
         free_targets = _split_semicolon(row.get("free_targets"))
         tags = _split_semicolon(row.get("tags"))
+        meta = parse_json(row.get("meta_json"))
+        if not isinstance(meta, dict):
+            meta = {}
 
         attachments = [self._normalize_record_attachment(item) for item in attachment_rows]
         attachments.sort(key=lambda item: (to_int(item.get("sort_order"), 0), item.get("created_at", "")))
+        header_id = str(row.get("header_id") or "").strip()
+        post_type = str(row.get("post_type") or "").strip()
+        header = header_by_id.get(header_id)
+        if not header and post_type:
+            header = header_by_label.get(post_type.lower())
+        resolved_header_id = str((header or {}).get("id") or header_id)
+        header_label = str((header or {}).get("label") or post_type or "자유기록")
+        header_color = str((header or {}).get("color") or "#5c6e7c")
+
+        status_id = str(row.get("status_id") or "").strip()
+        status = status_by_id.get(status_id)
+        status_label = str((status or {}).get("label") or "보관")
+        status_color = str((status or {}).get("color") or "#66727d")
+
+        template_id = str(row.get("template_id") or "").strip()
+        template = template_by_id.get(template_id)
+        latest_comment_at = ""
+        for item in comment_rows:
+            candidate = str(item.get("updated_at") or item.get("created_at") or "")
+            if candidate > latest_comment_at:
+                latest_comment_at = candidate
 
         return {
             "post_id": row.get("post_id", ""),
@@ -921,7 +998,16 @@ class GameService:
             "updated_at": row.get("updated_at", ""),
             "title": row.get("title", ""),
             "body": row.get("body", ""),
-            "post_type": row.get("post_type", ""),
+            "post_type": header_label,
+            "header_id": resolved_header_id,
+            "header_label": header_label,
+            "header_color": header_color,
+            "status_id": status_id,
+            "status_label": status_label,
+            "status_color": status_color,
+            "template_id": template_id,
+            "template_name": str((template or {}).get("name") or ""),
+            "meta": meta,
             "tags": tags,
             "linked_song_ids": linked_song_ids,
             "linked_song_titles": [songs.get(item, {}).get("title", item) for item in linked_song_ids],
@@ -932,17 +1018,88 @@ class GameService:
             "legacy_event_id": row.get("legacy_event_id", ""),
             "source": row.get("source", ""),
             "attachments": attachments,
+            "comment_count": len(comment_rows),
+            "latest_comment_at": latest_comment_at,
         }
+
+    def _normalize_record_comment(self, row: dict[str, str]) -> dict[str, Any]:
+        deleted = str(row.get("deleted") or "").strip().lower() in {"1", "true", "yes", "on"}
+        return {
+            "comment_id": row.get("comment_id", ""),
+            "post_id": row.get("post_id", ""),
+            "parent_comment_id": row.get("parent_comment_id", ""),
+            "created_at": row.get("created_at", ""),
+            "updated_at": row.get("updated_at", ""),
+            "body": row.get("body", "") if not deleted else "",
+            "deleted": deleted,
+            "depth": 0,
+            "source": row.get("source", ""),
+        }
+
+    def _ordered_record_comments(self, rows: list[dict[str, str]]) -> list[dict[str, Any]]:
+        normalized = [self._normalize_record_comment(row) for row in rows if row.get("comment_id")]
+        if not normalized:
+            return []
+        known_ids = {item["comment_id"] for item in normalized}
+        by_parent: dict[str, list[dict[str, Any]]] = defaultdict(list)
+        for item in normalized:
+            parent_id = item["parent_comment_id"] if item["parent_comment_id"] in known_ids else ""
+            by_parent[parent_id].append(item)
+        for items in by_parent.values():
+            items.sort(key=lambda item: (item.get("created_at", ""), item.get("comment_id", "")))
+
+        ordered: list[dict[str, Any]] = []
+        visited: set[str] = set()
+
+        def walk(parent_id: str, depth: int) -> None:
+            for item in by_parent.get(parent_id, []):
+                comment_id = str(item.get("comment_id") or "")
+                if not comment_id or comment_id in visited:
+                    continue
+                visited.add(comment_id)
+                next_item = dict(item)
+                next_item["depth"] = depth
+                ordered.append(next_item)
+                walk(comment_id, depth + 1)
+
+        walk("", 0)
+        for item in normalized:
+            comment_id = str(item.get("comment_id") or "")
+            if not comment_id or comment_id in visited:
+                continue
+            next_item = dict(item)
+            next_item["depth"] = 0
+            ordered.append(next_item)
+        return ordered
 
     def get_record(self, post_id: str) -> dict[str, Any] | None:
         posts, attachments = self._record_rows()
+        comments = self._record_comment_rows()
         songs = {item.get("library_id", ""): item for item in self.storage.read_csv("song_library.csv")}
         drills = {item.get("drill_id", ""): item for item in self.storage.read_csv("drill_library.csv")}
+        header_by_id, header_by_label, status_by_id, template_by_id = self._record_catalogs()
         target = next((item for item in posts if item.get("post_id") == post_id), None)
         if not target:
             return None
         owned = [item for item in attachments if item.get("post_id") == post_id]
-        return self._normalize_record_post(target, owned, songs, drills)
+        owned_comments = [item for item in comments if item.get("post_id") == post_id]
+        return self._normalize_record_post(
+            target,
+            owned,
+            owned_comments,
+            songs,
+            drills,
+            header_by_id,
+            header_by_label,
+            status_by_id,
+            template_by_id,
+        )
+
+    def get_record_detail(self, post_id: str) -> dict[str, Any] | None:
+        item = self.get_record(post_id)
+        if not item:
+            return None
+        return {**item, "comments": self.list_record_comments(post_id)}
 
     def list_records(
         self,
@@ -952,26 +1109,41 @@ class GameService:
         media_type: str = "",
         song_library_id: str = "",
         drill_id: str = "",
+        header_id: str = "",
+        status_id: str = "",
+        template_id: str = "",
+        sort: str = "created_desc",
     ) -> list[dict[str, Any]]:
         posts, attachments = self._record_rows()
+        comments = self._record_comment_rows()
         songs = {item.get("library_id", ""): item for item in self.storage.read_csv("song_library.csv")}
         drills = {item.get("drill_id", ""): item for item in self.storage.read_csv("drill_library.csv")}
+        header_by_id, header_by_label, status_by_id, template_by_id = self._record_catalogs()
 
         attachment_by_post: dict[str, list[dict[str, str]]] = defaultdict(list)
         for row in attachments:
             attachment_by_post[row.get("post_id", "")].append(row)
+        comment_by_post: dict[str, list[dict[str, str]]] = defaultdict(list)
+        for row in comments:
+            comment_by_post[row.get("post_id", "")].append(row)
 
         needle = query.strip().lower()
         normalized_media_type = media_type.strip().lower()
         normalized_post_type = post_type.strip()
+        normalized_sort = str(sort or "created_desc").strip().lower()
 
         items: list[dict[str, Any]] = []
         for row in posts:
             normalized = self._normalize_record_post(
                 row,
                 attachment_by_post.get(row.get("post_id", ""), []),
+                comment_by_post.get(row.get("post_id", ""), []),
                 songs,
                 drills,
+                header_by_id,
+                header_by_label,
+                status_by_id,
+                template_by_id,
             )
 
             if normalized_post_type and normalized.get("post_type") != normalized_post_type:
@@ -979,6 +1151,12 @@ class GameService:
             if song_library_id and song_library_id not in normalized.get("linked_song_ids", []):
                 continue
             if drill_id and drill_id not in normalized.get("linked_drill_ids", []):
+                continue
+            if header_id and normalized.get("header_id") != header_id:
+                continue
+            if status_id and normalized.get("status_id") != status_id:
+                continue
+            if template_id and normalized.get("template_id") != template_id:
                 continue
             if normalized_media_type and normalized_media_type != "all":
                 if not any(att.get("media_type") == normalized_media_type for att in normalized.get("attachments", [])):
@@ -989,19 +1167,25 @@ class GameService:
                         normalized.get("title", ""),
                         normalized.get("body", ""),
                         normalized.get("post_type", ""),
+                        normalized.get("header_label", ""),
+                        normalized.get("status_label", ""),
                         " ".join(normalized.get("tags", [])),
                         " ".join(normalized.get("linked_song_ids", [])),
                         " ".join(normalized.get("linked_song_titles", [])),
                         " ".join(normalized.get("linked_drill_ids", [])),
                         " ".join(normalized.get("linked_drill_titles", [])),
                         " ".join(normalized.get("free_targets", [])),
+                        json.dumps(normalized.get("meta", {}), ensure_ascii=False),
                     ]
                 ).lower()
                 if needle not in haystack:
                     continue
             items.append(normalized)
 
-        items.sort(key=lambda item: item.get("created_at", ""), reverse=True)
+        if normalized_sort == "updated_desc":
+            items.sort(key=lambda item: (item.get("updated_at", ""), item.get("created_at", "")), reverse=True)
+        else:
+            items.sort(key=lambda item: (item.get("created_at", ""), item.get("updated_at", "")), reverse=True)
         return items[: max(limit, 1)]
 
     def create_record(self, payload: dict[str, Any], attachments_payload: list[dict[str, Any]]) -> dict[str, Any]:
@@ -1009,6 +1193,7 @@ class GameService:
         headers_posts = self.storage.read_csv_headers("record_posts.csv") or RECORD_POST_HEADERS
         headers_attachments = self.storage.read_csv_headers("record_attachments.csv") or RECORD_ATTACHMENT_HEADERS
         now_iso = to_iso(now_local())
+        header_by_id, header_by_label, status_by_id, template_by_id = self._record_catalogs()
 
         def parse_list(value: Any) -> list[str]:
             if isinstance(value, list):
@@ -1021,9 +1206,29 @@ class GameService:
             text = text.replace(",", ";")
             return [item.strip() for item in text.split(";") if item.strip()]
 
+        def parse_meta(value: Any) -> dict[str, Any]:
+            if isinstance(value, dict):
+                return value
+            if value is None:
+                return {}
+            decoded = parse_json(value)
+            return decoded if isinstance(decoded, dict) else {}
+
         post_id = str(payload.get("post_id") or f"POST_{uuid.uuid4().hex[:12]}")
         title = str(payload.get("title") or "").strip()
-        post_type = str(payload.get("post_type") or "").strip() or "자유기록"
+        header_id = str(payload.get("header_id") or "").strip()
+        requested_post_type = str(payload.get("post_type") or "").strip()
+        header = header_by_id.get(header_id)
+        if not header and requested_post_type:
+            header = header_by_label.get(requested_post_type.lower())
+            header_id = str((header or {}).get("id") or header_id)
+        post_type = str((header or {}).get("label") or requested_post_type or "자유기록")
+        status_id = str(payload.get("status_id") or "").strip()
+        if status_id not in status_by_id:
+            status_id = "draft" if "draft" in status_by_id else next(iter(status_by_id.keys()), "")
+        template_id = str(payload.get("template_id") or "").strip()
+        if template_id not in template_by_id:
+            template_id = ""
         if not title:
             title = post_type
 
@@ -1034,6 +1239,10 @@ class GameService:
             "title": title,
             "body": str(payload.get("body") or ""),
             "post_type": post_type,
+            "header_id": header_id,
+            "status_id": status_id,
+            "template_id": template_id,
+            "meta_json": json.dumps(parse_meta(payload.get("meta")), ensure_ascii=False),
             "tags": _join_semicolon(parse_list(payload.get("tags"))),
             "linked_song_ids": _join_semicolon(parse_list(payload.get("linked_song_ids"))),
             "linked_drill_ids": _join_semicolon(parse_list(payload.get("linked_drill_ids"))),
@@ -1066,11 +1275,17 @@ class GameService:
             raise ValueError("Failed to create record.")
         return created
 
-    def update_record(self, post_id: str, payload: dict[str, Any]) -> tuple[bool, str, dict[str, Any] | None]:
+    def update_record(
+        self,
+        post_id: str,
+        payload: dict[str, Any],
+        attachments_payload: list[dict[str, Any]] | None = None,
+    ) -> tuple[bool, str, dict[str, Any] | None]:
         posts, attachments = self._record_rows()
         target = next((item for item in posts if item.get("post_id") == post_id), None)
         if not target:
             return False, "Record not found.", None
+        header_by_id, header_by_label, status_by_id, template_by_id = self._record_catalogs()
 
         def parse_list(value: Any) -> str:
             if isinstance(value, list):
@@ -1080,12 +1295,34 @@ class GameService:
             text = str(value).replace(",", ";")
             return _join_semicolon([item.strip() for item in text.split(";") if item.strip()])
 
+        def parse_meta(value: Any) -> dict[str, Any]:
+            if isinstance(value, dict):
+                return value
+            if value is None:
+                return {}
+            decoded = parse_json(value)
+            return decoded if isinstance(decoded, dict) else {}
+
         if payload.get("title") is not None:
             target["title"] = str(payload.get("title") or "")
         if payload.get("body") is not None:
             target["body"] = str(payload.get("body") or "")
         if payload.get("post_type") is not None:
             target["post_type"] = str(payload.get("post_type") or "")
+        if payload.get("header_id") is not None:
+            next_header_id = str(payload.get("header_id") or "").strip()
+            header = header_by_id.get(next_header_id)
+            if header:
+                target["header_id"] = next_header_id
+                target["post_type"] = str(header.get("label") or target.get("post_type") or "")
+            else:
+                target["header_id"] = ""
+        if payload.get("status_id") is not None:
+            next_status_id = str(payload.get("status_id") or "").strip()
+            target["status_id"] = next_status_id if next_status_id in status_by_id else ""
+        if payload.get("template_id") is not None:
+            next_template_id = str(payload.get("template_id") or "").strip()
+            target["template_id"] = next_template_id if next_template_id in template_by_id else ""
         if payload.get("source_context") is not None:
             target["source_context"] = str(payload.get("source_context") or "")
 
@@ -1097,8 +1334,33 @@ class GameService:
             target["linked_drill_ids"] = parse_list(payload.get("linked_drill_ids"))
         if payload.get("free_targets") is not None:
             target["free_targets"] = parse_list(payload.get("free_targets"))
+        if payload.get("meta") is not None:
+            target["meta_json"] = json.dumps(parse_meta(payload.get("meta")), ensure_ascii=False)
 
-        target["updated_at"] = to_iso(now_local())
+        if payload.get("post_type") is not None and payload.get("header_id") is None:
+            requested_post_type = str(payload.get("post_type") or "").strip()
+            header = header_by_label.get(requested_post_type.lower()) if requested_post_type else None
+            if header:
+                target["header_id"] = str(header.get("id") or target.get("header_id") or "")
+                target["post_type"] = str(header.get("label") or requested_post_type)
+
+        now_iso = to_iso(now_local())
+        for idx, item in enumerate(attachments_payload or [], start=1):
+            attachments.append(
+                {
+                    "attachment_id": str(item.get("attachment_id") or f"ATT_{uuid.uuid4().hex[:12]}"),
+                    "post_id": post_id,
+                    "created_at": now_iso,
+                    "media_type": str(item.get("media_type") or "image"),
+                    "path": str(item.get("path") or ""),
+                    "url": str(item.get("url") or ""),
+                    "title": str(item.get("title") or ""),
+                    "notes": str(item.get("notes") or ""),
+                    "sort_order": str(to_int(item.get("sort_order"), len(attachments) + idx)),
+                }
+            )
+
+        target["updated_at"] = now_iso
         headers_posts = self.storage.read_csv_headers("record_posts.csv") or RECORD_POST_HEADERS
         self.storage.write_csv("record_posts.csv", posts, headers=headers_posts)
         headers_attachments = self.storage.read_csv_headers("record_attachments.csv") or RECORD_ATTACHMENT_HEADERS
@@ -1109,12 +1371,14 @@ class GameService:
 
     def delete_record(self, post_id: str) -> tuple[bool, str]:
         posts, attachments = self._record_rows()
+        comments = self._record_comment_rows()
         if not any(item.get("post_id") == post_id for item in posts):
             return False, "Record not found."
 
         kept_posts = [item for item in posts if item.get("post_id") != post_id]
         delete_attachments = [item for item in attachments if item.get("post_id") == post_id]
         kept_attachments = [item for item in attachments if item.get("post_id") != post_id]
+        kept_comments = [item for item in comments if item.get("post_id") != post_id]
 
         for item in delete_attachments:
             rel = item.get("path", "")
@@ -1129,8 +1393,10 @@ class GameService:
 
         headers_posts = self.storage.read_csv_headers("record_posts.csv") or RECORD_POST_HEADERS
         headers_attachments = self.storage.read_csv_headers("record_attachments.csv") or RECORD_ATTACHMENT_HEADERS
+        headers_comments = self.storage.read_csv_headers("record_comments.csv") or RECORD_COMMENT_HEADERS
         self.storage.write_csv("record_posts.csv", kept_posts, headers=headers_posts)
         self.storage.write_csv("record_attachments.csv", kept_attachments, headers=headers_attachments)
+        self.storage.write_csv("record_comments.csv", kept_comments, headers=headers_comments)
         return True, "Record deleted."
 
     def delete_record_attachment(self, post_id: str, attachment_id: str) -> tuple[bool, str]:
@@ -1206,6 +1472,139 @@ class GameService:
                 headers=self.storage.read_csv_headers("record_posts.csv") or RECORD_POST_HEADERS,
             )
         return True, "Attachment updated.", self._normalize_record_attachment(target)
+
+    def list_record_comments(self, post_id: str) -> list[dict[str, Any]]:
+        comments = [row for row in self._record_comment_rows() if row.get("post_id") == post_id]
+        return self._ordered_record_comments(comments)
+
+    def create_record_comment(
+        self,
+        post_id: str,
+        payload: dict[str, Any],
+    ) -> tuple[bool, str, dict[str, Any] | None]:
+        posts = self.storage.read_csv("record_posts.csv")
+        if not any(item.get("post_id") == post_id for item in posts):
+            return False, "Record not found.", None
+        comments = self._record_comment_rows()
+        body = str(payload.get("body") or "").strip()
+        if not body:
+            return False, "Comment body is required.", None
+        parent_comment_id = str(payload.get("parent_comment_id") or "").strip()
+        if parent_comment_id and not any(
+            item.get("comment_id") == parent_comment_id and item.get("post_id") == post_id for item in comments
+        ):
+            return False, "Parent comment not found.", None
+        now_iso = to_iso(now_local())
+        comment_id = f"RC_{uuid.uuid4().hex[:12]}"
+        comments.append(
+            {
+                "comment_id": comment_id,
+                "post_id": post_id,
+                "parent_comment_id": parent_comment_id,
+                "created_at": now_iso,
+                "updated_at": now_iso,
+                "body": body,
+                "deleted": "false",
+                "source": str(payload.get("source") or "app"),
+            }
+        )
+        self.storage.write_csv(
+            "record_comments.csv",
+            comments,
+            headers=self.storage.read_csv_headers("record_comments.csv") or RECORD_COMMENT_HEADERS,
+        )
+        for post in posts:
+            if post.get("post_id") == post_id:
+                post["updated_at"] = now_iso
+                break
+        self.storage.write_csv(
+            "record_posts.csv",
+            posts,
+            headers=self.storage.read_csv_headers("record_posts.csv") or RECORD_POST_HEADERS,
+        )
+        comment = next((item for item in self.list_record_comments(post_id) if item.get("comment_id") == comment_id), None)
+        return True, "Comment created.", comment
+
+    def update_record_comment(
+        self,
+        post_id: str,
+        comment_id: str,
+        payload: dict[str, Any],
+    ) -> tuple[bool, str, dict[str, Any] | None]:
+        comments = self._record_comment_rows()
+        target = next(
+            (
+                item
+                for item in comments
+                if item.get("comment_id") == comment_id and item.get("post_id") == post_id
+            ),
+            None,
+        )
+        if not target:
+            return False, "Comment not found.", None
+        if str(target.get("deleted") or "").strip().lower() in {"1", "true", "yes", "on"}:
+            return False, "Deleted comment cannot be edited.", None
+        body = str(payload.get("body") or "").strip()
+        if not body:
+            return False, "Comment body is required.", None
+        target["body"] = body
+        target["updated_at"] = to_iso(now_local())
+        self.storage.write_csv(
+            "record_comments.csv",
+            comments,
+            headers=self.storage.read_csv_headers("record_comments.csv") or RECORD_COMMENT_HEADERS,
+        )
+        posts = self.storage.read_csv("record_posts.csv")
+        for post in posts:
+            if post.get("post_id") == post_id:
+                post["updated_at"] = target["updated_at"]
+                break
+        self.storage.write_csv(
+            "record_posts.csv",
+            posts,
+            headers=self.storage.read_csv_headers("record_posts.csv") or RECORD_POST_HEADERS,
+        )
+        comment = next((item for item in self.list_record_comments(post_id) if item.get("comment_id") == comment_id), None)
+        return True, "Comment updated.", comment
+
+    def delete_record_comment(self, post_id: str, comment_id: str) -> tuple[bool, str]:
+        comments = self._record_comment_rows()
+        target = next(
+            (
+                item
+                for item in comments
+                if item.get("comment_id") == comment_id and item.get("post_id") == post_id
+            ),
+            None,
+        )
+        if not target:
+            return False, "Comment not found."
+        has_children = any(
+            item.get("post_id") == post_id and item.get("parent_comment_id") == comment_id for item in comments
+        )
+        if has_children:
+            target["body"] = ""
+            target["deleted"] = "true"
+            target["updated_at"] = to_iso(now_local())
+        else:
+            comments = [item for item in comments if item.get("comment_id") != comment_id]
+        self.storage.write_csv(
+            "record_comments.csv",
+            comments,
+            headers=self.storage.read_csv_headers("record_comments.csv") or RECORD_COMMENT_HEADERS,
+        )
+        posts = self.storage.read_csv("record_posts.csv")
+        now_iso = to_iso(now_local())
+        for post in posts:
+            if post.get("post_id") == post_id:
+                post["updated_at"] = now_iso
+                break
+        self.storage.write_csv(
+            "record_posts.csv",
+            posts,
+            headers=self.storage.read_csv_headers("record_posts.csv") or RECORD_POST_HEADERS,
+        )
+        return True, "Comment deleted."
 
     def _normalize_session(self, session: dict[str, str]) -> dict[str, Any]:
         meta = parse_json(session.get("meta_json"))

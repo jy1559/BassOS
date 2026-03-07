@@ -305,6 +305,21 @@ def _request_list_value(key: str) -> list[str]:
     return _parse_list_payload(payload.get(key))
 
 
+def _request_object_value(key: str) -> dict[str, Any]:
+    if request.form and key in request.form:
+        raw = str(request.form.get(key, "") or "").strip()
+        if not raw:
+            return {}
+        try:
+            decoded = json.loads(raw)
+        except json.JSONDecodeError:
+            return {}
+        return decoded if isinstance(decoded, dict) else {}
+    payload = request.get_json(silent=True) or {}
+    value = payload.get(key)
+    return value if isinstance(value, dict) else {}
+
+
 def _infer_upload_media_type(filename: str, mimetype: str) -> str:
     guessed = (mimetype or "").lower()
     if guessed.startswith("image/"):
@@ -1463,8 +1478,20 @@ def records_list() -> Response:
         media_type=str(request.args.get("media_type") or ""),
         song_library_id=str(request.args.get("song_library_id") or ""),
         drill_id=str(request.args.get("drill_id") or ""),
+        header_id=str(request.args.get("header_id") or ""),
+        status_id=str(request.args.get("status_id") or ""),
+        template_id=str(request.args.get("template_id") or ""),
+        sort=str(request.args.get("sort") or "created_desc"),
     )
     return jsonify({"ok": True, "items": items})
+
+
+@api_bp.get("/records/<post_id>")
+def records_detail(post_id: str) -> Response:
+    item = _game().get_record_detail(post_id)
+    if not item:
+        return jsonify({"ok": False, "message": "Record not found."}), 404
+    return jsonify({"ok": True, "item": item})
 
 
 @api_bp.post("/records")
@@ -1511,6 +1538,10 @@ def records_create() -> Response:
         "title": _request_value("title"),
         "body": _request_value("body"),
         "post_type": _request_value("post_type", "자유기록"),
+        "header_id": _request_value("header_id"),
+        "status_id": _request_value("status_id"),
+        "template_id": _request_value("template_id"),
+        "meta": _request_object_value("meta"),
         "tags": _request_list_value("tags"),
         "linked_song_ids": _request_list_value("linked_song_ids"),
         "linked_drill_ids": _request_list_value("linked_drill_ids"),
@@ -1524,15 +1555,53 @@ def records_create() -> Response:
 
 @api_bp.put("/records/<post_id>")
 def records_update(post_id: str) -> Response:
+    storage = _storage()
     payload = request.get_json(silent=True) or {}
     if request.form:
-        for key in ["title", "body", "post_type", "source_context"]:
+        for key in ["title", "body", "post_type", "source_context", "header_id", "status_id", "template_id"]:
             if key in request.form:
                 payload[key] = _request_value(key)
+        if "meta" in request.form:
+            payload["meta"] = _request_object_value("meta")
         for key in ["tags", "linked_song_ids", "linked_drill_ids", "free_targets"]:
             if key in request.form:
                 payload[key] = _request_list_value(key)
-    ok, message, item = _game().update_record(post_id, payload)
+    files = request.files.getlist("files") if request.files else []
+    if not files and request.files and "file" in request.files:
+        files = [request.files["file"]]
+    files = [item for item in files if item and (item.filename or "").strip()]
+    if len(files) > 8:
+        return jsonify({"ok": False, "message": "게시글 첨부는 최대 8개입니다."}), 400
+
+    attachment_titles = _request_list_value("attachment_titles")
+    attachment_notes = _request_list_value("attachment_notes")
+    attachments_payload: list[dict[str, Any]] = []
+    for idx, incoming in enumerate(files, start=1):
+        filename = incoming.filename or ""
+        ext = Path(filename).suffix.lower()
+        if not ext:
+            ext = mimetypes.guess_extension((incoming.mimetype or "").split(";")[0]) or ""
+        if not ext:
+            return jsonify({"ok": False, "message": "첨부 파일 확장자를 확인할 수 없습니다."}), 400
+
+        media_type = _infer_upload_media_type(filename, incoming.mimetype or "")
+        safe_name = f"{uuid.uuid4().hex}{ext}"
+        target_dir = storage.paths.runtime_media / "records" / media_type
+        target_dir.mkdir(parents=True, exist_ok=True)
+        target_path = target_dir / safe_name
+        incoming.save(target_path)
+        attachments_payload.append(
+            {
+                "media_type": media_type,
+                "path": f"records/{media_type}/{safe_name}",
+                "url": "",
+                "title": attachment_titles[idx - 1] if idx - 1 < len(attachment_titles) else "",
+                "notes": attachment_notes[idx - 1] if idx - 1 < len(attachment_notes) else "",
+                "sort_order": idx,
+            }
+        )
+
+    ok, message, item = _game().update_record(post_id, payload, attachments_payload)
     if not ok:
         return jsonify({"ok": False, "message": message}), 404
     return jsonify({"ok": True, "message": message, "item": item})
@@ -1561,6 +1630,42 @@ def records_attachment_update(post_id: str, attachment_id: str) -> Response:
     if not ok:
         return jsonify({"ok": False, "message": message}), 404
     return jsonify({"ok": True, "message": message, "attachment": attachment})
+
+
+@api_bp.get("/records/<post_id>/comments")
+def records_comments_list(post_id: str) -> Response:
+    item = _game().get_record(post_id)
+    if not item:
+        return jsonify({"ok": False, "message": "Record not found."}), 404
+    return jsonify({"ok": True, "items": _game().list_record_comments(post_id)})
+
+
+@api_bp.post("/records/<post_id>/comments")
+def records_comments_create(post_id: str) -> Response:
+    payload = request.get_json(silent=True) or {}
+    ok, message, item = _game().create_record_comment(post_id, payload)
+    if not ok:
+        status = 404 if "not found" in message.lower() else 400
+        return jsonify({"ok": False, "message": message}), status
+    return jsonify({"ok": True, "message": message, "item": item})
+
+
+@api_bp.put("/records/<post_id>/comments/<comment_id>")
+def records_comments_update(post_id: str, comment_id: str) -> Response:
+    payload = request.get_json(silent=True) or {}
+    ok, message, item = _game().update_record_comment(post_id, comment_id, payload)
+    if not ok:
+        status = 404 if "not found" in message.lower() else 400
+        return jsonify({"ok": False, "message": message}), status
+    return jsonify({"ok": True, "message": message, "item": item})
+
+
+@api_bp.delete("/records/<post_id>/comments/<comment_id>")
+def records_comments_delete(post_id: str, comment_id: str) -> Response:
+    ok, message = _game().delete_record_comment(post_id, comment_id)
+    if not ok:
+        return jsonify({"ok": False, "message": message}), 404
+    return jsonify({"ok": True, "message": message})
 
 
 @api_bp.get("/gallery/list")

@@ -4,11 +4,12 @@ import io
 import csv
 import json
 import shutil
+from time import sleep
 from datetime import timedelta
 from pathlib import Path
 
 from bassos.app_factory import create_app
-from bassos.constants import EVENT_HEADERS
+from bassos.constants import EVENT_HEADERS, RECORD_COMMENT_HEADERS, RECORD_POST_HEADERS
 from bassos.services.events import create_event_row
 from bassos.utils.time_utils import now_local
 
@@ -33,6 +34,19 @@ def _meta(row: dict[str, str]) -> dict[str, object]:
     except json.JSONDecodeError:
         return {}
     return data if isinstance(data, dict) else {}
+
+
+def _journal_catalogs(storage) -> tuple[list[dict[str, object]], list[dict[str, object]], list[dict[str, object]]]:
+    settings = storage.read_json("settings.json")
+    profile = settings.get("profile") if isinstance(settings.get("profile"), dict) else {}
+    headers = profile.get("journal_header_catalog") if isinstance(profile, dict) else []
+    statuses = profile.get("journal_status_catalog") if isinstance(profile, dict) else []
+    templates = profile.get("journal_template_catalog") if isinstance(profile, dict) else []
+    return (
+        headers if isinstance(headers, list) else [],
+        statuses if isinstance(statuses, list) else [],
+        templates if isinstance(templates, list) else [],
+    )
 
 
 def test_session_stop_updates_hud(tmp_path):
@@ -1138,6 +1152,154 @@ def test_records_crud_and_attachment_limit(tmp_path):
     assert limit_res.status_code == 400
 
 
+def test_records_detail_filters_comments_and_meta(tmp_path):
+    root = _prepare_temp_root(tmp_path)
+    app = create_app(root)
+    client = app.test_client()
+    storage = app.config["storage"]
+    headers, statuses, templates = _journal_catalogs(storage)
+
+    daily_header = next(item for item in headers if item.get("label") == "일일연습")
+    monthly_header = next(item for item in headers if item.get("label") == "월간회고")
+    draft_status = next(item for item in statuses if item.get("label") == "초안")
+    archived_status = next(item for item in statuses if item.get("label") == "보관")
+    daily_template = next(item for item in templates if item.get("name") == "일일 연습 일지")
+    monthly_template = next(item for item in templates if item.get("name") == "한 달 연습 회고")
+
+    first_res = client.post(
+        "/api/records",
+        json={
+            "title": "3월 1주차 연습",
+            "body": "## 포커스\n슬랩 타이밍 점검",
+            "post_type": "일일연습",
+            "header_id": daily_header["id"],
+            "status_id": draft_status["id"],
+            "template_id": daily_template["id"],
+            "meta": {
+                "practice_date": "2026-03-07",
+                "duration_min": 55,
+                "focus": "슬랩",
+                "next_action": "16비트 메트로놈",
+            },
+            "tags": ["슬랩", "루틴"],
+            "linked_song_ids": ["L0001"],
+            "linked_drill_ids": ["DL0001"],
+            "free_targets": ["템포 96"],
+            "source_context": "practice",
+        },
+    )
+    assert first_res.status_code == 200
+    first_item = first_res.get_json()["item"]
+    assert first_item["header_id"] == daily_header["id"]
+    assert first_item["status_id"] == draft_status["id"]
+    assert first_item["template_id"] == daily_template["id"]
+    assert first_item["meta"]["practice_date"] == "2026-03-07"
+    assert first_item["meta"]["duration_min"] == 55
+
+    second_res = client.post(
+        "/api/records",
+        json={
+            "title": "2월 월간 회고",
+            "body": "한 달 회고 정리",
+            "post_type": "월간회고",
+            "header_id": monthly_header["id"],
+            "status_id": archived_status["id"],
+            "template_id": monthly_template["id"],
+            "meta": {"practice_date": "2026-02-29", "focus": "루트-5도"},
+            "tags": ["회고"],
+            "linked_song_ids": [],
+            "linked_drill_ids": [],
+            "free_targets": [],
+            "source_context": "review",
+        },
+    )
+    assert second_res.status_code == 200
+    second_item = second_res.get_json()["item"]
+
+    detail_res = client.get(f"/api/records/{first_item['post_id']}")
+    assert detail_res.status_code == 200
+    detail_item = detail_res.get_json()["item"]
+    assert detail_item["template_name"] == "일일 연습 일지"
+    assert detail_item["header_label"] == "일일연습"
+    assert detail_item["status_label"] == "초안"
+    assert detail_item["comments"] == []
+    assert detail_item["linked_song_titles"]
+    assert detail_item["linked_drill_titles"]
+
+    search_res = client.get("/api/records/list?q=슬랩")
+    assert search_res.status_code == 200
+    search_ids = {item["post_id"] for item in search_res.get_json()["items"]}
+    assert first_item["post_id"] in search_ids
+    assert second_item["post_id"] not in search_ids
+
+    header_res = client.get(f"/api/records/list?header_id={daily_header['id']}")
+    assert header_res.status_code == 200
+    header_ids = {item["post_id"] for item in header_res.get_json()["items"]}
+    assert header_ids == {first_item["post_id"]}
+
+    status_res = client.get(f"/api/records/list?status_id={archived_status['id']}")
+    assert status_res.status_code == 200
+    status_ids = {item["post_id"] for item in status_res.get_json()["items"]}
+    assert status_ids == {second_item["post_id"]}
+
+    template_res = client.get(f"/api/records/list?template_id={daily_template['id']}")
+    assert template_res.status_code == 200
+    template_ids = {item["post_id"] for item in template_res.get_json()["items"]}
+    assert template_ids == {first_item["post_id"]}
+
+    comment_res = client.post(
+        f"/api/records/{first_item['post_id']}/comments",
+        json={"body": "첫 코멘트"},
+    )
+    assert comment_res.status_code == 200
+    root_comment = comment_res.get_json()["item"]
+    reply_res = client.post(
+        f"/api/records/{first_item['post_id']}/comments",
+        json={"body": "답글 메모", "parent_comment_id": root_comment["comment_id"]},
+    )
+    assert reply_res.status_code == 200
+    reply_comment = reply_res.get_json()["item"]
+
+    comments_res = client.get(f"/api/records/{first_item['post_id']}/comments")
+    assert comments_res.status_code == 200
+    comments = comments_res.get_json()["items"]
+    assert [item["depth"] for item in comments] == [0, 1]
+    assert comments[1]["parent_comment_id"] == root_comment["comment_id"]
+
+    edit_res = client.put(
+        f"/api/records/{first_item['post_id']}/comments/{reply_comment['comment_id']}",
+        json={"body": "답글 수정"},
+    )
+    assert edit_res.status_code == 200
+    assert edit_res.get_json()["item"]["body"] == "답글 수정"
+
+    delete_parent_res = client.delete(f"/api/records/{first_item['post_id']}/comments/{root_comment['comment_id']}")
+    assert delete_parent_res.status_code == 200
+    detail_after_soft_delete = client.get(f"/api/records/{first_item['post_id']}").get_json()["item"]
+    assert detail_after_soft_delete["comment_count"] == 2
+    assert detail_after_soft_delete["comments"][0]["deleted"] is True
+    assert detail_after_soft_delete["comments"][0]["body"] == ""
+
+    delete_reply_res = client.delete(f"/api/records/{first_item['post_id']}/comments/{reply_comment['comment_id']}")
+    assert delete_reply_res.status_code == 200
+    delete_parent_hard_res = client.delete(f"/api/records/{first_item['post_id']}/comments/{root_comment['comment_id']}")
+    assert delete_parent_hard_res.status_code == 200
+    detail_after_cleanup = client.get(f"/api/records/{first_item['post_id']}").get_json()["item"]
+    assert detail_after_cleanup["comments"] == []
+    assert detail_after_cleanup["comment_count"] == 0
+
+    sleep(1.1)
+    touch_res = client.put(
+        f"/api/records/{second_item['post_id']}",
+        json={"body": "업데이트된 월간 회고"},
+    )
+    assert touch_res.status_code == 200
+    sorted_res = client.get("/api/records/list?sort=updated_desc")
+    assert sorted_res.status_code == 200
+    sorted_items = sorted_res.get_json()["items"]
+    assert sorted_items[0]["post_id"] == second_item["post_id"]
+
+
 def test_records_migration_is_idempotent(tmp_path):
     root = _prepare_temp_root(tmp_path)
     events_path = root / "designPack" / "data" / "events.csv"
@@ -1173,3 +1335,13 @@ def test_records_migration_is_idempotent(tmp_path):
     second = client2.get("/api/records/list?limit=2000").get_json()["items"]
     second_count = sum(1 for item in second if item.get("legacy_event_id") == created["event_id"])
     assert second_count == 1
+
+    posts_path = app2.config["storage"].paths.runtime_data / "record_posts.csv"
+    with posts_path.open("r", newline="", encoding="utf-8-sig") as fh:
+        post_reader = csv.DictReader(fh)
+        assert post_reader.fieldnames == RECORD_POST_HEADERS
+
+    comments_path = app2.config["storage"].paths.runtime_data / "record_comments.csv"
+    with comments_path.open("r", newline="", encoding="utf-8-sig") as fh:
+        comment_reader = csv.DictReader(fh)
+        assert comment_reader.fieldnames == RECORD_COMMENT_HEADERS

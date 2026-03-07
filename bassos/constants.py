@@ -117,6 +117,10 @@ RECORD_POST_HEADERS = [
     "title",
     "body",
     "post_type",
+    "header_id",
+    "status_id",
+    "template_id",
+    "meta_json",
     "tags",
     "linked_song_ids",
     "linked_drill_ids",
@@ -136,6 +140,17 @@ RECORD_ATTACHMENT_HEADERS = [
     "title",
     "notes",
     "sort_order",
+]
+
+RECORD_COMMENT_HEADERS = [
+    "comment_id",
+    "post_id",
+    "parent_comment_id",
+    "created_at",
+    "updated_at",
+    "body",
+    "deleted",
+    "source",
 ]
 
 SONG_LIBRARY_HEADERS = [
@@ -191,8 +206,66 @@ DASHBOARD_LAYOUT_FOCUS_DEFAULT = {
 }
 
 
+JOURNAL_HEADER_CATALOG_DEFAULTS = [
+    {"id": "daily_practice", "label": "일일연습", "color": "#496f6a", "active": True, "order": 0},
+    {"id": "monthly_review", "label": "월간회고", "color": "#7b6c55", "active": True, "order": 1},
+    {"id": "video_review", "label": "영상회고", "color": "#5b6f93", "active": True, "order": 2},
+    {"id": "performance", "label": "합주/공연", "color": "#8c6656", "active": True, "order": 3},
+    {"id": "idea", "label": "아이디어", "color": "#6c5a88", "active": True, "order": 4},
+    {"id": "archive", "label": "자료정리", "color": "#5c6e7c", "active": True, "order": 5},
+]
+
+JOURNAL_STATUS_CATALOG_DEFAULTS = [
+    {"id": "draft", "label": "초안", "color": "#7a8795", "active": True, "order": 0},
+    {"id": "working", "label": "연습중", "color": "#4a7a62", "active": True, "order": 1},
+    {"id": "needs_review", "label": "점검필요", "color": "#b07b2c", "active": True, "order": 2},
+    {"id": "recorded", "label": "촬영완료", "color": "#466f9f", "active": True, "order": 3},
+    {"id": "done", "label": "정리완료", "color": "#7e5d98", "active": True, "order": 4},
+    {"id": "archived", "label": "보관", "color": "#66727d", "active": True, "order": 5},
+]
+
+JOURNAL_TEMPLATE_CATALOG_DEFAULTS = [
+    {
+        "id": "daily_log",
+        "name": "일일 연습 일지",
+        "description": "하루 연습 내용을 빠르게 기록합니다.",
+        "header_id": "daily_practice",
+        "status_id": "working",
+        "default_tags": ["일일연습"],
+        "default_source_context": "practice",
+        "body_markdown": "## 오늘의 포커스\n- \n\n## 잘 된 점\n- \n\n## 막힌 점\n- \n\n## 다음 액션\n- [ ] \n",
+        "active": True,
+        "order": 0,
+    },
+    {
+        "id": "monthly_review",
+        "name": "한 달 연습 회고",
+        "description": "월 단위 회고와 다음 달 계획을 정리합니다.",
+        "header_id": "monthly_review",
+        "status_id": "done",
+        "default_tags": ["월간회고"],
+        "default_source_context": "review",
+        "body_markdown": "## 이번 달 요약\n- \n\n## 가장 늘어난 점\n- \n\n## 아직 불안한 점\n- \n\n## 다음 달 목표\n- [ ] \n",
+        "active": True,
+        "order": 1,
+    },
+    {
+        "id": "video_review",
+        "name": "영상 회고",
+        "description": "촬영본을 보고 문제점과 다음 수정 포인트를 남깁니다.",
+        "header_id": "video_review",
+        "status_id": "needs_review",
+        "default_tags": ["영상회고"],
+        "default_source_context": "review",
+        "body_markdown": "## 체크한 구간\n- \n\n## 톤/리듬 메모\n- \n\n## 수정 포인트\n- \n\n## 다음 테이크 액션\n- [ ] \n",
+        "active": True,
+        "order": 2,
+    },
+]
+
+
 SETTINGS_DEFAULTS = {
-    "policy_version": 14,
+    "policy_version": 17,
     "ui": {
         "default_theme": "midnight",
         "enable_confetti": True,
@@ -231,9 +304,9 @@ SETTINGS_DEFAULTS = {
                 "video_toggle": {"code": "Space"},
                 "video_restart": {"code": "KeyR"},
                 "video_fullscreen": {"code": "KeyF"},
-                "video_pin_save": {"code": "KeyP"},
-                "video_pin_jump": {"code": "KeyJ"},
-                "video_pin_clear": {"code": "KeyP", "shift": True},
+                "video_pin_save": {"code": "KeyP", "alt": True},
+                "video_pin_jump": {"code": "KeyH"},
+                "video_pin_clear": {"code": "KeyP", "alt": True, "shift": True},
                 "score_zoom": {"code": "KeyG"},
                 "score_prev": {"code": "ArrowLeft"},
                 "score_next": {"code": "ArrowRight"},
@@ -339,6 +412,9 @@ SETTINGS_DEFAULTS = {
         "dashboard_featured_photo_id": "",
         "dashboard_photo_anchor": "center",
         "journal_tag_catalog": [],
+        "journal_header_catalog": JOURNAL_HEADER_CATALOG_DEFAULTS,
+        "journal_status_catalog": JOURNAL_STATUS_CATALOG_DEFAULTS,
+        "journal_template_catalog": JOURNAL_TEMPLATE_CATALOG_DEFAULTS,
     },
 }
 

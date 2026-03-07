@@ -511,6 +511,18 @@ export type RecordAttachment = {
   created_at: string;
 };
 
+export type RecordComment = {
+  comment_id: string;
+  post_id: string;
+  parent_comment_id: string;
+  created_at: string;
+  updated_at: string;
+  body: string;
+  deleted: boolean;
+  depth: number;
+  source?: string;
+};
+
 export type RecordPost = {
   post_id: string;
   created_at: string;
@@ -518,6 +530,25 @@ export type RecordPost = {
   title: string;
   body: string;
   post_type: string;
+  header_id: string;
+  header_label: string;
+  header_color?: string;
+  status_id: string;
+  status_label: string;
+  status_color?: string;
+  template_id: string;
+  template_name?: string;
+  meta: {
+    practice_date?: string;
+    duration_min?: number | null;
+    bpm?: string;
+    focus?: string;
+    today_win?: string;
+    issue?: string;
+    next_action?: string;
+    recording_kind?: string;
+    [key: string]: unknown;
+  };
   tags: string[];
   linked_song_ids: string[];
   linked_song_titles?: string[];
@@ -526,6 +557,8 @@ export type RecordPost = {
   free_targets: string[];
   source_context: string;
   attachments: RecordAttachment[];
+  comment_count: number;
+  latest_comment_at?: string;
   legacy_event_id?: string;
   source?: string;
 };
@@ -534,6 +567,35 @@ export type JournalTagPreset = {
   id: string;
   label: string;
   category: string;
+  active: boolean;
+  order: number;
+};
+
+export type JournalHeaderPreset = {
+  id: string;
+  label: string;
+  color: string;
+  active: boolean;
+  order: number;
+};
+
+export type JournalStatusPreset = {
+  id: string;
+  label: string;
+  color: string;
+  active: boolean;
+  order: number;
+};
+
+export type JournalTemplatePreset = {
+  id: string;
+  name: string;
+  description: string;
+  header_id: string;
+  status_id: string;
+  default_tags: string[];
+  default_source_context: "practice" | "review" | "performance" | "archive";
+  body_markdown: string;
   active: boolean;
   order: number;
 };
@@ -698,6 +760,9 @@ export type Settings = {
     }>;
     dashboard_featured_photo_id?: string;
     journal_tag_catalog?: JournalTagPreset[];
+    journal_header_catalog?: JournalHeaderPreset[];
+    journal_status_catalog?: JournalStatusPreset[];
+    journal_template_catalog?: JournalTemplatePreset[];
     quest_settings?: {
       period_days?: {
         short?: number;

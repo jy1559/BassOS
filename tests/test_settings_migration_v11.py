@@ -49,7 +49,7 @@ def test_migrate_v11_existing_user_defaults_to_legacy_and_cleans_removed_keys(tm
     storage.migrate_files()
     migrated = storage.read_json("settings.json")
 
-    assert int(migrated.get("policy_version", 0)) == 14
+    assert int(migrated.get("policy_version", 0)) == 17
     ui = migrated["ui"]
     profile = migrated["profile"]
 
@@ -106,7 +106,7 @@ def test_migrate_v11_new_user_defaults_to_focus_and_seeds_layouts(tmp_path: Path
     storage.migrate_files()
     migrated = storage.read_json("settings.json")
 
-    assert int(migrated.get("policy_version", 0)) == 14
+    assert int(migrated.get("policy_version", 0)) == 17
     ui = migrated["ui"]
     assert ui.get("dashboard_version") == "focus"
 
@@ -266,6 +266,10 @@ def test_migrate_v11_seeds_new_ui_notification_and_fx_keys(tmp_path: Path):
     assert ui["fx_claim_achievement"] is True
     assert ui["fx_claim_quest"] is True
     assert ui["keyboard_shortcuts"]["bindings"]["metronome_toggle"]["code"] == "KeyM"
+    assert ui["keyboard_shortcuts"]["bindings"]["video_pin_save"]["alt"] is True
+    assert ui["keyboard_shortcuts"]["bindings"]["video_pin_jump"]["code"] == "KeyH"
+    assert "alt" not in ui["keyboard_shortcuts"]["bindings"]["video_pin_jump"]
+    assert ui["keyboard_shortcuts"]["bindings"]["video_pin_clear"]["alt"] is True
 
 
 def test_migrate_v11_normalizes_native_pip_mode_to_mini(tmp_path: Path):
@@ -289,3 +293,89 @@ def test_migrate_v11_normalizes_native_pip_mode_to_mini(tmp_path: Path):
     migrated = storage.read_json("settings.json")
     ui = migrated["ui"]
     assert ui["practice_video_pip_mode"] == "mini"
+
+
+def test_migrate_v14_updates_legacy_pin_shortcuts_to_new_alt_bindings(tmp_path: Path):
+    storage = _build_storage(tmp_path)
+    storage.write_json(
+        "settings.json",
+        {
+            "policy_version": 14,
+            "ui": {
+                "default_theme": "midnight",
+                "language": "ko",
+                "keyboard_shortcuts": {
+                    "bindings": {
+                        "video_pin_save": {"code": "KeyP"},
+                        "video_pin_jump": {"code": "KeyJ"},
+                        "video_pin_clear": {"code": "KeyP", "shift": True},
+                    }
+                },
+            },
+            "profile": {"onboarded": True},
+        },
+    )
+
+    storage.migrate_files()
+    migrated = storage.read_json("settings.json")
+    bindings = migrated["ui"]["keyboard_shortcuts"]["bindings"]
+    assert int(migrated.get("policy_version", 0)) == 17
+    assert bindings["video_pin_save"] == {"code": "KeyP", "ctrl": False, "alt": True, "shift": False}
+    assert bindings["video_pin_jump"] == {"code": "KeyH", "ctrl": False, "alt": False, "shift": False}
+
+
+def test_migrate_v15_updates_previous_pin_jump_default_to_home_key(tmp_path: Path):
+    storage = _build_storage(tmp_path)
+    storage.write_json(
+        "settings.json",
+        {
+            "policy_version": 15,
+            "ui": {
+                "default_theme": "midnight",
+                "language": "ko",
+                "keyboard_shortcuts": {
+                    "bindings": {
+                        "video_pin_jump": {"code": "KeyY"},
+                    }
+                },
+            },
+            "profile": {"onboarded": True},
+        },
+    )
+
+    storage.migrate_files()
+    migrated = storage.read_json("settings.json")
+    bindings = migrated["ui"]["keyboard_shortcuts"]["bindings"]
+    assert int(migrated.get("policy_version", 0)) == 17
+    assert bindings["video_pin_jump"] == {"code": "KeyH", "ctrl": False, "alt": False, "shift": False}
+
+
+def test_migrate_v14_preserves_custom_pin_shortcuts(tmp_path: Path):
+    storage = _build_storage(tmp_path)
+    storage.write_json(
+        "settings.json",
+        {
+            "policy_version": 14,
+            "ui": {
+                "default_theme": "midnight",
+                "language": "ko",
+                "keyboard_shortcuts": {
+                    "bindings": {
+                        "video_pin_save": {"code": "KeyY"},
+                        "video_pin_jump": {"code": "KeyU"},
+                        "video_pin_clear": {"code": "KeyI"},
+                    }
+                },
+            },
+            "profile": {"onboarded": True},
+        },
+    )
+
+    storage.migrate_files()
+    migrated = storage.read_json("settings.json")
+    bindings = migrated["ui"]["keyboard_shortcuts"]["bindings"]
+    assert bindings["video_pin_save"]["code"] == "KeyY"
+    assert bindings["video_pin_save"]["alt"] is False
+    assert bindings["video_pin_jump"]["code"] == "KeyU"
+    assert bindings["video_pin_jump"]["alt"] is False
+    assert bindings["video_pin_clear"]["code"] == "KeyI"
