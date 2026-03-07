@@ -6980,6 +6980,9 @@ textarea {
 }
 
 .journal-upload-card-preview {
+  position: relative;
+  display: block;
+  min-width: 0;
   overflow: hidden;
   border-radius: 10px;
   border: 1px solid var(--border);
@@ -7000,56 +7003,30 @@ textarea {
   object-fit: cover;
 }
 
-.journal-upload-card-head {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 6px;
-}
-
-.journal-upload-card-head strong {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  font-size: 10px;
-}
-
-.journal-upload-card-head .compact-add-btn {
-  min-height: 24px;
-  padding: 3px 6px;
-  font-size: 10px;
-}
-
-.journal-upload-card-meta {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 4px;
-}
-
-.journal-upload-card-meta small {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  font-size: 9px;
-}
-
-.journal-upload-type-pill {
-  flex: none;
-  border: 1px solid color-mix(in srgb, var(--border) 86%, transparent);
+.journal-upload-card-remove {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  z-index: 1;
+  min-width: 22px;
+  width: 22px;
+  height: 22px;
+  min-height: 22px;
+  padding: 0;
   border-radius: 999px;
-  padding: 1px 6px;
-  background: color-mix(in srgb, var(--panel) 84%, var(--accent-soft));
-  color: var(--muted);
-  font-size: 9px;
-  font-weight: 700;
-  letter-spacing: 0.04em;
+  border-color: color-mix(in srgb, var(--border) 60%, transparent);
+  background: rgba(17, 23, 28, 0.72);
+  color: #fff;
+  font-size: 14px;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .journal-upload-card .journal-upload-insert-actions {
-  justify-content: space-between;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 4px;
 }
 
@@ -7058,11 +7035,13 @@ textarea {
   min-width: 0;
   padding: 2px 0;
   font-size: 10px;
-  flex: 1 1 0;
+  width: 100%;
+  justify-content: center;
 }
 
 .journal-upload-preview-stack {
   position: relative;
+  display: block;
   width: 100%;
   height: 100%;
   min-width: 0;
@@ -7070,6 +7049,7 @@ textarea {
 }
 
 .journal-upload-preview-stack-youtube {
+  display: block;
   padding: 4px;
   background:
     linear-gradient(180deg, color-mix(in srgb, var(--panel) 96%, transparent), color-mix(in srgb, var(--accent-soft) 76%, var(--panel))),
@@ -7093,24 +7073,6 @@ textarea {
   height: 100%;
   aspect-ratio: auto;
   object-fit: cover;
-}
-
-.journal-upload-preview-badge {
-  position: absolute;
-  right: 6px;
-  bottom: 6px;
-  border-radius: 999px;
-  padding: 2px 7px;
-  background: rgba(11, 18, 24, 0.8);
-  color: #fff;
-  font-size: 10px;
-  font-weight: 700;
-}
-
-.journal-upload-preview-badge-youtube {
-  right: 6px;
-  bottom: 6px;
-  background: rgba(188, 28, 28, 0.92);
 }
 
 .journal-upload-preview-audio {

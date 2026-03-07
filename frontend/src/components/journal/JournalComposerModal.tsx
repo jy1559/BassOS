@@ -162,12 +162,6 @@ function attachmentKindLabel(mediaType: "image" | "video" | "audio", lang: Lang)
   return lang === "ko" ? "이미지" : "Image";
 }
 
-function attachmentShortLabel(mediaType: "image" | "video" | "audio"): string {
-  if (mediaType === "video") return "V";
-  if (mediaType === "audio") return "A";
-  return "I";
-}
-
 function attachmentTitle(order: number, mediaType: "image" | "video" | "audio", lang: Lang): string {
   return `${attachmentKindLabel(mediaType, lang)} #${order}`;
 }
@@ -451,7 +445,6 @@ export function JournalComposerModal({
             <div className="journal-upload-preview-youtube-frame">
               <img src={youtubeThumbnail} alt={attachmentTitle(order, "video", lang)} className="journal-upload-preview journal-upload-preview-youtube" />
             </div>
-            <span className="journal-upload-preview-badge journal-upload-preview-badge-youtube">YouTube</span>
           </div>
         );
       }
@@ -963,10 +956,6 @@ export function JournalComposerModal({
                   return (
                     <article key={attachment.local_id} className="journal-upload-card">
                       <div className="journal-upload-card-preview">{renderAttachmentPreview(attachment, order)}</div>
-                      <div className="journal-upload-card-head">
-                        <strong>{attachmentTitle(order, attachment.media_type, lang)}</strong>
-                        <small className="muted">{lang === "ko" ? "유지" : "Kept"}</small>
-                      </div>
                       <div className="journal-upload-insert-actions">
                         <button type="button" className="ghost-btn compact-add-btn" onClick={() => insertAttachmentEmbed(order, "small")}>S</button>
                         <button type="button" className="ghost-btn compact-add-btn" onClick={() => insertAttachmentEmbed(order, "medium")}>M</button>
@@ -988,16 +977,14 @@ export function JournalComposerModal({
                           },
                           order
                         )}
-                      </div>
-                      <div className="journal-upload-card-head">
-                        <strong>{attachmentTitle(order, attachment.media_type, lang)}</strong>
-                        <button type="button" className="ghost-btn compact-add-btn" onClick={() => removeFile(attachment.local_id)}>
-                          {lang === "ko" ? "삭제" : "Remove"}
+                        <button
+                          type="button"
+                          className="ghost-btn journal-upload-card-remove"
+                          aria-label={lang === "ko" ? `첨부 ${order} 삭제` : `Remove attachment ${order}`}
+                          onClick={() => removeFile(attachment.local_id)}
+                        >
+                          ×
                         </button>
-                      </div>
-                      <div className="journal-upload-card-meta">
-                        <small>{attachment.file.name}</small>
-                        <small className="journal-upload-type-pill">{attachmentShortLabel(attachment.media_type)}</small>
                       </div>
                       <div className="journal-upload-insert-actions">
                         <button type="button" className="ghost-btn compact-add-btn" onClick={() => insertAttachmentEmbed(order, "small")}>S</button>
@@ -1011,16 +998,16 @@ export function JournalComposerModal({
                   const order = existingAttachments.length + fileAttachments.length + index + 1;
                   return (
                     <article key={attachment.local_id} className="journal-upload-card">
-                      <div className="journal-upload-card-preview">{renderAttachmentPreview({ media_type: "video", url: attachment.url }, order)}</div>
-                      <div className="journal-upload-card-head">
-                        <strong>{attachmentTitle(order, "video", lang)}</strong>
-                        <button type="button" className="ghost-btn compact-add-btn" onClick={() => removeVideoLink(attachment.local_id)}>
-                          {lang === "ko" ? "삭제" : "Remove"}
+                      <div className="journal-upload-card-preview">
+                        {renderAttachmentPreview({ media_type: "video", url: attachment.url }, order)}
+                        <button
+                          type="button"
+                          className="ghost-btn journal-upload-card-remove"
+                          aria-label={lang === "ko" ? `첨부 ${order} 삭제` : `Remove attachment ${order}`}
+                          onClick={() => removeVideoLink(attachment.local_id)}
+                        >
+                          ×
                         </button>
-                      </div>
-                      <div className="journal-upload-card-meta">
-                        <small>{attachment.url}</small>
-                        <small className="journal-upload-type-pill">YT</small>
                       </div>
                       <div className="journal-upload-insert-actions">
                         <button type="button" className="ghost-btn compact-add-btn" onClick={() => insertAttachmentEmbed(order, "small")}>S</button>
