@@ -1,1 +1,1 @@
-post_id,created_at,updated_at,title,body,post_type,header_id,status_id,template_id,meta_json,tags,linked_song_ids,linked_drill_ids,free_targets,source_context,legacy_event_id,source
+post_id,created_at,updated_at,title,body,post_type,header_id,template_id,meta_json,tags,linked_song_ids,linked_drill_ids,free_targets,source_context,legacy_event_id,source

@@ -36,15 +36,13 @@ def _meta(row: dict[str, str]) -> dict[str, object]:
     return data if isinstance(data, dict) else {}
 
 
-def _journal_catalogs(storage) -> tuple[list[dict[str, object]], list[dict[str, object]], list[dict[str, object]]]:
+def _journal_catalogs(storage) -> tuple[list[dict[str, object]], list[dict[str, object]]]:
     settings = storage.read_json("settings.json")
     profile = settings.get("profile") if isinstance(settings.get("profile"), dict) else {}
     headers = profile.get("journal_header_catalog") if isinstance(profile, dict) else []
-    statuses = profile.get("journal_status_catalog") if isinstance(profile, dict) else []
     templates = profile.get("journal_template_catalog") if isinstance(profile, dict) else []
     return (
         headers if isinstance(headers, list) else [],
-        statuses if isinstance(statuses, list) else [],
         templates if isinstance(templates, list) else [],
     )
 
@@ -1201,12 +1199,10 @@ def test_records_detail_filters_comments_and_meta(tmp_path):
     app = create_app(root)
     client = app.test_client()
     storage = app.config["storage"]
-    headers, statuses, templates = _journal_catalogs(storage)
+    headers, templates = _journal_catalogs(storage)
 
     daily_header = next(item for item in headers if item.get("label") == "일일연습")
     monthly_header = next(item for item in headers if item.get("label") == "월간회고")
-    draft_status = next(item for item in statuses if item.get("label") == "초안")
-    archived_status = next(item for item in statuses if item.get("label") == "보관")
     daily_template = next(item for item in templates if item.get("name") == "일일 연습 일지")
     monthly_template = next(item for item in templates if item.get("name") == "한 달 연습 회고")
 
@@ -1217,7 +1213,6 @@ def test_records_detail_filters_comments_and_meta(tmp_path):
             "body": "## 포커스\n슬랩 타이밍 점검",
             "post_type": "일일연습",
             "header_id": daily_header["id"],
-            "status_id": draft_status["id"],
             "template_id": daily_template["id"],
             "meta": {
                 "practice_date": "2026-03-07",
@@ -1235,7 +1230,6 @@ def test_records_detail_filters_comments_and_meta(tmp_path):
     assert first_res.status_code == 200
     first_item = first_res.get_json()["item"]
     assert first_item["header_id"] == daily_header["id"]
-    assert first_item["status_id"] == draft_status["id"]
     assert first_item["template_id"] == daily_template["id"]
     assert first_item["meta"]["practice_date"] == "2026-03-07"
     assert first_item["meta"]["duration_min"] == 55
@@ -1247,7 +1241,6 @@ def test_records_detail_filters_comments_and_meta(tmp_path):
             "body": "한 달 회고 정리",
             "post_type": "월간회고",
             "header_id": monthly_header["id"],
-            "status_id": archived_status["id"],
             "template_id": monthly_template["id"],
             "meta": {"practice_date": "2026-02-29", "focus": "루트-5도"},
             "tags": ["회고"],
@@ -1265,7 +1258,6 @@ def test_records_detail_filters_comments_and_meta(tmp_path):
     detail_item = detail_res.get_json()["item"]
     assert detail_item["template_name"] == "일일 연습 일지"
     assert detail_item["header_label"] == "일일연습"
-    assert detail_item["status_label"] == "초안"
     assert detail_item["comments"] == []
     assert detail_item["linked_song_titles"]
     assert detail_item["linked_drill_titles"]
@@ -1300,11 +1292,6 @@ def test_records_detail_filters_comments_and_meta(tmp_path):
     assert header_res.status_code == 200
     header_ids = {item["post_id"] for item in header_res.get_json()["items"]}
     assert header_ids == {first_item["post_id"]}
-
-    status_res = client.get(f"/api/records/list?status_id={archived_status['id']}")
-    assert status_res.status_code == 200
-    status_ids = {item["post_id"] for item in status_res.get_json()["items"]}
-    assert status_ids == {second_item["post_id"]}
 
     template_res = client.get(f"/api/records/list?template_id={daily_template['id']}")
     assert template_res.status_code == 200

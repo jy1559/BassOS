@@ -2,12 +2,11 @@ import { useEffect, useRef, useState } from "react";
 import type { Lang } from "../../i18n";
 import type {
   JournalHeaderPreset,
-  JournalStatusPreset,
   JournalTagPreset,
   JournalTemplatePreset,
 } from "../../types/models";
 
-type ManagerPanel = "" | "tags" | "headers" | "statuses" | "templates";
+type ManagerPanel = "" | "tags" | "headers" | "templates";
 type TemplateDraftRow = JournalTemplatePreset & { default_tags_input: string };
 
 type Props = {
@@ -16,13 +15,11 @@ type Props = {
   lang: Lang;
   tagCatalog: JournalTagPreset[];
   headerCatalog: JournalHeaderPreset[];
-  statusCatalog: JournalStatusPreset[];
   templateCatalog: JournalTemplatePreset[];
   onClose: () => void;
   onSave: (payload: {
     journal_tag_catalog?: JournalTagPreset[];
     journal_header_catalog?: JournalHeaderPreset[];
-    journal_status_catalog?: JournalStatusPreset[];
     journal_template_catalog?: JournalTemplatePreset[];
   }) => Promise<void>;
 };
@@ -96,32 +93,11 @@ function sanitizeHeaderCatalog(rows: JournalHeaderPreset[]): JournalHeaderPreset
   return out;
 }
 
-function sanitizeStatusCatalog(rows: JournalStatusPreset[]): JournalStatusPreset[] {
-  const seen = new Set<string>();
-  const out: JournalStatusPreset[] = [];
-  rows.forEach((row, index) => {
-    const label = String(row.label || "").trim();
-    const lowered = label.toLowerCase();
-    if (!label || seen.has(lowered)) return;
-    seen.add(lowered);
-    out.push({
-      id: String(row.id || nextLocalId("status")).trim(),
-      label,
-      color: normalizeHex(row.color, "#66727d"),
-      active: row.active !== false,
-      order: index,
-    });
-  });
-  return out;
-}
-
 function sanitizeTemplateCatalog(
   rows: TemplateDraftRow[],
-  headerCatalog: JournalHeaderPreset[],
-  statusCatalog: JournalStatusPreset[]
+  headerCatalog: JournalHeaderPreset[]
 ): JournalTemplatePreset[] {
   const activeHeaderId = headerCatalog.find((row) => row.active !== false)?.id || headerCatalog[0]?.id || "";
-  const activeStatusId = statusCatalog.find((row) => row.active !== false)?.id || statusCatalog[0]?.id || "";
   const seen = new Set<string>();
   const out: JournalTemplatePreset[] = [];
   rows.forEach((row, index) => {
@@ -134,7 +110,6 @@ function sanitizeTemplateCatalog(
       name,
       description: String(row.description || "").trim(),
       header_id: headerCatalog.some((item) => item.id === row.header_id) ? row.header_id : activeHeaderId,
-      status_id: statusCatalog.some((item) => item.id === row.status_id) ? row.status_id : activeStatusId,
       default_tags: dedupeLabels(splitLooseTags(row.default_tags_input || row.default_tags.join(", "))),
       default_source_context: ["practice", "review", "performance", "archive"].includes(row.default_source_context)
         ? row.default_source_context
@@ -153,14 +128,12 @@ export function JournalManagerModal({
   lang,
   tagCatalog,
   headerCatalog,
-  statusCatalog,
   templateCatalog,
   onClose,
   onSave,
 }: Props) {
   const [tagDraft, setTagDraft] = useState<JournalTagPreset[]>([]);
   const [headerDraft, setHeaderDraft] = useState<JournalHeaderPreset[]>([]);
-  const [statusDraft, setStatusDraft] = useState<JournalStatusPreset[]>([]);
   const [templateDraft, setTemplateDraft] = useState<TemplateDraftRow[]>([]);
   const modalRef = useRef<HTMLDivElement | null>(null);
 
@@ -168,9 +141,8 @@ export function JournalManagerModal({
     if (!open) return;
     setTagDraft(tagCatalog);
     setHeaderDraft(headerCatalog);
-    setStatusDraft(statusCatalog);
     setTemplateDraft(templateCatalog.map((row) => ({ ...row, default_tags_input: row.default_tags.join(", ") })));
-  }, [headerCatalog, open, statusCatalog, tagCatalog, templateCatalog]);
+  }, [headerCatalog, open, tagCatalog, templateCatalog]);
 
   useEffect(() => {
     if (!open) return;
@@ -184,9 +156,7 @@ export function JournalManagerModal({
       ? lang === "ko" ? "태그 관리" : "Tag Manager"
       : panel === "headers"
         ? lang === "ko" ? "말머리 관리" : "Header Manager"
-        : panel === "statuses"
-          ? lang === "ko" ? "상태 관리" : "Status Manager"
-          : lang === "ko" ? "템플릿 관리" : "Template Manager";
+        : lang === "ko" ? "템플릿 관리" : "Template Manager";
 
   const submit = async () => {
     if (panel === "tags") {
@@ -197,13 +167,8 @@ export function JournalManagerModal({
       await onSave({ journal_header_catalog: sanitizeHeaderCatalog(headerDraft) });
       return;
     }
-    if (panel === "statuses") {
-      await onSave({ journal_status_catalog: sanitizeStatusCatalog(statusDraft) });
-      return;
-    }
     const nextHeaders = sanitizeHeaderCatalog(headerDraft.length ? headerDraft : headerCatalog);
-    const nextStatuses = sanitizeStatusCatalog(statusDraft.length ? statusDraft : statusCatalog);
-    await onSave({ journal_template_catalog: sanitizeTemplateCatalog(templateDraft, nextHeaders, nextStatuses) });
+    await onSave({ journal_template_catalog: sanitizeTemplateCatalog(templateDraft, nextHeaders) });
   };
 
   return (
@@ -214,9 +179,7 @@ export function JournalManagerModal({
           ? "journal-tag-manager"
           : panel === "headers"
             ? "journal-header-manager"
-            : panel === "statuses"
-              ? "journal-status-manager"
-              : "journal-template-manager"
+            : "journal-template-manager"
       }
       onClick={onClose}
     >
@@ -274,22 +237,6 @@ export function JournalManagerModal({
           </div>
         ) : null}
 
-        {panel === "statuses" ? (
-          <div className="journal-manager-list">
-            {statusDraft.map((row, index) => (
-              <div className="journal-manager-row" key={row.id || index}>
-                <input value={row.label} onChange={(event) => setStatusDraft((prev) => prev.map((item, i) => i === index ? { ...item, label: event.target.value } : item))} placeholder={lang === "ko" ? "상태" : "Status"} />
-                <input type="color" value={normalizeHex(row.color, "#66727d")} onChange={(event) => setStatusDraft((prev) => prev.map((item, i) => i === index ? { ...item, color: event.target.value } : item))} />
-                <label className="inline"><input type="checkbox" checked={row.active !== false} onChange={(event) => setStatusDraft((prev) => prev.map((item, i) => i === index ? { ...item, active: event.target.checked } : item))} /><span>{lang === "ko" ? "사용" : "Active"}</span></label>
-                <button className="ghost-btn danger-border" onClick={() => setStatusDraft((prev) => prev.filter((_, i) => i !== index))}>{lang === "ko" ? "삭제" : "Delete"}</button>
-              </div>
-            ))}
-            <button className="ghost-btn" onClick={() => setStatusDraft((prev) => [...prev, { id: nextLocalId("status"), label: "", color: "#66727d", active: true, order: prev.length }])}>
-              {lang === "ko" ? "상태 추가" : "Add Status"}
-            </button>
-          </div>
-        ) : null}
-
         {panel === "templates" ? (
           <div className="journal-manager-list templates">
             {templateDraft.map((row, index) => (
@@ -303,9 +250,6 @@ export function JournalManagerModal({
                 <div className="journal-manager-row">
                   <select value={row.header_id} onChange={(event) => setTemplateDraft((prev) => prev.map((item, i) => i === index ? { ...item, header_id: event.target.value } : item))}>
                     {headerCatalog.map((header) => <option key={header.id} value={header.id}>{header.label}</option>)}
-                  </select>
-                  <select value={row.status_id} onChange={(event) => setTemplateDraft((prev) => prev.map((item, i) => i === index ? { ...item, status_id: event.target.value } : item))}>
-                    {statusCatalog.map((status) => <option key={status.id} value={status.id}>{status.label}</option>)}
                   </select>
                   <select value={row.default_source_context} onChange={(event) => setTemplateDraft((prev) => prev.map((item, i) => i === index ? { ...item, default_source_context: event.target.value as JournalTemplatePreset["default_source_context"] } : item))}>
                     <option value="practice">{lang === "ko" ? "연습" : "Practice"}</option>
@@ -328,7 +272,6 @@ export function JournalManagerModal({
                     name: "",
                     description: "",
                     header_id: headerCatalog[0]?.id || "",
-                    status_id: statusCatalog[0]?.id || "",
                     default_tags: [],
                     default_tags_input: "",
                     default_source_context: "practice",

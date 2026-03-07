@@ -6257,13 +6257,8 @@ textarea {
 }
 
 .journal-board-inline-divider,
-.journal-board-row-excerpt,
-.journal-board-row-status {
+.journal-board-row-excerpt {
   color: var(--muted);
-}
-
-.journal-board-row-status {
-  white-space: nowrap;
 }
 
 .journal-badge {

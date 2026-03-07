@@ -533,9 +533,6 @@ export type RecordPost = {
   header_id: string;
   header_label: string;
   header_color?: string;
-  status_id: string;
-  status_label: string;
-  status_color?: string;
   template_id: string;
   template_name?: string;
   meta: {
@@ -579,20 +576,11 @@ export type JournalHeaderPreset = {
   order: number;
 };
 
-export type JournalStatusPreset = {
-  id: string;
-  label: string;
-  color: string;
-  active: boolean;
-  order: number;
-};
-
 export type JournalTemplatePreset = {
   id: string;
   name: string;
   description: string;
   header_id: string;
-  status_id: string;
   default_tags: string[];
   default_source_context: "practice" | "review" | "performance" | "archive";
   body_markdown: string;
@@ -761,7 +749,6 @@ export type Settings = {
     dashboard_featured_photo_id?: string;
     journal_tag_catalog?: JournalTagPreset[];
     journal_header_catalog?: JournalHeaderPreset[];
-    journal_status_catalog?: JournalStatusPreset[];
     journal_template_catalog?: JournalTemplatePreset[];
     quest_settings?: {
       period_days?: {

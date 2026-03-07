@@ -59,3 +59,65 @@ def test_settings_migration_normalizes_keyboard_shortcuts(tmp_path: Path):
     assert bindings["video_toggle"]["code"] == "Space"
     assert bindings["metronome_toggle"]["code"] == "KeyT"
     assert bindings["popup_close"]["code"] == "Escape"
+
+
+def test_settings_migration_remaps_old_default_pin_shortcuts(tmp_path: Path):
+    storage = _build_storage(tmp_path)
+    storage.write_json(
+        "settings.json",
+        {
+            "policy_version": 14,
+            "ui": {
+                "keyboard_shortcuts": {
+                    "bindings": {
+                        "video_pin_save": {"code": "KeyP"},
+                        "video_pin_jump": {"code": "KeyJ"},
+                        "video_pin_clear": {"code": "KeyP", "shift": True},
+                    }
+                }
+            },
+        },
+    )
+
+    storage.migrate_files()
+    settings = storage.read_json("settings.json")
+    bindings = settings["ui"]["keyboard_shortcuts"]["bindings"]
+    assert bindings["video_pin_save"]["alt"] is True
+    assert bindings["video_pin_jump"]["code"] == "KeyH"
+    assert bindings["video_pin_jump"]["alt"] is False
+    assert bindings["video_pin_clear"]["alt"] is True
+
+
+def test_settings_migration_removes_journal_status_catalog(tmp_path: Path):
+    storage = _build_storage(tmp_path)
+    storage.write_json(
+        "settings.json",
+        {
+            "policy_version": 17,
+            "profile": {
+                "journal_header_catalog": [{"id": "daily_practice", "label": "일일연습", "color": "#496f6a", "active": True, "order": 0}],
+                "journal_status_catalog": [{"id": "draft", "label": "초안", "color": "#66727d", "active": True, "order": 0}],
+                "journal_template_catalog": [
+                    {
+                        "id": "daily_log",
+                        "name": "일일 연습 일지",
+                        "description": "",
+                        "header_id": "daily_practice",
+                        "status_id": "draft",
+                        "default_tags": ["일일연습"],
+                        "default_source_context": "practice",
+                        "body_markdown": "## 포커스",
+                        "active": True,
+                        "order": 0,
+                    }
+                ],
+            },
+        },
+    )
+
+    storage.migrate_files()
+    settings = storage.read_json("settings.json")
+    profile = settings["profile"]
+
+    assert "journal_status_catalog" not in profile
+    assert "status_id" not in profile["journal_template_catalog"][0]

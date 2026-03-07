@@ -621,7 +621,6 @@ export async function getRecords(params?: {
   song_library_ids?: string[];
   drill_ids?: string[];
   header_id?: string;
-  status_id?: string;
   template_id?: string;
   sort?: "created_desc" | "updated_desc";
 }): Promise<RecordPost[]> {
@@ -637,7 +636,6 @@ export async function getRecords(params?: {
   params?.song_library_ids?.forEach((value) => query.append("song_library_ids", value));
   params?.drill_ids?.forEach((value) => query.append("drill_ids", value));
   if (params?.header_id) query.set("header_id", params.header_id);
-  if (params?.status_id) query.set("status_id", params.status_id);
   if (params?.template_id) query.set("template_id", params.template_id);
   if (params?.sort) query.set("sort", params.sort);
   const data = await call<{ items: RecordPost[]; ok: true }>(`/api/records/list?${query.toString()}`);
@@ -655,7 +653,6 @@ export async function createRecordPost(
     body: string;
     post_type: string;
     header_id?: string;
-    status_id?: string;
     template_id?: string;
     meta?: Record<string, unknown>;
     tags: string[];
@@ -677,7 +674,6 @@ export async function createRecordPost(
   formData.append("body", payload.body);
   formData.append("post_type", payload.post_type);
   if (payload.header_id) formData.append("header_id", payload.header_id);
-  if (payload.status_id) formData.append("status_id", payload.status_id);
   if (payload.template_id) formData.append("template_id", payload.template_id);
   if (payload.meta) formData.append("meta", JSON.stringify(payload.meta));
   formData.append("tags", JSON.stringify(payload.tags));
@@ -703,7 +699,6 @@ export async function updateRecordPost(
     body?: string;
     post_type?: string;
     header_id?: string;
-    status_id?: string;
     template_id?: string;
     meta?: Record<string, unknown>;
     tags?: string[];
@@ -728,7 +723,6 @@ export async function updateRecordPost(
           if (patch.body !== undefined) formData.append("body", patch.body);
           if (patch.post_type !== undefined) formData.append("post_type", patch.post_type);
           if (patch.header_id !== undefined) formData.append("header_id", patch.header_id);
-          if (patch.status_id !== undefined) formData.append("status_id", patch.status_id);
           if (patch.template_id !== undefined) formData.append("template_id", patch.template_id);
           if (patch.meta !== undefined) formData.append("meta", JSON.stringify(patch.meta));
           if (patch.tags !== undefined) formData.append("tags", JSON.stringify(patch.tags));

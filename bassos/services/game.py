@@ -909,17 +909,14 @@ class GameService:
         dict[str, dict[str, Any]],
         dict[str, dict[str, Any]],
         dict[str, dict[str, Any]],
-        dict[str, dict[str, Any]],
     ]:
         settings = self.storage.read_json("settings.json")
         profile = settings.get("profile") if isinstance(settings.get("profile"), dict) else {}
         header_catalog = profile.get("journal_header_catalog") if isinstance(profile, dict) else []
-        status_catalog = profile.get("journal_status_catalog") if isinstance(profile, dict) else []
         template_catalog = profile.get("journal_template_catalog") if isinstance(profile, dict) else []
 
         header_by_id: dict[str, dict[str, Any]] = {}
         header_by_label: dict[str, dict[str, Any]] = {}
-        status_by_id: dict[str, dict[str, Any]] = {}
         template_by_id: dict[str, dict[str, Any]] = {}
 
         if isinstance(header_catalog, list):
@@ -932,13 +929,6 @@ class GameService:
                     header_by_id[entry_id] = item
                 if label:
                     header_by_label[label.lower()] = item
-        if isinstance(status_catalog, list):
-            for item in status_catalog:
-                if not isinstance(item, dict):
-                    continue
-                entry_id = str(item.get("id") or "").strip()
-                if entry_id:
-                    status_by_id[entry_id] = item
         if isinstance(template_catalog, list):
             for item in template_catalog:
                 if not isinstance(item, dict):
@@ -946,7 +936,7 @@ class GameService:
                 entry_id = str(item.get("id") or "").strip()
                 if entry_id:
                     template_by_id[entry_id] = item
-        return header_by_id, header_by_label, status_by_id, template_by_id
+        return header_by_id, header_by_label, template_by_id
 
     def _normalize_record_post(
         self,
@@ -957,7 +947,6 @@ class GameService:
         drills: dict[str, dict[str, str]],
         header_by_id: dict[str, dict[str, Any]],
         header_by_label: dict[str, dict[str, Any]],
-        status_by_id: dict[str, dict[str, Any]],
         template_by_id: dict[str, dict[str, Any]],
     ) -> dict[str, Any]:
         linked_song_ids = _split_semicolon(row.get("linked_song_ids"))
@@ -979,11 +968,6 @@ class GameService:
         header_label = str((header or {}).get("label") or post_type or "자유기록")
         header_color = str((header or {}).get("color") or "#5c6e7c")
 
-        status_id = str(row.get("status_id") or "").strip()
-        status = status_by_id.get(status_id)
-        status_label = str((status or {}).get("label") or "보관")
-        status_color = str((status or {}).get("color") or "#66727d")
-
         template_id = str(row.get("template_id") or "").strip()
         template = template_by_id.get(template_id)
         latest_comment_at = ""
@@ -1002,9 +986,6 @@ class GameService:
             "header_id": resolved_header_id,
             "header_label": header_label,
             "header_color": header_color,
-            "status_id": status_id,
-            "status_label": status_label,
-            "status_color": status_color,
             "template_id": template_id,
             "template_name": str((template or {}).get("name") or ""),
             "meta": meta,
@@ -1077,7 +1058,7 @@ class GameService:
         comments = self._record_comment_rows()
         songs = {item.get("library_id", ""): item for item in self.storage.read_csv("song_library.csv")}
         drills = {item.get("drill_id", ""): item for item in self.storage.read_csv("drill_library.csv")}
-        header_by_id, header_by_label, status_by_id, template_by_id = self._record_catalogs()
+        header_by_id, header_by_label, template_by_id = self._record_catalogs()
         target = next((item for item in posts if item.get("post_id") == post_id), None)
         if not target:
             return None
@@ -1091,7 +1072,6 @@ class GameService:
             drills,
             header_by_id,
             header_by_label,
-            status_by_id,
             template_by_id,
         )
 
@@ -1114,7 +1094,6 @@ class GameService:
         song_library_ids: list[str] | None = None,
         drill_ids: list[str] | None = None,
         header_id: str = "",
-        status_id: str = "",
         template_id: str = "",
         sort: str = "created_desc",
     ) -> list[dict[str, Any]]:
@@ -1122,7 +1101,7 @@ class GameService:
         comments = self._record_comment_rows()
         songs = {item.get("library_id", ""): item for item in self.storage.read_csv("song_library.csv")}
         drills = {item.get("drill_id", ""): item for item in self.storage.read_csv("drill_library.csv")}
-        header_by_id, header_by_label, status_by_id, template_by_id = self._record_catalogs()
+        header_by_id, header_by_label, template_by_id = self._record_catalogs()
 
         attachment_by_post: dict[str, list[dict[str, str]]] = defaultdict(list)
         for row in attachments:
@@ -1158,7 +1137,6 @@ class GameService:
                 drills,
                 header_by_id,
                 header_by_label,
-                status_by_id,
                 template_by_id,
             )
 
@@ -1169,8 +1147,6 @@ class GameService:
             if normalized_drill_ids and not normalized_drill_ids.intersection(set(normalized.get("linked_drill_ids", []))):
                 continue
             if header_id and normalized.get("header_id") != header_id:
-                continue
-            if status_id and normalized.get("status_id") != status_id:
                 continue
             if template_id and normalized.get("template_id") != template_id:
                 continue
@@ -1214,7 +1190,6 @@ class GameService:
                             normalized.get("body", ""),
                             normalized.get("post_type", ""),
                             normalized.get("header_label", ""),
-                            normalized.get("status_label", ""),
                             " ".join(normalized.get("tags", [])),
                             " ".join(normalized.get("linked_song_ids", [])),
                             " ".join(normalized.get("linked_song_titles", [])),
@@ -1239,7 +1214,7 @@ class GameService:
         headers_posts = self.storage.read_csv_headers("record_posts.csv") or RECORD_POST_HEADERS
         headers_attachments = self.storage.read_csv_headers("record_attachments.csv") or RECORD_ATTACHMENT_HEADERS
         now_iso = to_iso(now_local())
-        header_by_id, header_by_label, status_by_id, template_by_id = self._record_catalogs()
+        header_by_id, header_by_label, template_by_id = self._record_catalogs()
 
         def parse_list(value: Any) -> list[str]:
             if isinstance(value, list):
@@ -1269,9 +1244,6 @@ class GameService:
             header = header_by_label.get(requested_post_type.lower())
             header_id = str((header or {}).get("id") or header_id)
         post_type = str((header or {}).get("label") or requested_post_type or "자유기록")
-        status_id = str(payload.get("status_id") or "").strip()
-        if status_id not in status_by_id:
-            status_id = "draft" if "draft" in status_by_id else next(iter(status_by_id.keys()), "")
         template_id = str(payload.get("template_id") or "").strip()
         if template_id not in template_by_id:
             template_id = ""
@@ -1286,7 +1258,6 @@ class GameService:
             "body": str(payload.get("body") or ""),
             "post_type": post_type,
             "header_id": header_id,
-            "status_id": status_id,
             "template_id": template_id,
             "meta_json": json.dumps(parse_meta(payload.get("meta")), ensure_ascii=False),
             "tags": _join_semicolon(parse_list(payload.get("tags"))),
@@ -1331,7 +1302,7 @@ class GameService:
         target = next((item for item in posts if item.get("post_id") == post_id), None)
         if not target:
             return False, "Record not found.", None
-        header_by_id, header_by_label, status_by_id, template_by_id = self._record_catalogs()
+        header_by_id, header_by_label, template_by_id = self._record_catalogs()
 
         def parse_list(value: Any) -> str:
             if isinstance(value, list):
@@ -1363,9 +1334,6 @@ class GameService:
                 target["post_type"] = str(header.get("label") or target.get("post_type") or "")
             else:
                 target["header_id"] = ""
-        if payload.get("status_id") is not None:
-            next_status_id = str(payload.get("status_id") or "").strip()
-            target["status_id"] = next_status_id if next_status_id in status_by_id else ""
         if payload.get("template_id") is not None:
             next_template_id = str(payload.get("template_id") or "").strip()
             target["template_id"] = next_template_id if next_template_id in template_by_id else ""

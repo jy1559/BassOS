@@ -21,7 +21,6 @@ from bassos.constants import (
     DRILL_LIBRARY_HEADERS,
     EVENT_HEADERS,
     JOURNAL_HEADER_CATALOG_DEFAULTS,
-    JOURNAL_STATUS_CATALOG_DEFAULTS,
     JOURNAL_TEMPLATE_CATALOG_DEFAULTS,
     LEVEL_BALANCE_V2,
     QUEST_HEADERS,
@@ -292,35 +291,6 @@ def _normalize_journal_header_catalog(raw: Any) -> list[dict[str, Any]]:
         )
     return out or _deep_copy_json(JOURNAL_HEADER_CATALOG_DEFAULTS)
 
-
-def _normalize_journal_status_catalog(raw: Any) -> list[dict[str, Any]]:
-    source = raw if isinstance(raw, list) and raw else _deep_copy_json(JOURNAL_STATUS_CATALOG_DEFAULTS)
-    out: list[dict[str, Any]] = []
-    seen_ids: set[str] = set()
-    for index, item in enumerate(source):
-        if not isinstance(item, dict):
-            continue
-        label = str(item.get("label") or "").strip()
-        if not label:
-            continue
-        entry_id = str(item.get("id") or _catalog_slug(label, "status", index)).strip()
-        lowered = entry_id.lower()
-        if lowered in seen_ids:
-            continue
-        seen_ids.add(lowered)
-        fallback = JOURNAL_STATUS_CATALOG_DEFAULTS[min(index, len(JOURNAL_STATUS_CATALOG_DEFAULTS) - 1)]
-        out.append(
-            {
-                "id": entry_id,
-                "label": label,
-                "color": _normalize_catalog_color(item.get("color"), str(fallback.get("color") or "#66727d")),
-                "active": _normalize_catalog_active(item.get("active"), True),
-                "order": index,
-            }
-        )
-    return out or _deep_copy_json(JOURNAL_STATUS_CATALOG_DEFAULTS)
-
-
 def _normalize_template_tags(raw: Any) -> list[str]:
     if isinstance(raw, list):
         values = raw
@@ -341,13 +311,10 @@ def _normalize_template_tags(raw: Any) -> list[str]:
 def _normalize_journal_template_catalog(
     raw: Any,
     header_catalog: list[dict[str, Any]],
-    status_catalog: list[dict[str, Any]],
 ) -> list[dict[str, Any]]:
     source = raw if isinstance(raw, list) and raw else _deep_copy_json(JOURNAL_TEMPLATE_CATALOG_DEFAULTS)
     header_ids = {str(item.get("id") or "") for item in header_catalog}
-    status_ids = {str(item.get("id") or "") for item in status_catalog}
     fallback_header = str(header_catalog[0].get("id") or "daily_practice")
-    fallback_status = str(status_catalog[0].get("id") or "draft")
     out: list[dict[str, Any]] = []
     seen_ids: set[str] = set()
     for index, item in enumerate(source):
@@ -364,9 +331,6 @@ def _normalize_journal_template_catalog(
         header_id = str(item.get("header_id") or "").strip()
         if header_id not in header_ids:
             header_id = fallback_header
-        status_id = str(item.get("status_id") or "").strip()
-        if status_id not in status_ids:
-            status_id = fallback_status
         source_context = str(item.get("default_source_context") or "practice").strip().lower()
         if source_context not in {"practice", "review", "performance", "archive"}:
             source_context = "practice"
@@ -376,7 +340,6 @@ def _normalize_journal_template_catalog(
                 "name": name,
                 "description": str(item.get("description") or "").strip(),
                 "header_id": header_id,
-                "status_id": status_id,
                 "default_tags": _normalize_template_tags(item.get("default_tags")),
                 "default_source_context": source_context,
                 "body_markdown": str(item.get("body_markdown") or ""),
@@ -942,13 +905,11 @@ class Storage:
         profile["quest_settings"] = quest_settings
         profile["journal_tag_catalog"] = _normalize_journal_tag_catalog(profile.get("journal_tag_catalog"))
         header_catalog = _normalize_journal_header_catalog(profile.get("journal_header_catalog"))
-        status_catalog = _normalize_journal_status_catalog(profile.get("journal_status_catalog"))
         profile["journal_header_catalog"] = header_catalog
-        profile["journal_status_catalog"] = status_catalog
+        profile.pop("journal_status_catalog", None)
         profile["journal_template_catalog"] = _normalize_journal_template_catalog(
             profile.get("journal_template_catalog"),
             header_catalog,
-            status_catalog,
         )
 
         ui = merged.setdefault("ui", {})
@@ -1274,7 +1235,6 @@ class Storage:
             profile = merged.setdefault("profile", {})
             profile.setdefault("journal_tag_catalog", [])
             profile.setdefault("journal_header_catalog", _deep_copy_json(JOURNAL_HEADER_CATALOG_DEFAULTS))
-            profile.setdefault("journal_status_catalog", _deep_copy_json(JOURNAL_STATUS_CATALOG_DEFAULTS))
             profile.setdefault("journal_template_catalog", _deep_copy_json(JOURNAL_TEMPLATE_CATALOG_DEFAULTS))
             merged["policy_version"] = 17
 
@@ -1436,13 +1396,8 @@ class Storage:
         settings = self.read_json("settings.json")
         profile = settings.setdefault("profile", {})
         header_catalog = _normalize_journal_header_catalog(profile.get("journal_header_catalog"))
-        status_catalog = _normalize_journal_status_catalog(profile.get("journal_status_catalog"))
         header_ids = {str(item.get("id") or "") for item in header_catalog}
         header_labels = {str(item.get("label") or "").strip().lower(): str(item.get("id") or "") for item in header_catalog}
-        archived_status_id = next(
-            (str(item.get("id") or "") for item in status_catalog if str(item.get("label") or "").strip() == "보관"),
-            "archived",
-        )
         catalog_changed = False
 
         def ensure_header(label: str, preferred_id: str = "") -> str:
@@ -1484,10 +1439,6 @@ class Storage:
             resolved_header_id = ensure_header(label, current_header_id)
             if row.get("header_id") != resolved_header_id:
                 row["header_id"] = resolved_header_id
-                post_rows_changed = True
-            current_status_id = str(row.get("status_id") or "").strip()
-            if not current_status_id or current_status_id not in {str(item.get("id") or "") for item in status_catalog}:
-                row["status_id"] = archived_status_id
                 post_rows_changed = True
             template_id = str(row.get("template_id") or "").strip()
             if row.get("template_id") != template_id:
@@ -1552,7 +1503,6 @@ class Storage:
                         "body": event.get("notes", ""),
                         "post_type": post_type,
                         "header_id": header_id,
-                        "status_id": archived_status_id,
                         "template_id": "",
                         "meta_json": "{}",
                         "tags": self._join_list(tags),

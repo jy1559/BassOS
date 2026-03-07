@@ -131,20 +131,12 @@ export function JournalDetailOverlay({
           <div className="journal-detail-head-main">
             <div className="journal-detail-pill-row">
               {item ? (
-                <>
-                  <span
-                    className="journal-badge"
-                    style={{ borderColor: item.header_color || "#5c6e7c", background: withAlpha(item.header_color || "#5c6e7c", 0.14) }}
-                  >
-                    {item.header_label || (lang === "ko" ? "기록" : "Entry")}
-                  </span>
-                  <span
-                    className="journal-badge subtle"
-                    style={{ borderColor: item.status_color || "#66727d", background: withAlpha(item.status_color || "#66727d", 0.12) }}
-                  >
-                    {item.status_label || (lang === "ko" ? "상태 없음" : "No status")}
-                  </span>
-                </>
+                <span
+                  className="journal-badge"
+                  style={{ borderColor: item.header_color || "#5c6e7c", background: withAlpha(item.header_color || "#5c6e7c", 0.14) }}
+                >
+                  {item.header_label || (lang === "ko" ? "기록" : "Entry")}
+                </span>
               ) : null}
               <small className="muted">{item ? formatJournalDate(item.created_at) : lang === "ko" ? "불러오는 중..." : "Loading..."}</small>
               {item?.updated_at && item.updated_at !== item.created_at ? (

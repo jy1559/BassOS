@@ -2,7 +2,6 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import type { Lang } from "../../i18n";
 import type {
   JournalHeaderPreset,
-  JournalStatusPreset,
   JournalTagPreset,
   JournalTemplatePreset,
   RecordPost,
@@ -33,7 +32,6 @@ export type JournalComposerSubmitPayload = {
   body: string;
   post_type: string;
   header_id: string;
-  status_id: string;
   template_id: string;
   meta: Record<string, unknown>;
   tags: string[];
@@ -56,10 +54,9 @@ type Props = {
   };
   tagCatalog: JournalTagPreset[];
   headerCatalog: JournalHeaderPreset[];
-  statusCatalog: JournalStatusPreset[];
   templateCatalog: JournalTemplatePreset[];
   onClose: () => void;
-  onOpenManager: (panel: "tags" | "headers" | "statuses" | "templates") => void;
+  onOpenManager: (panel: "tags" | "headers" | "templates") => void;
   onSubmit: (payload: JournalComposerSubmitPayload, files: File[]) => Promise<void>;
 };
 
@@ -123,7 +120,6 @@ export function JournalComposerModal({
   catalogs,
   tagCatalog,
   headerCatalog,
-  statusCatalog,
   templateCatalog,
   onClose,
   onOpenManager,
@@ -133,7 +129,6 @@ export function JournalComposerModal({
   const [body, setBody] = useState("");
   const [sourceContext, setSourceContext] = useState("practice");
   const [headerId, setHeaderId] = useState("");
-  const [statusId, setStatusId] = useState("");
   const [templateId, setTemplateId] = useState("");
   const [freeTags, setFreeTags] = useState("");
   const [selectedSongIds, setSelectedSongIds] = useState<string[]>([]);
@@ -164,10 +159,6 @@ export function JournalComposerModal({
   const activeHeaderCatalog = useMemo(
     () => headerCatalog.filter((entry) => entry.active !== false).sort((a, b) => a.order - b.order),
     [headerCatalog]
-  );
-  const activeStatusCatalog = useMemo(
-    () => statusCatalog.filter((entry) => entry.active !== false).sort((a, b) => a.order - b.order),
-    [statusCatalog]
   );
   const activeTemplateCatalog = useMemo(
     () => templateCatalog.filter((entry) => entry.active !== false).sort((a, b) => a.order - b.order),
@@ -227,14 +218,12 @@ export function JournalComposerModal({
   useEffect(() => {
     if (!open) return;
     const nextHeaderId = item?.header_id || activeHeaderCatalog[0]?.id || headerCatalog[0]?.id || "";
-    const nextStatusId = item?.status_id || activeStatusCatalog[0]?.id || statusCatalog[0]?.id || "";
     const nextSongIds = item?.linked_song_ids || [];
     const nextDrillIds = item?.linked_drill_ids || [];
     setTitle(item?.title || "");
     setBody(item?.body || "");
     setSourceContext(item?.source_context || "practice");
     setHeaderId(nextHeaderId);
-    setStatusId(nextStatusId);
     setTemplateId(item?.template_id || "");
     setSelectedSongIds(nextSongIds);
     setSelectedDrillIds(nextDrillIds);
@@ -266,14 +255,12 @@ export function JournalComposerModal({
     setFreeTags(dedupeLabels([...(item?.free_targets || []), ...fallbackFreeTags]).join(", "));
   }, [
     activeHeaderCatalog,
-    activeStatusCatalog,
     activeTagCatalog,
     groupedDrills,
     groupedSongs,
     headerCatalog,
     item,
     open,
-    statusCatalog,
   ]);
 
   useEffect(() => {
@@ -355,7 +342,6 @@ export function JournalComposerModal({
       return;
     }
     setHeaderId(template.header_id);
-    setStatusId(template.status_id);
     setBody(template.body_markdown);
     setSourceContext(template.default_source_context);
     setFreeTags(dedupeLabels(template.default_tags).join(", "));
@@ -395,7 +381,6 @@ export function JournalComposerModal({
         body,
         post_type: selectedHeaderLabel,
         header_id: headerId,
-        status_id: statusId,
         template_id: templateId,
         meta: serializeJournalMeta(metaDraft),
         tags: mergedTags,
@@ -434,9 +419,6 @@ export function JournalComposerModal({
             <button className="ghost-btn compact-add-btn" onClick={() => onOpenManager("headers")}>
               {lang === "ko" ? "말머리 관리" : "Headers"}
             </button>
-            <button className="ghost-btn compact-add-btn" onClick={() => onOpenManager("statuses")}>
-              {lang === "ko" ? "상태 관리" : "Statuses"}
-            </button>
             <button className="ghost-btn compact-add-btn" onClick={() => onOpenManager("templates")}>
               {lang === "ko" ? "템플릿 관리" : "Templates"}
             </button>
@@ -463,14 +445,6 @@ export function JournalComposerModal({
                 {lang === "ko" ? "말머리" : "Header"}
                 <select value={headerId} onChange={(event) => setHeaderId(event.target.value)}>
                   {activeHeaderCatalog.map((row) => (
-                    <option key={row.id} value={row.id}>{row.label}</option>
-                  ))}
-                </select>
-              </label>
-              <label>
-                {lang === "ko" ? "상태" : "Status"}
-                <select value={statusId} onChange={(event) => setStatusId(event.target.value)}>
-                  {activeStatusCatalog.map((row) => (
                     <option key={row.id} value={row.id}>{row.label}</option>
                   ))}
                 </select>

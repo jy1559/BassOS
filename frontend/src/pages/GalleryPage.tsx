@@ -26,7 +26,6 @@ import {
 import type { Lang } from "../i18n";
 import type {
   JournalHeaderPreset,
-  JournalStatusPreset,
   JournalTagPreset,
   JournalTemplatePreset,
   RecordComment,
@@ -54,7 +53,6 @@ type FilterDraft = {
   q: string;
   search_scope: SearchScope;
   header_id: string;
-  status_id: string;
   template_id: string;
   media_type: "all" | "image" | "video" | "audio";
   sort: SortMode;
@@ -64,7 +62,7 @@ type FilterDraft = {
   song_library_ids: string[];
   drill_ids: string[];
 };
-type ManagerPanel = "" | "tags" | "headers" | "statuses" | "templates";
+type ManagerPanel = "" | "tags" | "headers" | "templates";
 type DetailItem = RecordPost & { comments: RecordComment[] };
 type GroupedRows = {
   label: string;
@@ -192,7 +190,6 @@ export function GalleryPage({
       q: "",
       search_scope: "title_body",
       header_id: "",
-      status_id: "",
       template_id: "",
       media_type: "all",
       sort: "created_desc",
@@ -232,10 +229,6 @@ export function GalleryPage({
   const headerCatalog = useMemo<JournalHeaderPreset[]>(
     () => (Array.isArray(settings.profile?.journal_header_catalog) ? [...(settings.profile.journal_header_catalog || [])].sort((a, b) => a.order - b.order) : []),
     [settings.profile?.journal_header_catalog]
-  );
-  const statusCatalog = useMemo<JournalStatusPreset[]>(
-    () => (Array.isArray(settings.profile?.journal_status_catalog) ? [...(settings.profile.journal_status_catalog || [])].sort((a, b) => a.order - b.order) : []),
-    [settings.profile?.journal_status_catalog]
   );
   const templateCatalog = useMemo<JournalTemplatePreset[]>(
     () => (Array.isArray(settings.profile?.journal_template_catalog) ? [...(settings.profile.journal_template_catalog || [])].sort((a, b) => a.order - b.order) : []),
@@ -281,7 +274,6 @@ export function GalleryPage({
         q: isTextSearchScope(normalized.search_scope) ? normalized.q : "",
         search_scope: normalized.search_scope,
         header_id: normalized.header_id,
-        status_id: normalized.status_id,
         template_id: normalized.template_id,
         media_type: normalized.media_type,
         tag_labels: normalized.search_scope === "tags" ? tagLabels : [],
@@ -377,7 +369,6 @@ export function GalleryPage({
   const saveManager = async (payload: {
     journal_tag_catalog?: JournalTagPreset[];
     journal_header_catalog?: JournalHeaderPreset[];
-    journal_status_catalog?: JournalStatusPreset[];
     journal_template_catalog?: JournalTemplatePreset[];
   }) => {
     const updated = await putBasicSettings({ profile: { ...settings.profile, ...payload } });
@@ -630,15 +621,6 @@ export function GalleryPage({
 
           <div className="journal-filter-bottom-row">
             <label className="journal-filter-cell">
-              {lang === "ko" ? "상태" : "Status"}
-              <select value={draftFilters.status_id} onChange={(event) => setDraftFilters((prev) => ({ ...prev, status_id: event.target.value }))}>
-                <option value="">{lang === "ko" ? "전체" : "All"}</option>
-                {statusCatalog.filter((row) => row.active !== false).map((row) => (
-                  <option key={row.id} value={row.id}>{row.label}</option>
-                ))}
-              </select>
-            </label>
-            <label className="journal-filter-cell">
               {lang === "ko" ? "템플릿" : "Template"}
               <select value={draftFilters.template_id} onChange={(event) => setDraftFilters((prev) => ({ ...prev, template_id: event.target.value }))}>
                 <option value="">{lang === "ko" ? "전체" : "All"}</option>
@@ -684,7 +666,6 @@ export function GalleryPage({
                 <article key={item.post_id} className="journal-board-row" onClick={() => void openDetail(item.post_id)}>
                   <div className="journal-board-row-left">
                     <span className="journal-badge journal-badge-compact" style={{ borderColor: item.header_color || "#5c6e7c", background: withAlpha(item.header_color || "#5c6e7c", 0.14) }}>{item.header_label}</span>
-                    <small className="journal-board-row-status">{item.status_label}</small>
                   </div>
                   <div className="journal-board-row-main">
                     <strong title={fullTitle}>
@@ -711,7 +692,7 @@ export function GalleryPage({
                   {attachment && thumbUrl ? attachment.media_type === "image" ? <img src={thumbUrl} alt={item.title} className="journal-gallery-cover" /> : attachment.media_type === "video" ? youtubeThumbUrl ? <div className="journal-gallery-youtube-wrap"><img src={youtubeThumbUrl} alt={item.title} className="journal-gallery-cover" /><span className="journal-gallery-youtube-badge">YouTube</span></div> : <video src={thumbUrl} className="journal-gallery-cover" muted /> : <div className="journal-gallery-audio">♪</div> : <div className="journal-gallery-text-cover">{excerptFromMarkdown(item.body || "", 84) || (lang === "ko" ? "텍스트 기록" : "Text note")}</div>}
                   <strong>{formatJournalBoardTitle(item.title, item.comment_count, lang === "ko" ? "무제" : "Untitled", 42)}</strong>
                   <p>{excerptFromMarkdown(item.body || "", 90)}</p>
-                  <div className="journal-gallery-card-foot"><span className="journal-badge subtle" style={{ borderColor: item.status_color || "#66727d", background: withAlpha(item.status_color || "#66727d", 0.12) }}>{item.status_label}</span><small>{buildLinkedSummary(item, lang) || (lang === "ko" ? "텍스트" : "Text")}</small></div>
+                  <div className="journal-gallery-card-foot"><small>{buildLinkedSummary(item, lang) || (lang === "ko" ? "텍스트" : "Text")}</small></div>
                 </article>
               );
             })}
@@ -719,7 +700,7 @@ export function GalleryPage({
         )}
       </section>
 
-      <JournalComposerModal open={composerOpen} lang={lang} busy={busySave} item={editingItem} catalogs={catalogs} tagCatalog={tagCatalog} headerCatalog={headerCatalog} statusCatalog={statusCatalog} templateCatalog={templateCatalog} onClose={() => { setComposerOpen(false); setEditingItem(null); }} onOpenManager={setManagerPanel} onSubmit={submitComposer} />
+      <JournalComposerModal open={composerOpen} lang={lang} busy={busySave} item={editingItem} catalogs={catalogs} tagCatalog={tagCatalog} headerCatalog={headerCatalog} templateCatalog={templateCatalog} onClose={() => { setComposerOpen(false); setEditingItem(null); }} onOpenManager={setManagerPanel} onSubmit={submitComposer} />
 
       <JournalDetailOverlay
         lang={lang}
@@ -743,7 +724,6 @@ export function GalleryPage({
         lang={lang}
         tagCatalog={tagCatalog}
         headerCatalog={headerCatalog}
-        statusCatalog={statusCatalog}
         templateCatalog={templateCatalog}
         onClose={() => setManagerPanel("")}
         onSave={async (payload) => {

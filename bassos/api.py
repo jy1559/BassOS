@@ -1552,7 +1552,6 @@ def records_list() -> Response:
         song_library_ids=_request_query_list_value("song_library_ids"),
         drill_ids=_request_query_list_value("drill_ids"),
         header_id=str(request.args.get("header_id") or ""),
-        status_id=str(request.args.get("status_id") or ""),
         template_id=str(request.args.get("template_id") or ""),
         sort=str(request.args.get("sort") or "created_desc"),
     )
@@ -1619,7 +1618,6 @@ def records_create() -> Response:
         "body": _request_value("body"),
         "post_type": _request_value("post_type", "자유기록"),
         "header_id": _request_value("header_id"),
-        "status_id": _request_value("status_id"),
         "template_id": _request_value("template_id"),
         "meta": _request_object_value("meta"),
         "tags": _request_list_value("tags"),
@@ -1639,7 +1637,7 @@ def records_update(post_id: str) -> Response:
     payload = dict(request.get_json(silent=True) or {})
     payload.pop("external_attachments", None)
     if request.form:
-        for key in ["title", "body", "post_type", "source_context", "header_id", "status_id", "template_id"]:
+        for key in ["title", "body", "post_type", "source_context", "header_id", "template_id"]:
             if key in request.form:
                 payload[key] = _request_value(key)
         if "meta" in request.form:
