@@ -6406,11 +6406,16 @@ textarea {
   display: grid;
   grid-template-columns: minmax(0, 1.45fr) minmax(320px, 0.85fr);
   gap: 14px;
+  overflow: auto;
+  align-content: start;
+  padding-right: 4px;
+  padding-bottom: 6px;
 }
 
 .journal-composer-main,
 .journal-composer-side {
   min-width: 0;
+  align-content: start;
 }
 
 .journal-composer-main {
@@ -6419,10 +6424,8 @@ textarea {
 }
 
 .journal-composer-side {
-  overflow: auto;
   display: grid;
   gap: 12px;
-  padding-right: 2px;
 }
 
 .journal-composer-side-card {
@@ -6692,6 +6695,13 @@ textarea {
 
 .journal-composer-footer {
   justify-content: flex-end;
+  position: sticky;
+  bottom: 0;
+  z-index: 2;
+  padding-top: 12px;
+  border-top: 1px solid color-mix(in srgb, var(--border) 88%, transparent);
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--panel) 72%, transparent), color-mix(in srgb, var(--panel) 98%, var(--accent-soft)));
 }
 
 .journal-detail-modal {
@@ -6983,7 +6993,6 @@ textarea {
 
   .journal-composer-side {
     max-height: none;
-    overflow: visible;
   }
 }
 
