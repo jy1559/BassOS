@@ -243,6 +243,8 @@ export default function App() {
   const contentRef = useRef<HTMLElement | null>(null);
   const prevTabRef = useRef<TabId>("dashboard");
   const practiceScrollTopRef = useRef(0);
+  const practiceScrollUserInputRef = useRef(false);
+  const practiceScrollUserInputTimerRef = useRef<number | null>(null);
   const isPracticeScrollRestoringRef = useRef(false);
   const sessionPipRef = useRef<HTMLDivElement | null>(null);
   const sessionPipDragRef = useRef<SessionPipDragState | null>(null);
@@ -324,7 +326,8 @@ export default function App() {
 
   const switchTab = (nextTab: TabId) => {
     if (tab === "practice" && contentRef.current) {
-      savePracticeScrollTop(contentRef.current.scrollTop);
+      const stableTop = practiceScrollTopRef.current;
+      savePracticeScrollTop(stableTop > 0 ? stableTop : contentRef.current.scrollTop);
     }
     setTab(nextTab);
   };
@@ -670,7 +673,8 @@ export default function App() {
     }
     const previousTab = prevTabRef.current;
     if (previousTab === "practice" && tab !== "practice") {
-      savePracticeScrollTop(contentEl.scrollTop);
+      const stableTop = practiceScrollTopRef.current;
+      savePracticeScrollTop(stableTop > 0 ? stableTop : contentEl.scrollTop);
     }
     if (tab === "practice") {
       const restoreTop = loadPracticeScrollTop();
@@ -715,12 +719,52 @@ export default function App() {
   useEffect(() => {
     const contentEl = contentRef.current;
     if (!contentEl || tab !== "practice") return;
+    const markUserScrollIntent = () => {
+      practiceScrollUserInputRef.current = true;
+      if (practiceScrollUserInputTimerRef.current !== null) {
+        window.clearTimeout(practiceScrollUserInputTimerRef.current);
+      }
+      practiceScrollUserInputTimerRef.current = window.setTimeout(() => {
+        practiceScrollUserInputRef.current = false;
+        practiceScrollUserInputTimerRef.current = null;
+      }, 420);
+    };
+    const onKeyDown = (event: KeyboardEvent) => {
+      const code = event.code || "";
+      if (
+        code === "ArrowUp" ||
+        code === "ArrowDown" ||
+        code === "PageUp" ||
+        code === "PageDown" ||
+        code === "Home" ||
+        code === "End" ||
+        code === "Space"
+      ) {
+        markUserScrollIntent();
+      }
+    };
     const syncPracticeScroll = () => {
       if (isPracticeScrollRestoringRef.current) return;
+      if (!practiceScrollUserInputRef.current) return;
       savePracticeScrollTop(contentEl.scrollTop);
     };
+    contentEl.addEventListener("wheel", markUserScrollIntent, { passive: true });
+    contentEl.addEventListener("touchmove", markUserScrollIntent, { passive: true });
+    contentEl.addEventListener("pointerdown", markUserScrollIntent, { passive: true });
+    window.addEventListener("keydown", onKeyDown);
     contentEl.addEventListener("scroll", syncPracticeScroll, { passive: true });
-    return () => contentEl.removeEventListener("scroll", syncPracticeScroll);
+    return () => {
+      contentEl.removeEventListener("wheel", markUserScrollIntent);
+      contentEl.removeEventListener("touchmove", markUserScrollIntent);
+      contentEl.removeEventListener("pointerdown", markUserScrollIntent);
+      window.removeEventListener("keydown", onKeyDown);
+      contentEl.removeEventListener("scroll", syncPracticeScroll);
+      if (practiceScrollUserInputTimerRef.current !== null) {
+        window.clearTimeout(practiceScrollUserInputTimerRef.current);
+        practiceScrollUserInputTimerRef.current = null;
+      }
+      practiceScrollUserInputRef.current = false;
+    };
   }, [tab]);
 
   useEffect(() => {

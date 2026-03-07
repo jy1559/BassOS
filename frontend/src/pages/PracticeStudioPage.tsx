@@ -228,6 +228,9 @@ function toYoutubeEmbed(url: string): string {
     const withApiParams = (embedUrl: URL) => {
       embedUrl.searchParams.set("enablejsapi", "1");
       embedUrl.searchParams.set("playsinline", "1");
+      if (typeof window !== "undefined" && window.location?.origin) {
+        embedUrl.searchParams.set("origin", window.location.origin);
+      }
       return embedUrl.toString();
     };
     if (parsed.hostname.includes("youtu.be")) {
@@ -420,6 +423,15 @@ function extractYoutubeCurrentTimeFromMessage(data: unknown): number | null {
     return topLevelCurrentTime;
   }
   return null;
+}
+
+function isYoutubeMessageFromCurrentIframe(event: MessageEvent, iframe: HTMLIFrameElement | null): boolean {
+  if (!iframe) return false;
+  const sourceMatches = Boolean(iframe.contentWindow && event.source === iframe.contentWindow);
+  if (sourceMatches) return true;
+  const origin = String(event.origin || "").toLowerCase();
+  if (!origin) return false;
+  return origin.includes("youtube.com") || origin.includes("youtube-nocookie.com");
 }
 
 function isFavorite(value: string): boolean {
@@ -1431,7 +1443,7 @@ export function PracticeStudioPage({
         resolve(Math.max(0, Number(value || 0)));
       };
       const onMessage = (event: MessageEvent) => {
-        if (!iframe.contentWindow || event.source !== iframe.contentWindow) return;
+        if (!isYoutubeMessageFromCurrentIframe(event, iframe)) return;
         const currentTime = extractYoutubeCurrentTimeFromMessage(event.data);
         if (currentTime === null) return;
         setSongYoutubeCurrentSec(currentTime);
@@ -1442,6 +1454,7 @@ export function PracticeStudioPage({
       }, 720);
       window.addEventListener("message", onMessage);
       postYoutubeCommand("getCurrentTime");
+      window.setTimeout(() => postYoutubeCommand("getCurrentTime"), 140);
     });
   };
 
@@ -1481,7 +1494,15 @@ export function PracticeStudioPage({
       );
     };
     if (songEmbed) {
-      void requestFreshYoutubeCurrentSecond().then((second) => commit(second));
+      void requestFreshYoutubeCurrentSecond().then((second) => {
+        if (second > 0 || !isSongVideoPlayingNow()) {
+          commit(second);
+          return;
+        }
+        window.setTimeout(() => {
+          void requestFreshYoutubeCurrentSecond().then((retrySecond) => commit(retrySecond));
+        }, 220);
+      });
       return;
     }
     commit(getCurrentSongVideoSecond());
@@ -1534,7 +1555,7 @@ export function PracticeStudioPage({
     }, 450);
 
     const onMessage = (event: MessageEvent) => {
-      if (!iframe.contentWindow || event.source !== iframe.contentWindow) return;
+      if (!isYoutubeMessageFromCurrentIframe(event, iframe)) return;
       let payload: unknown = event.data;
       if (typeof payload === "string") {
         const trimmed = payload.trim();
