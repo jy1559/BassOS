@@ -1,9 +1,9 @@
 ﻿post_id,created_at,updated_at,title,body,post_type,header_id,template_id,meta_json,tags,linked_song_ids,linked_drill_ids,free_targets,source_context,legacy_event_id,source
-POST_3869c6944e3e,2026-03-07T23:52:11,2026-03-07T23:52:11,E2E tag catalog post 1772895130839,,일일연습,daily_practice,,{},e2e_tag_1772895130839;alpha;beta,,,alpha;beta,practice,,app
-POST_6a253882c87d,2026-03-07T23:52:29,2026-03-07T23:52:32,E2E template post 1772895146388,"## E2E 템플릿
+POST_1636b1814954,2026-03-08T00:33:25,2026-03-08T00:33:25,E2E tag catalog post 1772897604147,,일일연습,daily_practice,,{},e2e_tag_1772897604147;alpha;beta,,,alpha;beta,practice,,app
+POST_7dd7a3675fb7,2026-03-08T00:33:45,2026-03-08T00:33:49,E2E template post 1772897622346,"## E2E 템플릿
 - 기본 문장
 ## 다음 액션
 - [ ] 
 {{attachment:1}}
-",E2E 헤더 1772895146388,header_1772895146597_k9pvv1,template_1772895147173_qdewxd,{},,,,,practice,,app
-POST_814fedc73e9d,2026-03-07T23:52:29,2026-03-07T23:52:29,E2E plain post 1772895146388,검색 버튼을 눌러야 보드가 바뀝니다.,일일연습,daily_practice,,{},,,,,practice,,app
+",E2E 헤더 1772897622346,header_1772897622570_514xxk,template_1772897623155_wuaa94,{},,,,,practice,,app
+POST_ce8c11aef838,2026-03-08T00:33:46,2026-03-08T00:33:46,E2E plain post 1772897622346,검색 버튼을 눌러야 보드가 바뀝니다.,일일연습,daily_practice,,{},,,,,practice,,app

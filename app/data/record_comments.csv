@@ -1,3 +1,3 @@
 ﻿comment_id,post_id,parent_comment_id,created_at,updated_at,body,deleted,source
-RC_7b47301226c3,POST_6a253882c87d,,2026-03-07T23:52:31,2026-03-07T23:52:32,,true,app
-RC_98f1f5b19d16,POST_6a253882c87d,RC_7b47301226c3,2026-03-07T23:52:32,2026-03-07T23:52:32,답글 내용,false,app
+RC_68b0678f6275,POST_7dd7a3675fb7,,2026-03-08T00:33:48,2026-03-08T00:33:49,,true,app
+RC_65ce7010067b,POST_7dd7a3675fb7,RC_68b0678f6275,2026-03-08T00:33:49,2026-03-08T00:33:49,답글 내용,false,app

@@ -537,8 +537,8 @@
       ],
       "resume_campaign_id": "",
       "resume_step_index": 0,
-      "last_started_at": "2026-03-07T23:51:44",
-      "last_completed_at": "2026-03-07T23:51:45"
+      "last_started_at": "2026-03-08T00:32:53",
+      "last_completed_at": "2026-03-08T00:32:54"
     },
     "dashboard_photo_items": [],
     "dashboard_featured_photo_id": "",
@@ -587,8 +587,8 @@
         "order": 5
       },
       {
-        "id": "header_1772895146597_k9pvv1",
-        "label": "E2E 헤더 1772895146388",
+        "id": "header_1772897622570_514xxk",
+        "label": "E2E 헤더 1772897622346",
         "color": "#5c6e7c",
         "active": true,
         "order": 6
@@ -635,10 +635,10 @@
         "order": 2
       },
       {
-        "id": "template_1772895147173_qdewxd",
-        "name": "E2E 템플릿 1772895146388",
+        "id": "template_1772897623155_wuaa94",
+        "name": "E2E 템플릿 1772897622346",
         "description": "",
-        "header_id": "header_1772895146597_k9pvv1",
+        "header_id": "header_1772897622570_514xxk",
         "default_tags": [],
         "default_source_context": "practice",
         "body_markdown": "## E2E 템플릿\n- 기본 문장",

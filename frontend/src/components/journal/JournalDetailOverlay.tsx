@@ -21,6 +21,8 @@ type Props = {
   loading: boolean;
   canPrev: boolean;
   canNext: boolean;
+  prevLabel: string;
+  nextLabel: string;
   onClose: () => void;
   onPrev: () => void;
   onNext: () => void;
@@ -31,18 +33,14 @@ type Props = {
   onDeleteComment: (commentId: string) => Promise<void>;
 };
 
-function mediaUrl(path: string, url: string): string {
-  if (url) return url;
-  if (path) return `/media/${path}`;
-  return "";
-}
-
 export function JournalDetailOverlay({
   lang,
   item,
   loading,
   canPrev,
   canNext,
+  prevLabel,
+  nextLabel,
   onClose,
   onPrev,
   onNext,
@@ -259,6 +257,23 @@ export function JournalDetailOverlay({
                 fallbackTitle={item.title || ""}
                 onOpenAttachment={(attachment) => setViewerAttachment(attachment)}
               />
+            </section>
+
+            <section className="journal-detail-navigation card" data-testid="journal-detail-nav-links">
+              <div className="row">
+                <strong>{lang === "ko" ? "글 이동" : "Post Navigation"}</strong>
+                <small className="muted">{lang === "ko" ? "현재 검색 결과 기준" : "Based on current results"}</small>
+              </div>
+              <div className="journal-detail-nav-grid">
+                <button type="button" className="ghost-btn journal-detail-nav-link" onClick={onPrev} disabled={!canPrev}>
+                  <small>{lang === "ko" ? "이전 글" : "Prev"}</small>
+                  <strong>{prevLabel || (lang === "ko" ? "없음" : "None")}</strong>
+                </button>
+                <button type="button" className="ghost-btn journal-detail-nav-link" onClick={onNext} disabled={!canNext}>
+                  <small>{lang === "ko" ? "다음 글" : "Next"}</small>
+                  <strong>{nextLabel || (lang === "ko" ? "없음" : "None")}</strong>
+                </button>
+              </div>
             </section>
 
             {remainingAttachments.length ? (

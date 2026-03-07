@@ -98,6 +98,10 @@ test("E2E-28 journal template apply, manual search, and threaded comments", asyn
   await expect(page.locator(".journal-board-row")).toHaveCount(1);
   await expect(page.locator(".journal-board-row", { hasText: firstTitle })).toBeVisible();
   await expect(page.locator(".journal-board-row", { hasText: secondTitle })).toHaveCount(0);
+  const compactRowHeight = await page.locator(".journal-board-row", { hasText: firstTitle }).first().evaluate((node) =>
+    Math.round(node.getBoundingClientRect().height)
+  );
+  expect(compactRowHeight).toBeLessThan(56);
 
   await page.getByRole("button", { name: /초기화|Reset/i }).click();
   await expect(page.locator(".journal-board-row", { hasText: secondTitle }).first()).toBeVisible();
@@ -113,6 +117,12 @@ test("E2E-28 journal template apply, manual search, and threaded comments", asyn
   await expect(viewer).toBeVisible();
   await page.keyboard.press("Escape");
   await expect(viewer).toHaveCount(0);
+  const detailNav = detail.getByTestId("journal-detail-nav-links");
+  await expect(detailNav).toBeVisible();
+  await detailNav.getByRole("button", { name: /이전 글|Prev/i }).click();
+  await expect(detail.getByRole("heading", { name: secondTitle })).toBeVisible();
+  await detailNav.getByRole("button", { name: /다음 글|Next/i }).click();
+  await expect(detail.getByRole("heading", { name: firstTitle })).toBeVisible();
   await detail.getByRole("button", { name: /닫기|Close/i }).click();
   await expect(detail).toHaveCount(0);
 

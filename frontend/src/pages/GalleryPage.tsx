@@ -174,6 +174,14 @@ function buildLinkedSummary(item: RecordPost, lang: Lang): string {
   return bits.join(" · ");
 }
 
+function buildTagPreview(item: RecordPost): string {
+  const tags = item.tags.map((tag) => String(tag || "").trim()).filter(Boolean);
+  if (!tags.length) return "";
+  const preview = tags.slice(0, 2).join(" · ");
+  const rest = tags.length - 2;
+  return rest > 0 ? `${preview} +${rest}` : preview;
+}
+
 function isTextSearchScope(scope: SearchScope): boolean {
   return scope === "title" || scope === "title_body";
 }
@@ -400,6 +408,8 @@ export function GalleryPage({
   const detailIndex = items.findIndex((row) => row.post_id === detailPostId);
   const canPrev = detailIndex > 0;
   const canNext = detailIndex >= 0 && detailIndex < items.length - 1;
+  const prevItem = canPrev ? items[detailIndex - 1] : null;
+  const nextItem = canNext ? items[detailIndex + 1] : null;
   const totalComments = items.reduce((sum, item) => sum + item.comment_count, 0);
   const textSearchActive = isTextSearchScope(draftFilters.search_scope);
   const searchPlaceholder =
@@ -679,23 +689,23 @@ export function GalleryPage({
           <div className="journal-board-list">
             {items.map((item) => {
               const compactTitle = formatJournalBoardTitle(item.title, item.comment_count, lang === "ko" ? "무제" : "Untitled");
-              const compactExcerpt = excerptFromMarkdown(item.body || "", 68);
-              const linkedSummary = buildLinkedSummary(item, lang);
-              const fullTitle = `${item.title || (lang === "ko" ? "무제" : "Untitled")}${item.comment_count > 0 ? ` (${item.comment_count})` : ""}`;
+              const compactExcerpt = excerptFromMarkdown(item.body || "", 54);
+              const attachmentLabel = lang === "ko" ? `첨부 ${item.attachments.length}` : `${item.attachments.length} files`;
+              const tagPreview = buildTagPreview(item);
+              const fullLine = compactExcerpt ? `${compactTitle} - ${compactExcerpt}` : compactTitle;
               return (
                 <article key={item.post_id} className="journal-board-row" onClick={() => void openDetail(item.post_id)}>
                   <div className="journal-board-row-left">
                     <span className="journal-badge journal-badge-compact" style={{ borderColor: item.header_color || "#5c6e7c", background: withAlpha(item.header_color || "#5c6e7c", 0.14) }}>{item.header_label}</span>
                   </div>
-                  <div className="journal-board-row-main">
-                    <strong title={fullTitle}>
-                      {compactTitle}
-                      {compactExcerpt ? <span className="journal-board-inline-divider"> : </span> : null}
-                      {compactExcerpt ? <span className="journal-board-row-excerpt">{compactExcerpt}</span> : null}
-                    </strong>
-                    {linkedSummary ? <small>{linkedSummary}</small> : null}
+                  <div className="journal-board-row-title" title={fullLine} data-testid="journal-board-row-title">
+                    <strong>{compactTitle}</strong>
+                    {compactExcerpt ? <span className="journal-board-inline-divider"> - </span> : null}
+                    {compactExcerpt ? <span className="journal-board-row-excerpt">{compactExcerpt}</span> : null}
                   </div>
-                  <div className="journal-board-row-right"><small>{formatJournalBoardDate(item.created_at)}</small></div>
+                  <div className="journal-board-row-attachments"><small>{attachmentLabel}</small></div>
+                  <div className="journal-board-row-tags" title={tagPreview}><small>{tagPreview || " "}</small></div>
+                  <div className="journal-board-row-date"><small>{formatJournalBoardDate(item.created_at)}</small></div>
                 </article>
               );
             })}
@@ -728,6 +738,8 @@ export function GalleryPage({
         loading={detailLoading}
         canPrev={canPrev}
         canNext={canNext}
+        prevLabel={prevItem ? formatJournalBoardTitle(prevItem.title, prevItem.comment_count, lang === "ko" ? "무제" : "Untitled", 28) : ""}
+        nextLabel={nextItem ? formatJournalBoardTitle(nextItem.title, nextItem.comment_count, lang === "ko" ? "무제" : "Untitled", 28) : ""}
         onClose={() => { setDetailPostId(""); setDetailItem(null); }}
         onPrev={() => { if (canPrev) void openDetail(items[detailIndex - 1].post_id); }}
         onNext={() => { if (canNext) void openDetail(items[detailIndex + 1].post_id); }}
