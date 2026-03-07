@@ -1,0 +1,4 @@
+﻿quest_id,title,description,status,xp_reward,start_date,due_date,period_class,difficulty,genre_tags,linked_song_ids,linked_drill_ids,rule_type,rule_filter,target,source
+QX_SHORT_CORE_LOW,Core Routine x2,Do 2 CORE sessions,Active,10,2026-03-02,2026-03-09,short,low,"[]","[]","[]",count_events,"{""event_type"":""SESSION"",""tags_any"":[""CORE""]}",2,seed
+QX_MID_GENRE_MID,Genre Focus x4,Complete 4 sessions in selected genres,Active,16,2026-03-02,2026-03-23,mid,mid,"[""Rock"",""Funk""]","[]","[]",count_events,"{""event_type"":""SESSION""}",4,seed
+QX_LONG_CAPTURE_HIGH,Capture Session x6,Record media sessions 6 times,Active,24,2026-03-02,2026-04-16,long,high,"[]","[]","[]",count_events,"{""event_type"":""SESSION"",""tags_any"":[""RECORDING_AUDIO"",""RECORDING_VIDEO""]}",6,seed

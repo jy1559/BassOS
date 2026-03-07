@@ -7,6 +7,7 @@ import {
   getRecordPostDetail,
   getRecords,
   putBasicSettings,
+  updateRecordAttachment,
   updateRecordComment,
   updateRecordPost,
 } from "../api";
@@ -334,14 +335,33 @@ export function GalleryPage({
   };
 
   const submitComposer = async (payload: JournalComposerSubmitPayload, files: File[]) => {
-    if (!payload.title.trim() && !payload.body.trim() && files.length === 0 && payload.external_attachments.length === 0) {
+    if (
+      !payload.title.trim() &&
+      !payload.body.trim() &&
+      files.length === 0 &&
+      payload.external_attachments.length === 0 &&
+      payload.attachment_updates.length === 0
+    ) {
       setMessage(lang === "ko" ? "제목/본문/첨부 중 하나는 입력하세요." : "Fill title/body or add attachment.");
       return;
     }
     setBusySave(true);
     try {
-      if (editingItem) await updateRecordPost(editingItem.post_id, payload, files);
-      else await createRecordPost(payload, files);
+      if (editingItem) {
+        const { attachment_updates, ...postPatch } = payload;
+        await updateRecordPost(editingItem.post_id, postPatch, files);
+        await Promise.all(
+          attachment_updates.map((attachment) =>
+            updateRecordAttachment(editingItem.post_id, attachment.attachment_id, {
+              title: attachment.title,
+              notes: attachment.notes,
+            })
+          )
+        );
+      } else {
+        const { attachment_updates: _attachmentUpdates, ...createPayload } = payload;
+        await createRecordPost(createPayload, files);
+      }
       setComposerOpen(false);
       setEditingItem(null);
       await loadItems(appliedFilters);

@@ -660,6 +660,10 @@ export async function createRecordPost(
     linked_drill_ids: string[];
     free_targets: string[];
     source_context?: string;
+    file_attachments?: Array<{
+      title?: string;
+      notes?: string;
+    }>;
     external_attachments?: Array<{
       media_type: "video";
       url: string;
@@ -684,6 +688,10 @@ export async function createRecordPost(
   if (payload.external_attachments?.length) {
     formData.append("external_attachments", JSON.stringify(payload.external_attachments));
   }
+  payload.file_attachments?.forEach((attachment) => {
+    formData.append("attachment_titles", attachment.title || "");
+    formData.append("attachment_notes", attachment.notes || "");
+  });
   files.forEach((file) => formData.append("files", file));
   const data = await call<{ item: RecordPost; ok: true }>("/api/records", {
     method: "POST",
@@ -706,6 +714,10 @@ export async function updateRecordPost(
     linked_drill_ids?: string[];
     free_targets?: string[];
     source_context?: string;
+    file_attachments?: Array<{
+      title?: string;
+      notes?: string;
+    }>;
     external_attachments?: Array<{
       media_type: "video";
       url: string;
@@ -737,6 +749,10 @@ export async function updateRecordPost(
           if (patch.external_attachments !== undefined) {
             formData.append("external_attachments", JSON.stringify(patch.external_attachments));
           }
+          patch.file_attachments?.forEach((attachment) => {
+            formData.append("attachment_titles", attachment.title || "");
+            formData.append("attachment_notes", attachment.notes || "");
+          });
           files.forEach((file) => formData.append("files", file));
           return formData;
         })()

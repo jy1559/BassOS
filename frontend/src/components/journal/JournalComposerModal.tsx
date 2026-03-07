@@ -4,10 +4,12 @@ import type {
   JournalHeaderPreset,
   JournalTagPreset,
   JournalTemplatePreset,
+  RecordAttachment,
   RecordPost,
 } from "../../types/models";
 import { JournalMarkdown } from "./JournalMarkdown";
 import {
+  buildAttachmentEmbedToken,
   emptyJournalMeta,
   filterSlashCommands,
   findSlashQuery,
@@ -15,6 +17,7 @@ import {
   hasMeaningfulMeta,
   isYouTubeUrl,
   normalizeJournalMeta,
+  resolveRecordAttachmentUrl,
   serializeJournalMeta,
   type JournalMetaDraft,
   type SlashCommandSpec,
@@ -23,6 +26,17 @@ import {
 type JournalExternalAttachmentInput = {
   media_type: "video";
   url: string;
+  title: string;
+  notes: string;
+};
+
+type JournalFileAttachmentInput = {
+  title: string;
+  notes: string;
+};
+
+type JournalAttachmentUpdateInput = {
+  attachment_id: string;
   title: string;
   notes: string;
 };
@@ -39,7 +53,9 @@ export type JournalComposerSubmitPayload = {
   linked_drill_ids: string[];
   free_targets: string[];
   source_context: string;
+  file_attachments: JournalFileAttachmentInput[];
   external_attachments: JournalExternalAttachmentInput[];
+  attachment_updates: JournalAttachmentUpdateInput[];
 };
 
 type Props = {
@@ -66,6 +82,27 @@ type GroupedRows = {
   items: Array<Record<string, string>>;
 };
 
+type ExistingAttachmentDraft = RecordAttachment & {
+  local_id: string;
+};
+
+type FileAttachmentDraft = {
+  local_id: string;
+  file: File;
+  media_type: "image" | "video" | "audio";
+  title: string;
+  notes: string;
+  preview_url: string;
+};
+
+type ExternalAttachmentDraft = {
+  local_id: string;
+  media_type: "video";
+  url: string;
+  title: string;
+  notes: string;
+};
+
 function dedupeLabels(labels: string[]): string[] {
   const seen = new Set<string>();
   const rows: string[] = [];
@@ -85,6 +122,16 @@ function splitLooseTags(raw: string): string[] {
     .split(",")
     .map((item) => item.trim())
     .filter(Boolean);
+}
+
+function nextAttachmentDraftId(prefix: string): string {
+  return `${prefix}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+}
+
+function inferAttachmentMediaType(file: File): "image" | "video" | "audio" {
+  if (file.type.startsWith("image/")) return "image";
+  if (file.type.startsWith("video/")) return "video";
+  return "audio";
 }
 
 function drillIdentity(item: Record<string, string>): string {
@@ -134,8 +181,9 @@ export function JournalComposerModal({
   const [selectedSongIds, setSelectedSongIds] = useState<string[]>([]);
   const [selectedDrillIds, setSelectedDrillIds] = useState<string[]>([]);
   const [selectedCatalogTagIds, setSelectedCatalogTagIds] = useState<string[]>([]);
-  const [files, setFiles] = useState<File[]>([]);
-  const [videoLinks, setVideoLinks] = useState<string[]>([]);
+  const [existingAttachments, setExistingAttachments] = useState<ExistingAttachmentDraft[]>([]);
+  const [fileAttachments, setFileAttachments] = useState<FileAttachmentDraft[]>([]);
+  const [videoAttachments, setVideoAttachments] = useState<ExternalAttachmentDraft[]>([]);
   const [pendingVideoLink, setPendingVideoLink] = useState("");
   const [openSongGroups, setOpenSongGroups] = useState<string[]>([]);
   const [openDrillGroups, setOpenDrillGroups] = useState<string[]>([]);
@@ -148,6 +196,7 @@ export function JournalComposerModal({
   const modalRef = useRef<HTMLDivElement | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const fileAttachmentsRef = useRef<FileAttachmentDraft[]>([]);
 
   const activeTagCatalog = useMemo(
     () =>
@@ -188,8 +237,40 @@ export function JournalComposerModal({
   );
   const existingAttachmentCount = item?.attachments.length || 0;
   const maxNewAttachmentCount = Math.max(0, 8 - existingAttachmentCount);
-  const newAttachmentCount = files.length + videoLinks.length;
+  const newAttachmentCount = fileAttachments.length + videoAttachments.length;
   const remainingAttachmentSlots = Math.max(0, maxNewAttachmentCount - newAttachmentCount);
+  const previewAttachments = useMemo<RecordAttachment[]>(
+    () => [
+      ...existingAttachments.map((attachment, index) => ({
+        ...attachment,
+        sort_order: index + 1,
+      })),
+      ...fileAttachments.map((attachment, index) => ({
+        attachment_id: attachment.local_id,
+        post_id: item?.post_id || "",
+        created_at: item?.created_at || "",
+        media_type: attachment.media_type,
+        path: "",
+        url: "",
+        preview_url: attachment.preview_url,
+        title: attachment.title,
+        notes: attachment.notes,
+        sort_order: existingAttachments.length + index + 1,
+      })),
+      ...videoAttachments.map((attachment, index) => ({
+        attachment_id: attachment.local_id,
+        post_id: item?.post_id || "",
+        created_at: item?.created_at || "",
+        media_type: "video" as const,
+        path: "",
+        url: attachment.url,
+        title: attachment.title,
+        notes: attachment.notes,
+        sort_order: existingAttachments.length + fileAttachments.length + index + 1,
+      })),
+    ],
+    [existingAttachments, fileAttachments, item?.created_at, item?.post_id, videoAttachments]
+  );
 
   const toggleInArray = (value: string, current: string[], setter: (next: string[]) => void) => {
     setter(current.includes(value) ? current.filter((item) => item !== value) : [...current, value]);
@@ -199,21 +280,109 @@ export function JournalComposerModal({
     setter(current.includes(label) ? current.filter((item) => item !== label) : [...current, label]);
   };
 
-  const appendFiles = (incoming: File[]) => {
-    if (!incoming.length || maxNewAttachmentCount <= 0) return;
-    setFiles((prev) => {
-      const next = [...prev];
-      incoming.forEach((file) => {
-        if (next.some((item) => item.name === file.name && item.size === file.size && item.type === file.type)) return;
-        next.push(file);
-      });
-      return next.slice(0, maxNewAttachmentCount);
+  const revokeFileDrafts = (drafts: FileAttachmentDraft[]) => {
+    drafts.forEach((draft) => {
+      if (draft.preview_url) URL.revokeObjectURL(draft.preview_url);
     });
   };
 
-  const removeFileAt = (index: number) => {
-    setFiles((prev) => prev.filter((_, itemIndex) => itemIndex !== index));
+  const appendFiles = (incoming: File[]) => {
+    if (!incoming.length || maxNewAttachmentCount <= 0) return;
+    setFileAttachments((prev) => {
+      const next = [...prev];
+      incoming.forEach((file) => {
+        if (next.some((item) => item.file.name === file.name && item.file.size === file.size && item.file.type === file.type)) return;
+        next.push({
+          local_id: nextAttachmentDraftId("file"),
+          file,
+          media_type: inferAttachmentMediaType(file),
+          title: "",
+          notes: "",
+          preview_url: URL.createObjectURL(file),
+        });
+      });
+      const limited = next.slice(0, maxNewAttachmentCount);
+      revokeFileDrafts(next.slice(maxNewAttachmentCount));
+      return limited;
+    });
   };
+
+  const removeFile = (localId: string) => {
+    setFileAttachments((prev) => {
+      const target = prev.find((item) => item.local_id === localId);
+      if (target?.preview_url) URL.revokeObjectURL(target.preview_url);
+      return prev.filter((item) => item.local_id !== localId);
+    });
+  };
+
+  const updateExistingAttachment = (localId: string, patch: Partial<Pick<ExistingAttachmentDraft, "title" | "notes">>) => {
+    setExistingAttachments((prev) => prev.map((attachment) => (attachment.local_id === localId ? { ...attachment, ...patch } : attachment)));
+  };
+
+  const updateFileAttachment = (localId: string, patch: Partial<Pick<FileAttachmentDraft, "title" | "notes">>) => {
+    setFileAttachments((prev) => prev.map((attachment) => (attachment.local_id === localId ? { ...attachment, ...patch } : attachment)));
+  };
+
+  const updateVideoAttachment = (localId: string, patch: Partial<Pick<ExternalAttachmentDraft, "title" | "notes">>) => {
+    setVideoAttachments((prev) => prev.map((attachment) => (attachment.local_id === localId ? { ...attachment, ...patch } : attachment)));
+  };
+
+  const insertTextAtCursor = (text: string) => {
+    const textarea = textareaRef.current;
+    if (!textarea) {
+      setBody((prev) => `${prev}${prev.endsWith("\n") || !prev ? "" : "\n"}${text}`);
+      return;
+    }
+    const selectionStart = textarea.selectionStart;
+    const selectionEnd = textarea.selectionEnd;
+    const nextValue = `${body.slice(0, selectionStart)}${text}${body.slice(selectionEnd)}`;
+    setBody(nextValue);
+    requestAnimationFrame(() => {
+      textarea.focus();
+      const cursor = selectionStart + text.length;
+      textarea.setSelectionRange(cursor, cursor);
+    });
+  };
+
+  const insertAttachmentEmbed = (index: number, size: "small" | "medium" | "large") => {
+    insertTextAtCursor(`${body && !body.endsWith("\n") ? "\n" : ""}${buildAttachmentEmbedToken(index, size)}\n`);
+  };
+
+  const renderAttachmentPreview = (attachment: {
+    media_type: "image" | "video" | "audio";
+    preview_url?: string;
+    path?: string;
+    url?: string;
+    title?: string;
+    file_name?: string;
+  }) => {
+    const url = resolveRecordAttachmentUrl(attachment);
+    if (attachment.media_type === "image" && url) {
+      return <img src={url} alt={attachment.title || attachment.file_name || "attachment"} className="journal-upload-preview" />;
+    }
+    if (attachment.media_type === "video" && url) {
+      if (isYouTubeUrl(url)) {
+        return (
+          <div className="journal-upload-preview journal-upload-preview-fallback">
+            <strong>YouTube</strong>
+          </div>
+        );
+      }
+      return <video src={url} className="journal-upload-preview" muted preload="metadata" />;
+    }
+    if (attachment.media_type === "audio" && url) {
+      return <audio src={url} className="journal-upload-audio-preview" controls preload="metadata" />;
+    }
+    return (
+      <div className="journal-upload-preview journal-upload-preview-fallback">
+        <strong>{attachment.media_type.toUpperCase()}</strong>
+      </div>
+    );
+  };
+
+  useEffect(() => {
+    fileAttachmentsRef.current = fileAttachments;
+  }, [fileAttachments]);
 
   useEffect(() => {
     if (!open) return;
@@ -227,8 +396,17 @@ export function JournalComposerModal({
     setTemplateId(item?.template_id || "");
     setSelectedSongIds(nextSongIds);
     setSelectedDrillIds(nextDrillIds);
-    setFiles([]);
-    setVideoLinks([]);
+    setExistingAttachments(
+      (item?.attachments || []).map((attachment, index) => ({
+        ...attachment,
+        local_id: `existing_${attachment.attachment_id || index}`,
+      }))
+    );
+    setFileAttachments((prev) => {
+      revokeFileDrafts(prev);
+      return [];
+    });
+    setVideoAttachments([]);
     setPendingVideoLink("");
     setEditorTab("write");
     setMetaDraft(normalizeJournalMeta(item?.meta));
@@ -262,6 +440,13 @@ export function JournalComposerModal({
     item,
     open,
   ]);
+
+  useEffect(
+    () => () => {
+      revokeFileDrafts(fileAttachmentsRef.current);
+    },
+    []
+  );
 
   useEffect(() => {
     if (!open) return;
@@ -307,7 +492,7 @@ export function JournalComposerModal({
   const selectedCatalogLabels = selectedCatalogTagIds
     .map((id) => activeTagCatalog.find((row) => row.id === id)?.label || "")
     .filter(Boolean);
-  const hasExistingAttachments = (item?.attachments || []).length > 0;
+  const hasExistingAttachments = existingAttachments.length > 0;
   const attachmentLimitMessage =
     lang === "ko"
       ? "기존 첨부를 포함해 게시글당 최대 8개까지 보관할 수 있습니다."
@@ -320,7 +505,18 @@ export function JournalComposerModal({
       window.alert(attachmentLimitMessage);
       return;
     }
-    setVideoLinks((prev) => dedupeLabels([...prev, trimmed]).slice(0, maxNewAttachmentCount));
+    setVideoAttachments((prev) =>
+      [
+        ...prev,
+        {
+          local_id: nextAttachmentDraftId("youtube"),
+          media_type: "video" as const,
+          url: trimmed,
+          title: "",
+          notes: "",
+        },
+      ].slice(0, maxNewAttachmentCount)
+    );
     setPendingVideoLink("");
   };
 
@@ -334,8 +530,8 @@ export function JournalComposerModal({
       freeTags.trim() ||
       selectedSongIds.length ||
       selectedDrillIds.length ||
-      files.length ||
-      videoLinks.length ||
+      fileAttachments.length ||
+      videoAttachments.length ||
       hasMeaningfulMeta(metaDraft)
     );
     if (dirty && !window.confirm(lang === "ko" ? "현재 입력값 위에 템플릿을 적용할까요?" : "Apply template over current draft?")) {
@@ -370,7 +566,7 @@ export function JournalComposerModal({
     const selectedHeaderLabel = header?.label || (lang === "ko" ? "자유기록" : "Record");
     const freeTagList = dedupeLabels(splitLooseTags(freeTags));
     const mergedTags = dedupeLabels([...selectedCatalogLabels, ...freeTagList]);
-    if (!title.trim() && !body.trim() && files.length === 0 && videoLinks.length === 0) return;
+    if (!title.trim() && !body.trim() && fileAttachments.length === 0 && videoAttachments.length === 0 && existingAttachments.length === 0) return;
     if (newAttachmentCount > maxNewAttachmentCount) {
       window.alert(attachmentLimitMessage);
       return;
@@ -388,9 +584,23 @@ export function JournalComposerModal({
         linked_drill_ids: selectedDrillIds,
         free_targets: freeTagList,
         source_context: sourceContext,
-        external_attachments: videoLinks.map((url) => ({ media_type: "video", url, title: "", notes: "" })),
+        file_attachments: fileAttachments.map((attachment) => ({
+          title: attachment.title.trim(),
+          notes: attachment.notes.trim(),
+        })),
+        external_attachments: videoAttachments.map((attachment) => ({
+          media_type: "video",
+          url: attachment.url,
+          title: attachment.title.trim(),
+          notes: attachment.notes.trim(),
+        })),
+        attachment_updates: existingAttachments.map((attachment) => ({
+          attachment_id: attachment.attachment_id,
+          title: String(attachment.title || "").trim(),
+          notes: String(attachment.notes || "").trim(),
+        })),
       },
-      files
+      fileAttachments.map((attachment) => attachment.file)
     );
   };
 
@@ -492,7 +702,11 @@ export function JournalComposerModal({
               </div>
             ) : (
               <div className="journal-editor-preview card">
-                <JournalMarkdown body={body || (selectedTemplate?.body_markdown || "")} />
+                <JournalMarkdown
+                  body={body || (selectedTemplate?.body_markdown || "")}
+                  attachments={previewAttachments}
+                  fallbackTitle={title || selectedTemplate?.name || ""}
+                />
               </div>
             )}
 
@@ -561,27 +775,118 @@ export function JournalComposerModal({
                 </div>
               </div>
               <div className="journal-upload-list">
-                {files.map((file, index) => (
-                  <div key={`${file.name}_${file.size}_${index}`} className="journal-upload-item">
-                    <span>{file.name}</span>
-                    <small>{file.type || (lang === "ko" ? "파일" : "File")}</small>
-                    <button className="ghost-btn compact-add-btn" onClick={() => removeFileAt(index)}>
-                      {lang === "ko" ? "제거" : "Remove"}
-                    </button>
-                  </div>
-                ))}
-                {videoLinks.map((url, index) => (
-                  <div key={url} className="journal-upload-item">
-                    <span>{lang === "ko" ? `유튜브 링크 ${index + 1}` : `YouTube Link ${index + 1}`}</span>
-                    <small>{url}</small>
-                    <button className="ghost-btn compact-add-btn" onClick={() => setVideoLinks((prev) => prev.filter((item) => item !== url))}>
-                      {lang === "ko" ? "제거" : "Remove"}
-                    </button>
-                  </div>
-                ))}
-                {!files.length && !videoLinks.length ? (
-                  <small className="muted">{lang === "ko" ? "새 첨부 없음" : "No new attachments"}</small>
-                ) : null}
+                {existingAttachments.map((attachment, index) => {
+                  const order = index + 1;
+                  return (
+                    <article key={attachment.local_id} className="journal-upload-item journal-upload-item-rich">
+                      <div className="journal-upload-preview-wrap">{renderAttachmentPreview(attachment)}</div>
+                      <div className="journal-upload-fields">
+                        <div className="journal-upload-item-head">
+                          <div>
+                            <strong>{`#${order} ${attachment.title || "Attachment"}`}</strong>
+                            <small>{attachment.media_type}</small>
+                          </div>
+                          <small className="muted">Kept</small>
+                        </div>
+                        <input
+                          value={attachment.title || ""}
+                          onChange={(event) => updateExistingAttachment(attachment.local_id, { title: event.target.value })}
+                          placeholder="Attachment title"
+                        />
+                        <textarea
+                          rows={2}
+                          value={attachment.notes || ""}
+                          onChange={(event) => updateExistingAttachment(attachment.local_id, { notes: event.target.value })}
+                          placeholder="Attachment notes"
+                        />
+                        <div className="journal-upload-insert-actions">
+                          <small className="muted">Insert in body</small>
+                          <button type="button" className="ghost-btn compact-add-btn" onClick={() => insertAttachmentEmbed(order, "small")}>Small</button>
+                          <button type="button" className="ghost-btn compact-add-btn" onClick={() => insertAttachmentEmbed(order, "medium")}>Medium</button>
+                          <button type="button" className="ghost-btn compact-add-btn" onClick={() => insertAttachmentEmbed(order, "large")}>Large</button>
+                        </div>
+                      </div>
+                    </article>
+                  );
+                })}
+                {fileAttachments.map((attachment, index) => {
+                  const order = existingAttachments.length + index + 1;
+                  return (
+                    <article key={attachment.local_id} className="journal-upload-item journal-upload-item-rich">
+                      <div className="journal-upload-preview-wrap">
+                        {renderAttachmentPreview({
+                          media_type: attachment.media_type,
+                          preview_url: attachment.preview_url,
+                          title: attachment.title,
+                          file_name: attachment.file.name,
+                        })}
+                      </div>
+                      <div className="journal-upload-fields">
+                        <div className="journal-upload-item-head">
+                          <div>
+                            <strong>{`#${order} ${attachment.title || attachment.file.name}`}</strong>
+                            <small>{attachment.file.type || attachment.media_type}</small>
+                          </div>
+                          <button type="button" className="ghost-btn compact-add-btn" onClick={() => removeFile(attachment.local_id)}>Remove</button>
+                        </div>
+                        <input
+                          value={attachment.title}
+                          onChange={(event) => updateFileAttachment(attachment.local_id, { title: event.target.value })}
+                          placeholder="Attachment title"
+                        />
+                        <textarea
+                          rows={2}
+                          value={attachment.notes}
+                          onChange={(event) => updateFileAttachment(attachment.local_id, { notes: event.target.value })}
+                          placeholder="Attachment notes"
+                        />
+                        <div className="journal-upload-insert-actions">
+                          <small className="muted">Insert in body</small>
+                          <button type="button" className="ghost-btn compact-add-btn" onClick={() => insertAttachmentEmbed(order, "small")}>Small</button>
+                          <button type="button" className="ghost-btn compact-add-btn" onClick={() => insertAttachmentEmbed(order, "medium")}>Medium</button>
+                          <button type="button" className="ghost-btn compact-add-btn" onClick={() => insertAttachmentEmbed(order, "large")}>Large</button>
+                        </div>
+                      </div>
+                    </article>
+                  );
+                })}
+                {videoAttachments.map((attachment, index) => {
+                  const order = existingAttachments.length + fileAttachments.length + index + 1;
+                  return (
+                    <article key={attachment.local_id} className="journal-upload-item journal-upload-item-rich">
+                      <div className="journal-upload-preview-wrap">
+                        {renderAttachmentPreview({ media_type: "video", url: attachment.url, title: attachment.title })}
+                      </div>
+                      <div className="journal-upload-fields">
+                        <div className="journal-upload-item-head">
+                          <div>
+                            <strong>{`#${order} ${attachment.title || "YouTube link"}`}</strong>
+                            <small>{attachment.url}</small>
+                          </div>
+                          <button type="button" className="ghost-btn compact-add-btn" onClick={() => setVideoAttachments((prev) => prev.filter((item) => item.local_id !== attachment.local_id))}>Remove</button>
+                        </div>
+                        <input
+                          value={attachment.title}
+                          onChange={(event) => updateVideoAttachment(attachment.local_id, { title: event.target.value })}
+                          placeholder="Video title"
+                        />
+                        <textarea
+                          rows={2}
+                          value={attachment.notes}
+                          onChange={(event) => updateVideoAttachment(attachment.local_id, { notes: event.target.value })}
+                          placeholder="Video notes"
+                        />
+                        <div className="journal-upload-insert-actions">
+                          <small className="muted">Insert in body</small>
+                          <button type="button" className="ghost-btn compact-add-btn" onClick={() => insertAttachmentEmbed(order, "small")}>Small</button>
+                          <button type="button" className="ghost-btn compact-add-btn" onClick={() => insertAttachmentEmbed(order, "medium")}>Medium</button>
+                          <button type="button" className="ghost-btn compact-add-btn" onClick={() => insertAttachmentEmbed(order, "large")}>Large</button>
+                        </div>
+                      </div>
+                    </article>
+                  );
+                })}
+                {!previewAttachments.length ? <small className="muted">No attachments yet</small> : null}
               </div>
             </section>
           </section>
@@ -727,7 +1032,7 @@ export function JournalComposerModal({
         </div>
 
         <div className="modal-actions journal-composer-footer">
-          <button className="primary-btn" disabled={busy || (!title.trim() && !body.trim() && files.length === 0 && videoLinks.length === 0)} onClick={() => void submit()}>
+          <button className="primary-btn" disabled={busy || (!title.trim() && !body.trim() && previewAttachments.length === 0)} onClick={() => void submit()}>
             {busy ? (lang === "ko" ? "저장 중..." : "Saving...") : item ? (lang === "ko" ? "수정 저장" : "Save Changes") : (lang === "ko" ? "게시글 등록" : "Publish")}
           </button>
           <button className="ghost-btn" onClick={onClose}>

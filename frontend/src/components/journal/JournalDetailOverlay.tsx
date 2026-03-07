@@ -1,12 +1,15 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { Lang } from "../../i18n";
-import type { RecordComment, RecordPost } from "../../types/models";
+import type { RecordAttachment, RecordComment, RecordPost } from "../../types/models";
 import { JournalMarkdown } from "./JournalMarkdown";
 import {
   clampCommentDepth,
+  collectEmbeddedAttachmentIndexes,
   formatJournalDate,
   getYouTubeEmbedUrl,
+  getYouTubeThumbnailUrl,
   isYouTubeUrl,
+  resolveRecordAttachmentUrl,
   withAlpha,
 } from "./journalUtils";
 
@@ -54,7 +57,9 @@ export function JournalDetailOverlay({
   const [editCommentId, setEditCommentId] = useState("");
   const [editCommentBody, setEditCommentBody] = useState("");
   const [busyComment, setBusyComment] = useState(false);
+  const [viewerAttachment, setViewerAttachment] = useState<RecordAttachment | null>(null);
   const modalRef = useRef<HTMLDivElement | null>(null);
+  const viewerRef = useRef<HTMLDivElement | null>(null);
 
   const commentMap = useMemo(() => {
     const map = new Map<string, number>();
@@ -85,7 +90,26 @@ export function JournalDetailOverlay({
     }
   }, [item, loading]);
 
+  useEffect(() => {
+    if (!item) setViewerAttachment(null);
+  }, [item]);
+
+  useEffect(() => {
+    if (viewerAttachment) {
+      viewerRef.current?.focus();
+    }
+  }, [viewerAttachment]);
+
+  const embeddedAttachmentIndexes = useMemo(() => collectEmbeddedAttachmentIndexes(item?.body || ""), [item?.body]);
+  const remainingAttachments = useMemo(
+    () => (item?.attachments || []).filter((_attachment, index) => !embeddedAttachmentIndexes.has(index + 1)),
+    [embeddedAttachmentIndexes, item?.attachments]
+  );
+
   if (!item && !loading) return null;
+
+  const viewerUrl = viewerAttachment ? resolveRecordAttachmentUrl(viewerAttachment) : "";
+  const viewerEmbedUrl = viewerAttachment?.media_type === "video" && viewerUrl && isYouTubeUrl(viewerUrl) ? getYouTubeEmbedUrl(viewerUrl) : "";
 
   const submitComment = async () => {
     if (!commentBody.trim()) return;
@@ -229,51 +253,115 @@ export function JournalDetailOverlay({
             ) : null}
 
             <section className="journal-detail-content card">
-              <JournalMarkdown body={item.body || ""} />
+              <JournalMarkdown
+                body={item.body || ""}
+                attachments={item.attachments}
+                fallbackTitle={item.title || ""}
+                onOpenAttachment={(attachment) => setViewerAttachment(attachment)}
+              />
             </section>
 
-            {item.attachments.length ? (
+            {remainingAttachments.length ? (
               <section className="journal-detail-media card">
                 <div className="row"><strong>{lang === "ko" ? "첨부" : "Attachments"}</strong></div>
                 <div className="journal-detail-media-grid">
-                  {item.attachments.map((attachment) => {
-                    const url = mediaUrl(attachment.path, attachment.url);
+                  {remainingAttachments.map((attachment) => {
+                    const url = resolveRecordAttachmentUrl(attachment);
                     if (!url) return null;
                     if (attachment.media_type === "image") {
                       return (
-                        <article key={attachment.attachment_id} className="journal-detail-media-item">
+                        <article
+                          key={attachment.attachment_id}
+                          className="journal-detail-media-item is-clickable"
+                          onClick={() => setViewerAttachment(attachment)}
+                          onKeyDown={(event) => {
+                            if (event.key === "Enter" || event.key === " ") {
+                              event.preventDefault();
+                              setViewerAttachment(attachment);
+                            }
+                          }}
+                          role="button"
+                          tabIndex={0}
+                        >
                           <img src={url} alt={attachment.title || item.title} className="journal-detail-thumb" />
-                          {attachment.title ? <small>{attachment.title}</small> : null}
+                          <div className="journal-detail-media-meta">
+                            {attachment.title ? <strong>{attachment.title}</strong> : null}
+                            {attachment.notes ? <small>{attachment.notes}</small> : null}
+                          </div>
                         </article>
                       );
                     }
                     if (attachment.media_type === "video") {
-                      const embedUrl = isYouTubeUrl(url) ? getYouTubeEmbedUrl(url) : "";
-                      if (embedUrl) {
+                      const thumbnailUrl = isYouTubeUrl(url) ? getYouTubeThumbnailUrl(url) : "";
+                      if (thumbnailUrl) {
                         return (
-                          <article key={attachment.attachment_id} className="journal-detail-media-item">
-                            <iframe
-                              src={embedUrl}
-                              title={attachment.title || item.title || "YouTube"}
-                              className="journal-youtube-frame"
-                              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                              allowFullScreen
-                            />
-                            <small>{attachment.title || url}</small>
+                          <article
+                            key={attachment.attachment_id}
+                            className="journal-detail-media-item is-clickable"
+                            onClick={() => setViewerAttachment(attachment)}
+                            onKeyDown={(event) => {
+                              if (event.key === "Enter" || event.key === " ") {
+                                event.preventDefault();
+                                setViewerAttachment(attachment);
+                              }
+                            }}
+                            role="button"
+                            tabIndex={0}
+                          >
+                            <div className="journal-gallery-youtube-wrap">
+                              <img src={thumbnailUrl} alt={attachment.title || item.title || "YouTube"} className="journal-detail-thumb" />
+                              <span className="journal-gallery-youtube-badge">YouTube</span>
+                            </div>
+                            <div className="journal-detail-media-meta">
+                              <strong>{attachment.title || url}</strong>
+                              {attachment.notes ? <small>{attachment.notes}</small> : null}
+                            </div>
                           </article>
                         );
                       }
                       return (
-                        <article key={attachment.attachment_id} className="journal-detail-media-item">
-                          <video src={url} className="journal-detail-thumb" controls />
-                          {attachment.title ? <small>{attachment.title}</small> : null}
+                        <article
+                          key={attachment.attachment_id}
+                          className="journal-detail-media-item is-clickable"
+                          onClick={() => setViewerAttachment(attachment)}
+                          onKeyDown={(event) => {
+                            if (event.key === "Enter" || event.key === " ") {
+                              event.preventDefault();
+                              setViewerAttachment(attachment);
+                            }
+                          }}
+                          role="button"
+                          tabIndex={0}
+                        >
+                          <video src={url} className="journal-detail-thumb" muted preload="metadata" />
+                          <div className="journal-detail-media-meta">
+                            {attachment.title ? <strong>{attachment.title}</strong> : null}
+                            {attachment.notes ? <small>{attachment.notes}</small> : null}
+                          </div>
                         </article>
                       );
                     }
                     return (
-                      <article key={attachment.attachment_id} className="journal-detail-media-item">
-                        <audio src={url} controls />
-                        {attachment.title ? <small>{attachment.title}</small> : null}
+                      <article
+                        key={attachment.attachment_id}
+                        className="journal-detail-media-item is-clickable"
+                        onClick={() => setViewerAttachment(attachment)}
+                        onKeyDown={(event) => {
+                          if (event.key === "Enter" || event.key === " ") {
+                            event.preventDefault();
+                            setViewerAttachment(attachment);
+                          }
+                        }}
+                        role="button"
+                        tabIndex={0}
+                      >
+                        <div className="journal-detail-audio-card">
+                          <strong>AUDIO</strong>
+                          <small>{attachment.title || "Audio attachment"}</small>
+                        </div>
+                        <div className="journal-detail-media-meta">
+                          {attachment.notes ? <small>{attachment.notes}</small> : null}
+                        </div>
                       </article>
                     );
                   })}
@@ -370,6 +458,58 @@ export function JournalDetailOverlay({
           </div>
         )}
       </div>
+      {viewerAttachment ? (
+        <div
+          className="modal-backdrop journal-media-viewer-backdrop"
+          data-testid="journal-media-viewer"
+          onClick={(event) => {
+            event.stopPropagation();
+            setViewerAttachment(null);
+          }}
+        >
+          <div
+            ref={viewerRef}
+            className="modal image-zoom-modal journal-media-viewer-modal"
+            role="dialog"
+            aria-modal="true"
+            tabIndex={-1}
+            onClick={(event) => event.stopPropagation()}
+            onKeyDown={(event) => {
+              if (event.key === "Escape") {
+                event.preventDefault();
+                setViewerAttachment(null);
+              }
+            }}
+          >
+            <div className="journal-media-viewer-head">
+              <div>
+                <strong>{viewerAttachment.title || item?.title || "Attachment Viewer"}</strong>
+                {viewerAttachment.notes ? <small className="muted">{viewerAttachment.notes}</small> : null}
+              </div>
+              <button type="button" className="ghost-btn" onClick={() => setViewerAttachment(null)}>
+                Close
+              </button>
+            </div>
+            <div className="zoom-modal-content journal-media-viewer-content">
+              {viewerAttachment.media_type === "image" ? (
+                <img src={viewerUrl} alt={viewerAttachment.title || item?.title || "attachment"} className="zoomed-drill-image" />
+              ) : viewerAttachment.media_type === "video" ? viewerEmbedUrl ? (
+                <iframe
+                  src={viewerEmbedUrl}
+                  title={viewerAttachment.title || item?.title || "YouTube"}
+                  className="journal-media-viewer-frame"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                />
+              ) : (
+                <video src={viewerUrl} className="journal-media-viewer-video" controls autoPlay preload="metadata" />
+              ) : (
+                <audio src={viewerUrl} className="journal-media-viewer-audio" controls autoPlay preload="metadata" />
+              )}
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

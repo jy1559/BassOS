@@ -505,6 +505,7 @@ export type RecordAttachment = {
   media_type: "image" | "video" | "audio";
   path: string;
   url: string;
+  preview_url?: string;
   title?: string;
   notes?: string;
   sort_order: number;

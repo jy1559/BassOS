@@ -220,10 +220,10 @@ const PRACTICE_SCROLL_STORAGE_KEY = "bassos.practice.scrollTop.v1";
 function AppBody() {
   const [tab, setTab] = useState<TabId>("dashboard");
   const [navOpen, setNavOpen] = useState<Record<NavGroupId, boolean>>({
-    tools: false,
+    tools: true,
     library: true,
-    records: false,
-    challenge: false,
+    records: true,
+    challenge: true,
   });
   const [settings, setSettings] = useState<Settings | null>(null);
   const [hud, setHud] = useState<HudSummary | null>(null);

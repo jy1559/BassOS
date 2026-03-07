@@ -1,0 +1,9 @@
+﻿{
+  "name": "tmp_e2e_probe",
+  "description": "Exported from current BassOS runtime data",
+  "source_profile": "real",
+  "source_dataset_id": "",
+  "generated_sessions": 36,
+  "generated_session_days": 60,
+  "updated_at": "2026-03-01T16:34:51"
+}

@@ -2246,6 +2246,11 @@ export function PracticeStudioPage({
               {lang === "ko" ? `핀 해제 · ${shortcutText("video_pin_clear")}` : `Clear Pin · ${shortcutText("video_pin_clear")}`}
             </button>
           </div>
+          <small className="muted song-video-shortcut-note">
+            {lang === "ko"
+              ? "영상부분을 클릭하면 위 버튼의 키보드 단축키가 동작하지 않습니다. F로 전체화면화 할 경우 단축키가 동작합니다."
+              : "If you click the video area, the keyboard shortcuts for the buttons above do not work. They work again when you enter fullscreen with F."}
+          </small>
           {songVideoPinSec !== null ? (
             <small className="muted song-video-pin-status">
               {lang === "ko" ? `저장된 핀: ${formatVideoSecond(songVideoPinSec)}` : `Pinned at: ${formatVideoSecond(songVideoPinSec)}`}

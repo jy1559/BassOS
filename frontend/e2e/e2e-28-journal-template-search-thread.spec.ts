@@ -14,6 +14,10 @@ test("E2E-28 journal template apply, manual search, and threaded comments", asyn
   const templateName = `E2E 템플릿 ${Date.now()}`;
   const firstTitle = `E2E template post ${Date.now()}`;
   const secondTitle = `E2E plain post ${Date.now()}`;
+  const inlineImage = Buffer.from(
+    "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Wn0bXQAAAAASUVORK5CYII=",
+    "base64"
+  );
 
   await page.locator(".journal-actions").getByRole("button", { name: /말머리|Headers/i }).click();
   const headerManager = page.getByTestId("journal-header-manager");
@@ -62,6 +66,19 @@ test("E2E-28 journal template apply, manual search, and threaded comments", asyn
   await composer.getByLabel(/제목|Title/i).fill(firstTitle);
   await composer.locator(".journal-link-input-row input").fill("https://www.youtube.com/watch?v=dQw4w9WgXcQ");
   await composer.locator(".journal-link-input-row").getByRole("button", { name: /추가|Add/i }).click();
+  await composer.locator('input[type="file"]').setInputFiles({
+    name: "inline.png",
+    mimeType: "image/png",
+    buffer: inlineImage,
+  });
+  const attachmentRow = composer.locator(".journal-upload-item-rich").first();
+  await expect(attachmentRow).toBeVisible();
+  await attachmentRow.locator("input").first().fill("Inline image");
+  await attachmentRow.locator("textarea").fill("Embedded preview");
+  await attachmentRow.getByRole("button", { name: /Medium/i }).click();
+  await composer.getByRole("button", { name: /미리보기|Preview/i }).click();
+  await expect(composer.getByTestId("journal-inline-attachment")).toBeVisible();
+  await composer.getByRole("button", { name: /작성|Write/i }).click();
   await composer.getByRole("button", { name: /게시글 등록|Publish/i }).click();
   await expect(page.locator(".journal-board-row", { hasText: firstTitle }).first()).toBeVisible();
 
@@ -90,8 +107,13 @@ test("E2E-28 journal template apply, manual search, and threaded comments", asyn
   await expect(detail).toBeVisible();
   await expect(detail.locator(".journal-badge", { hasText: headerName })).toBeVisible();
   await expect(detail).toContainText("E2E 템플릿");
-  await expect(detail.locator("iframe.journal-youtube-frame")).toHaveCount(1);
+  await expect(detail.locator(".journal-gallery-youtube-badge")).toHaveCount(1);
+  await detail.getByTestId("journal-inline-attachment").locator("img").first().click();
+  const viewer = page.getByTestId("journal-media-viewer");
+  await expect(viewer).toBeVisible();
   await page.keyboard.press("Escape");
+  await expect(viewer).toHaveCount(0);
+  await detail.getByRole("button", { name: /닫기|Close/i }).click();
   await expect(detail).toHaveCount(0);
 
   await page.locator(".journal-board-row", { hasText: firstTitle }).first().click();

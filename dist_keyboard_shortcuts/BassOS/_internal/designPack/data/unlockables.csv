@@ -1,0 +1,14 @@
+﻿﻿unlock_id,level_required,type,name,description,asset,notes
+U001,2,Theme,다크 모드,어두운 테마 해금,theme_dark.css,
+U002,3,Title,포켓 탐색자,내 칭호로 설정 가능,,
+U003,5,Feature,업적 토스트 알림,업적 해금/달성 애니메이션 표시,,
+U004,7,Theme,네온 펑크,Jamiroquai 감성 네온 테마,theme_neonfunk.css,
+U005,8,Feature,보스 카드 갤러리,완주 곡/귀카피 보스 카드 수집 화면,,
+U006,10,Feature,공유 카드 생성,레벨/칭호/최근 업적을 이미지로 내보내기,,
+U007,12,Feature,레퍼런스 플레이어,원곡/내 테이크를 앱 안에서 바로 재생합니다.,,
+U008,15,Token,퀘스트 리롤권,주간 퀘스트 1개 교체 가능(주 1회),,Token은 설정/기능으로 구현 가능
+U012,16,Theme,선셋 펀치,따뜻한 석양 톤의 고대비 테마,theme_sunset.css,
+U009,18,Theme,재즈 라운지,재즈펑크/워킹 분위기 테마,theme_jazzlounge.css,
+U010,20,Feature,스킬 트리 뷰,기본기/펑크&재즈/이론/슬랩 진행 시각화,,
+U013,22,Theme,포레스트 그루브,눈 편한 녹색 계열의 집중 테마,theme_forest.css,
+U014,30,Theme,미드나이트 펄스,짙은 블루 기반의 고대비 테마,theme_midnight.css,

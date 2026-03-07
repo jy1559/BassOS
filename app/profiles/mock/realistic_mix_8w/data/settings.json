@@ -1,5 +1,5 @@
 {
-  "policy_version": 13,
+  "policy_version": 17,
   "app": {
     "name": "Bass Practice Game",
     "version": "1.0",
@@ -246,7 +246,197 @@
     "fx_session_complete_normal": true,
     "fx_session_complete_quick": false,
     "fx_claim_achievement": true,
-    "fx_claim_quest": true
+    "fx_claim_quest": true,
+    "keyboard_shortcuts": {
+      "bindings": {
+        "tab_dashboard": {
+          "code": "Digit1",
+          "ctrl": false,
+          "alt": true,
+          "shift": false
+        },
+        "tab_practice": {
+          "code": "Digit2",
+          "ctrl": false,
+          "alt": true,
+          "shift": false
+        },
+        "tab_gallery": {
+          "code": "Digit3",
+          "ctrl": false,
+          "alt": true,
+          "shift": false
+        },
+        "tab_songs": {
+          "code": "Digit4",
+          "ctrl": false,
+          "alt": true,
+          "shift": false
+        },
+        "tab_drills": {
+          "code": "Digit5",
+          "ctrl": false,
+          "alt": true,
+          "shift": false
+        },
+        "tab_recommend": {
+          "code": "Digit6",
+          "ctrl": false,
+          "alt": true,
+          "shift": false
+        },
+        "tab_review": {
+          "code": "Digit7",
+          "ctrl": false,
+          "alt": true,
+          "shift": false
+        },
+        "tab_xp": {
+          "code": "Digit8",
+          "ctrl": false,
+          "alt": true,
+          "shift": false
+        },
+        "tab_sessions": {
+          "code": "Digit9",
+          "ctrl": false,
+          "alt": true,
+          "shift": false
+        },
+        "tab_quests": {
+          "code": "KeyQ",
+          "ctrl": false,
+          "alt": true,
+          "shift": false
+        },
+        "tab_achievements": {
+          "code": "KeyA",
+          "ctrl": false,
+          "alt": true,
+          "shift": false
+        },
+        "tab_tools": {
+          "code": "KeyB",
+          "ctrl": false,
+          "alt": true,
+          "shift": false
+        },
+        "tab_settings": {
+          "code": "Digit0",
+          "ctrl": false,
+          "alt": true,
+          "shift": false
+        },
+        "video_toggle": {
+          "code": "Space",
+          "ctrl": false,
+          "alt": false,
+          "shift": false
+        },
+        "video_restart": {
+          "code": "KeyR",
+          "ctrl": false,
+          "alt": false,
+          "shift": false
+        },
+        "video_fullscreen": {
+          "code": "KeyF",
+          "ctrl": false,
+          "alt": false,
+          "shift": false
+        },
+        "video_pin_save": {
+          "code": "KeyP",
+          "ctrl": false,
+          "alt": true,
+          "shift": false
+        },
+        "video_pin_jump": {
+          "code": "KeyH",
+          "ctrl": false,
+          "alt": false,
+          "shift": false
+        },
+        "video_pin_clear": {
+          "code": "KeyP",
+          "ctrl": false,
+          "alt": true,
+          "shift": true
+        },
+        "score_zoom": {
+          "code": "KeyG",
+          "ctrl": false,
+          "alt": false,
+          "shift": false
+        },
+        "score_prev": {
+          "code": "ArrowLeft",
+          "ctrl": false,
+          "alt": false,
+          "shift": false
+        },
+        "score_next": {
+          "code": "ArrowRight",
+          "ctrl": false,
+          "alt": false,
+          "shift": false
+        },
+        "metronome_toggle": {
+          "code": "KeyM",
+          "ctrl": false,
+          "alt": false,
+          "shift": false
+        },
+        "pip_video_toggle": {
+          "code": "KeyV",
+          "ctrl": false,
+          "alt": false,
+          "shift": false
+        },
+        "pip_collapse_toggle": {
+          "code": "KeyC",
+          "ctrl": false,
+          "alt": false,
+          "shift": false
+        },
+        "pip_open_studio": {
+          "code": "KeyS",
+          "ctrl": false,
+          "alt": false,
+          "shift": false
+        },
+        "pip_stop_session": {
+          "code": "KeyX",
+          "ctrl": false,
+          "alt": false,
+          "shift": true
+        },
+        "popup_primary": {
+          "code": "Enter",
+          "ctrl": false,
+          "alt": false,
+          "shift": false
+        },
+        "popup_close": {
+          "code": "Escape",
+          "ctrl": false,
+          "alt": false,
+          "shift": false
+        },
+        "popup_destructive": {
+          "code": "Delete",
+          "ctrl": false,
+          "alt": false,
+          "shift": false
+        },
+        "popup_alternate": {
+          "code": "KeyT",
+          "ctrl": false,
+          "alt": false,
+          "shift": false
+        }
+      }
+    }
   },
   "audio": {
     "enabled": false,
@@ -343,6 +533,105 @@
         }
       }
     },
-    "journal_tag_catalog": []
+    "journal_tag_catalog": [],
+    "journal_header_catalog": [
+      {
+        "id": "daily_practice",
+        "label": "일일연습",
+        "color": "#496f6a",
+        "active": true,
+        "order": 0
+      },
+      {
+        "id": "monthly_review",
+        "label": "월간회고",
+        "color": "#7b6c55",
+        "active": true,
+        "order": 1
+      },
+      {
+        "id": "video_review",
+        "label": "영상회고",
+        "color": "#5b6f93",
+        "active": true,
+        "order": 2
+      },
+      {
+        "id": "performance",
+        "label": "합주/공연",
+        "color": "#8c6656",
+        "active": true,
+        "order": 3
+      },
+      {
+        "id": "idea",
+        "label": "아이디어",
+        "color": "#6c5a88",
+        "active": true,
+        "order": 4
+      },
+      {
+        "id": "archive",
+        "label": "자료정리",
+        "color": "#5c6e7c",
+        "active": true,
+        "order": 5
+      },
+      {
+        "id": "연습녹음",
+        "label": "연습녹음",
+        "color": "#5c6e7c",
+        "active": true,
+        "order": 6
+      },
+      {
+        "id": "연습영상",
+        "label": "연습영상",
+        "color": "#5c6e7c",
+        "active": true,
+        "order": 7
+      }
+    ],
+    "journal_template_catalog": [
+      {
+        "id": "daily_log",
+        "name": "일일 연습 일지",
+        "description": "하루 연습 내용을 빠르게 기록합니다.",
+        "header_id": "daily_practice",
+        "default_tags": [
+          "일일연습"
+        ],
+        "default_source_context": "practice",
+        "body_markdown": "## 오늘의 포커스\n- \n\n## 잘 된 점\n- \n\n## 막힌 점\n- \n\n## 다음 액션\n- [ ] \n",
+        "active": true,
+        "order": 0
+      },
+      {
+        "id": "monthly_review",
+        "name": "한 달 연습 회고",
+        "description": "월 단위 회고와 다음 달 계획을 정리합니다.",
+        "header_id": "monthly_review",
+        "default_tags": [
+          "월간회고"
+        ],
+        "default_source_context": "review",
+        "body_markdown": "## 이번 달 요약\n- \n\n## 가장 늘어난 점\n- \n\n## 아직 불안한 점\n- \n\n## 다음 달 목표\n- [ ] \n",
+        "active": true,
+        "order": 1
+      },
+      {
+        "id": "video_review",
+        "name": "영상 회고",
+        "description": "촬영본을 보고 문제점과 다음 수정 포인트를 남깁니다.",
+        "header_id": "video_review",
+        "default_tags": [
+          "영상회고"
+        ],
+        "default_source_context": "review",
+        "body_markdown": "## 체크한 구간\n- \n\n## 톤/리듬 메모\n- \n\n## 수정 포인트\n- \n\n## 다음 테이크 액션\n- [ ] \n",
+        "active": true,
+        "order": 2
+      }
+    ]
   }
 }

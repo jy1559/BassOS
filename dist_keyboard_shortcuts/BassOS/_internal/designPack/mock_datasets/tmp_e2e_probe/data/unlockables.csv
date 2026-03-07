@@ -1,0 +1,51 @@
+﻿﻿unlock_id,level_required,type,name,description,asset,notes
+,1,Feature,Lv.1 세션 기록 탭,세션 기록/수정/삭제 기능을 사용합니다.,,auto-generated
+U001,2,Theme,다크 모드,어두운 테마 해금,theme_dark.css,
+U002,3,Title,포켓 탐색자,내 칭호로 설정 가능,,
+,4,Visual,Lv.4 레벨업 이펙트+,레벨업 시 강화된 이펙트를 표시합니다.,,auto-generated
+U003,5,Feature,업적 토스트 알림,업적 해금/달성 애니메이션 표시,,
+,6,Feature,Lv.6 업적 상세 힌트,업적 상세 설명(i)을 확장합니다.,,auto-generated
+U004,7,Theme,네온 펑크,Jamiroquai 감성 네온 테마,theme_neonfunk.css,
+U005,8,Feature,보스 카드 갤러리,완주 곡/귀카피 보스 카드 수집 화면,,
+,9,Collectible,Lv.9 배지 테두리 파츠,레벨 배지 장식 파츠를 하나 해금합니다.,,auto-generated
+U006,10,Feature,공유 카드 생성,레벨/칭호/최근 업적을 이미지로 내보내기,,
+,11,Title,Lv.11 레벨 칭호 업데이트,플레이어 HUD의 수식어가 업그레이드됩니다.,,auto-generated
+U007,12,Feature,레퍼런스 플레이어,원곡/내 테이크를 앱 안에서 바로 재생합니다.,,
+,13,Feature,Lv.13 세션 리뷰 문구,세션 종료 시 더 풍부한 응원 문구가 표시됩니다.,,auto-generated
+,14,Collectible,Lv.14 배지 테두리 파츠,레벨 배지 장식 파츠를 하나 해금합니다.,,auto-generated
+U008,15,Token,퀘스트 리롤권,주간 퀘스트 1개 교체 가능(주 1회),,Token은 설정/기능으로 구현 가능
+U012,16,Theme,선셋 펀치,따뜻한 석양 톤의 고대비 테마,theme_sunset.css,
+,17,Visual,Lv.17 HUD 포인트 컬러,HUD 포인트 컬러와 배경 디테일이 진화합니다.,,auto-generated
+U009,18,Theme,재즈 라운지,재즈펑크/워킹 분위기 테마,theme_jazzlounge.css,
+,19,Collectible,Lv.19 배지 테두리 파츠,레벨 배지 장식 파츠를 하나 해금합니다.,,auto-generated
+U010,20,Feature,스킬 트리 뷰,기본기/펑크&재즈/이론/슬랩 진행 시각화,,
+,21,Title,Lv.21 레벨 칭호 업데이트,플레이어 HUD의 수식어가 업그레이드됩니다.,,auto-generated
+U013,22,Theme,포레스트 그루브,눈 편한 녹색 계열의 집중 테마,theme_forest.css,
+,23,Feature,Lv.23 세션 리뷰 문구,세션 종료 시 더 풍부한 응원 문구가 표시됩니다.,,auto-generated
+,24,Collectible,Lv.24 배지 테두리 파츠,레벨 배지 장식 파츠를 하나 해금합니다.,,auto-generated
+,25,Utility,Lv.25 기록 단축 동작,세션 기록 화면의 편의 동작이 확장됩니다.,,auto-generated
+,26,Title,Lv.26 레벨 칭호 업데이트,플레이어 HUD의 수식어가 업그레이드됩니다.,,auto-generated
+,27,Visual,Lv.27 HUD 포인트 컬러,HUD 포인트 컬러와 배경 디테일이 진화합니다.,,auto-generated
+,28,Feature,Lv.28 세션 리뷰 문구,세션 종료 시 더 풍부한 응원 문구가 표시됩니다.,,auto-generated
+,29,Collectible,Lv.29 배지 테두리 파츠,레벨 배지 장식 파츠를 하나 해금합니다.,,auto-generated
+U014,30,Theme,미드나이트 펄스,짙은 블루 기반의 고대비 테마,theme_midnight.css,
+,31,Title,Lv.31 레벨 칭호 업데이트,플레이어 HUD의 수식어가 업그레이드됩니다.,,auto-generated
+,32,Visual,Lv.32 HUD 포인트 컬러,HUD 포인트 컬러와 배경 디테일이 진화합니다.,,auto-generated
+,33,Feature,Lv.33 세션 리뷰 문구,세션 종료 시 더 풍부한 응원 문구가 표시됩니다.,,auto-generated
+,34,Collectible,Lv.34 배지 테두리 파츠,레벨 배지 장식 파츠를 하나 해금합니다.,,auto-generated
+,35,Utility,Lv.35 기록 단축 동작,세션 기록 화면의 편의 동작이 확장됩니다.,,auto-generated
+,36,Title,Lv.36 레벨 칭호 업데이트,플레이어 HUD의 수식어가 업그레이드됩니다.,,auto-generated
+,37,Visual,Lv.37 HUD 포인트 컬러,HUD 포인트 컬러와 배경 디테일이 진화합니다.,,auto-generated
+,38,Feature,Lv.38 세션 리뷰 문구,세션 종료 시 더 풍부한 응원 문구가 표시됩니다.,,auto-generated
+,39,Collectible,Lv.39 배지 테두리 파츠,레벨 배지 장식 파츠를 하나 해금합니다.,,auto-generated
+,40,Utility,Lv.40 기록 단축 동작,세션 기록 화면의 편의 동작이 확장됩니다.,,auto-generated
+,41,Title,Lv.41 레벨 칭호 업데이트,플레이어 HUD의 수식어가 업그레이드됩니다.,,auto-generated
+,42,Visual,Lv.42 HUD 포인트 컬러,HUD 포인트 컬러와 배경 디테일이 진화합니다.,,auto-generated
+,43,Feature,Lv.43 세션 리뷰 문구,세션 종료 시 더 풍부한 응원 문구가 표시됩니다.,,auto-generated
+,44,Collectible,Lv.44 배지 테두리 파츠,레벨 배지 장식 파츠를 하나 해금합니다.,,auto-generated
+,45,Utility,Lv.45 기록 단축 동작,세션 기록 화면의 편의 동작이 확장됩니다.,,auto-generated
+,46,Title,Lv.46 레벨 칭호 업데이트,플레이어 HUD의 수식어가 업그레이드됩니다.,,auto-generated
+,47,Visual,Lv.47 HUD 포인트 컬러,HUD 포인트 컬러와 배경 디테일이 진화합니다.,,auto-generated
+,48,Feature,Lv.48 세션 리뷰 문구,세션 종료 시 더 풍부한 응원 문구가 표시됩니다.,,auto-generated
+,49,Collectible,Lv.49 배지 테두리 파츠,레벨 배지 장식 파츠를 하나 해금합니다.,,auto-generated
+,50,Utility,Lv.50 기록 단축 동작,세션 기록 화면의 편의 동작이 확장됩니다.,,auto-generated

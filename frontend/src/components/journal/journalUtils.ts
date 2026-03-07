@@ -18,6 +18,18 @@ export type SlashCommandSpec = {
   keywords: string[];
 };
 
+export type AttachmentEmbedSize = "small" | "medium" | "large";
+
+export type AttachmentEmbedMatch = {
+  index: number;
+  size: AttachmentEmbedSize;
+  token: string;
+  start: number;
+  end: number;
+};
+
+const ATTACHMENT_EMBED_RE = /\{\{attachment:(\d+)(?:\s+size=(small|medium|large))?\}\}/gi;
+
 export const SLASH_COMMANDS: SlashCommandSpec[] = [
   { id: "h2", label: "/h2", snippet: "## 제목\n", keywords: ["heading", "title", "제목"] },
   { id: "todo", label: "/todo", snippet: "- [ ] \n", keywords: ["check", "task", "체크", "할일"] },
@@ -138,6 +150,7 @@ export function formatJournalBoardTitle(raw: string, commentCount: number, fallb
 
 export function stripMarkdown(text: string): string {
   return (text || "")
+    .replace(ATTACHMENT_EMBED_RE, " ")
     .replace(/```[\s\S]*?```/g, " ")
     .replace(/`([^`]+)`/g, "$1")
     .replace(/!\[[^\]]*]\([^)]*\)/g, " ")
@@ -229,4 +242,41 @@ export function getYouTubeEmbedUrl(url: string): string {
 export function getYouTubeThumbnailUrl(url: string): string {
   const videoId = extractYouTubeVideoId(url);
   return videoId ? `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg` : "";
+}
+
+export function buildAttachmentEmbedToken(index: number, size: AttachmentEmbedSize = "medium"): string {
+  const safeIndex = Math.max(1, Math.round(index || 1));
+  return size === "medium" ? `{{attachment:${safeIndex}}}` : `{{attachment:${safeIndex} size=${size}}}`;
+}
+
+export function extractAttachmentEmbeds(body: string): AttachmentEmbedMatch[] {
+  const matches: AttachmentEmbedMatch[] = [];
+  const input = String(body || "");
+  ATTACHMENT_EMBED_RE.lastIndex = 0;
+  let match: RegExpExecArray | null;
+  while ((match = ATTACHMENT_EMBED_RE.exec(input))) {
+    const index = Number(match[1] || 0);
+    if (!Number.isFinite(index) || index < 1) continue;
+    const size = match[2] === "small" || match[2] === "large" ? match[2] : "medium";
+    matches.push({
+      index,
+      size,
+      token: match[0],
+      start: match.index,
+      end: match.index + match[0].length,
+    });
+  }
+  ATTACHMENT_EMBED_RE.lastIndex = 0;
+  return matches;
+}
+
+export function collectEmbeddedAttachmentIndexes(body: string): Set<number> {
+  return new Set(extractAttachmentEmbeds(body).map((item) => item.index));
+}
+
+export function resolveRecordAttachmentUrl(input: { preview_url?: string; path?: string; url?: string }): string {
+  if (input.preview_url) return input.preview_url;
+  if (input.url) return input.url;
+  if (input.path) return `/media/${input.path}`;
+  return "";
 }
