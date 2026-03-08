@@ -130,7 +130,7 @@ export const SHORTCUT_ACTIONS: ShortcutActionMeta[] = [
   { id: "tab_sessions", group: "tabs", label: { ko: "세션 기록", en: "Sessions" }, description: { ko: "세션 기록 탭으로 이동", en: "Go to sessions" } },
   { id: "tab_quests", group: "tabs", label: { ko: "퀘스트", en: "Quests" }, description: { ko: "퀘스트 탭으로 이동", en: "Go to quests" } },
   { id: "tab_achievements", group: "tabs", label: { ko: "업적", en: "Achievements" }, description: { ko: "업적 탭으로 이동", en: "Go to achievements" } },
-  { id: "tab_tools", group: "tabs", label: { ko: "TAB 생성기", en: "TAB Builder" }, description: { ko: "연습 도구 탭으로 이동", en: "Go to practice tools" } },
+  { id: "tab_tools", group: "tabs", label: { ko: "연습 도구", en: "Practice Tools" }, description: { ko: "연습 도구 탭으로 이동", en: "Go to practice tools" } },
   { id: "tab_settings", group: "tabs", label: { ko: "설정", en: "Settings" }, description: { ko: "설정 탭으로 이동", en: "Go to settings" } },
   { id: "video_toggle", group: "video", label: { ko: "영상 재생/정지", en: "Video Play/Pause" }, description: { ko: "현재 곡 영상 재생/일시정지", en: "Toggle current video playback" } },
   { id: "video_restart", group: "video", label: { ko: "영상 처음으로", en: "Video Restart" }, description: { ko: "현재 곡 영상을 처음 위치로 이동", en: "Restart current video" } },

@@ -29,6 +29,7 @@ import type {
 } from "./types/models";
 import { DashboardPage } from "./pages/DashboardPage";
 import { OnboardingWizard } from "./pages/OnboardingWizard";
+import type { PracticeToolsTabId } from "./pages/PracticeToolsPage";
 import {
   PracticeStudioPage,
   type SessionPipVideoControlPayload,
@@ -109,6 +110,12 @@ type SessionPipDragState = {
   offsetY: number;
   width: number;
   height: number;
+};
+type NavGroupItem = {
+  key: string;
+  label: string;
+  isActive: boolean;
+  onSelect: () => void;
 };
 
 const TAB_SHORTCUT_ACTIONS: Array<{ action: ShortcutActionId; tab: TabId }> = [
@@ -223,6 +230,7 @@ type LoadAllOptions = {
 
 function AppBody() {
   const [tab, setTab] = useState<TabId>("dashboard");
+  const [practiceToolsTab, setPracticeToolsTab] = useState<PracticeToolsTabId>("tab_builder");
   const [navOpen, setNavOpen] = useState<Record<NavGroupId, boolean>>({
     tools: true,
     library: true,
@@ -359,6 +367,11 @@ function AppBody() {
       savePracticeScrollTop(stableTop > 0 ? stableTop : contentRef.current.scrollTop);
     }
     setTab(nextTab);
+  };
+
+  const openPracticeToolsTab = (nextPracticeToolsTab: PracticeToolsTabId) => {
+    setPracticeToolsTab(nextPracticeToolsTab);
+    switchTab("tools");
   };
 
   const pushToast = ({
@@ -979,41 +992,60 @@ function AppBody() {
     // Intentionally silent: claim notifications are disabled by design.
   };
 
-  const navGroups: Array<{ id: NavGroupId; title: string; tabs: Array<{ id: TabId; label: string }> }> = useMemo(
+  const navGroups: Array<{ id: NavGroupId; title: string; tabs: NavGroupItem[] }> = useMemo(
     () => [
       {
         id: "challenge",
         title: lang === "ko" ? "도전" : "Challenges",
         tabs: [
-          { id: "quests", label: t(lang, "questsPage") },
-          { id: "achievements", label: t(lang, "achievements") }
+          { key: "quests", label: t(lang, "questsPage"), isActive: tab === "quests", onSelect: () => switchTab("quests") },
+          { key: "achievements", label: t(lang, "achievements"), isActive: tab === "achievements", onSelect: () => switchTab("achievements") },
         ]
       },
       {
         id: "library",
         title: lang === "ko" ? "라이브러리" : "Library",
         tabs: [
-          { id: "songs", label: lang === "ko" ? "곡" : "Songs" },
-          { id: "drills", label: lang === "ko" ? "드릴/배킹트랙" : "Drills/Backing" },
-          { id: "recommend", label: lang === "ko" ? "추천곡" : "Recommendations" },
+          { key: "songs", label: lang === "ko" ? "곡" : "Songs", isActive: tab === "songs", onSelect: () => switchTab("songs") },
+          { key: "drills", label: lang === "ko" ? "드릴/배킹트랙" : "Drills/Backing", isActive: tab === "drills", onSelect: () => switchTab("drills") },
+          { key: "recommend", label: lang === "ko" ? "추천곡" : "Recommendations", isActive: tab === "recommend", onSelect: () => switchTab("recommend") },
         ]
       },
       {
         id: "tools",
         title: lang === "ko" ? "연습 도구" : "Practice Tools",
-        tabs: [{ id: "tools", label: lang === "ko" ? "연습 도구" : "Practice Tools" }],
+        tabs: [
+          {
+            key: "tools_tab_builder",
+            label: lang === "ko" ? "TAB 생성기" : "TAB Builder",
+            isActive: tab === "tools" && practiceToolsTab === "tab_builder",
+            onSelect: () => openPracticeToolsTab("tab_builder"),
+          },
+          {
+            key: "tools_minigame",
+            label: lang === "ko" ? "미니게임" : "Mini Game",
+            isActive: tab === "tools" && practiceToolsTab === "minigame",
+            onSelect: () => openPracticeToolsTab("minigame"),
+          },
+          {
+            key: "tools_theory",
+            label: lang === "ko" ? "이론·코드·스케일" : "Theory / Chord / Scale",
+            isActive: tab === "tools" && practiceToolsTab === "theory",
+            onSelect: () => openPracticeToolsTab("theory"),
+          },
+        ],
       },
       {
         id: "records",
         title: lang === "ko" ? "기록" : "Records",
         tabs: [
-          { id: "review", label: lang === "ko" ? "돌아보기" : "Review" },
-          { id: "xp", label: lang === "ko" ? "XP기록" : "XP Log" },
-          { id: "sessions", label: lang === "ko" ? "세션 기록" : "Sessions" },
+          { key: "review", label: lang === "ko" ? "돌아보기" : "Review", isActive: tab === "review", onSelect: () => switchTab("review") },
+          { key: "xp", label: lang === "ko" ? "XP기록" : "XP Log", isActive: tab === "xp", onSelect: () => switchTab("xp") },
+          { key: "sessions", label: lang === "ko" ? "세션 기록" : "Sessions", isActive: tab === "sessions", onSelect: () => switchTab("sessions") },
         ]
       }
     ],
-    [lang]
+    [lang, openPracticeToolsTab, practiceToolsTab, tab]
   );
 
   const priorityTabs: Array<{ id: TabId; label: string }> = useMemo(
@@ -1239,7 +1271,11 @@ function AppBody() {
                 </button>
                 {navOpen[group.id]
                   ? group.tabs.map((item) => (
-                      <button key={item.id} className={`nav-btn ${tab === item.id ? "active" : ""}`} onClick={() => switchTab(item.id)}>
+                      <button
+                        key={item.key}
+                        className={`nav-btn nav-btn-compact ${item.isActive ? "active" : ""}`}
+                        onClick={item.onSelect}
+                      >
                         {item.label}
                       </button>
                     ))
@@ -1466,7 +1502,7 @@ function AppBody() {
           </div>
           {tab === "tools" ? (
             <Suspense fallback={lazyPageFallback}>
-              <LazyPracticeToolsPage lang={lang} />
+              <LazyPracticeToolsPage lang={lang} activeTab={practiceToolsTab} onActiveTabChange={setPracticeToolsTab} />
             </Suspense>
           ) : null}
           {tab === "recommend" ? (

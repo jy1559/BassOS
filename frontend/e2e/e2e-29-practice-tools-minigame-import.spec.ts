@@ -1,14 +1,14 @@
 import { expect, test, type Page } from "@playwright/test";
 import { openApp, resetRuntime } from "./helpers";
 
-async function gotoToolsTab(page: Page): Promise<void> {
+async function openToolsView(page: Page, label: RegExp): Promise<void> {
   const toolsGroup = page
     .locator(".nav-subgroup", { has: page.locator(".nav-group-title", { hasText: /연습 도구|Practice Tools/i }) })
     .first();
   if (!(await toolsGroup.getAttribute("class"))?.includes("open")) {
     await toolsGroup.locator(".nav-group-toggle").click();
   }
-  await toolsGroup.locator(".nav-btn").first().click();
+  await toolsGroup.getByRole("button", { name: label }).click();
 }
 
 test("E2E-29 practice tools merges tab builder, minigame, theory, and popup settings", async ({ page, request }) => {
@@ -28,12 +28,11 @@ test("E2E-29 practice tools merges tab builder, minigame, theory, and popup sett
   });
 
   await openApp(page, 1366, 768);
-  await gotoToolsTab(page);
+  await openToolsView(page, /TAB 생성기|TAB Builder/i);
 
-  await expect(page.getByRole("tab", { name: /TAB 생성기|TAB Builder/i })).toBeVisible();
   await expect(page.locator("[data-testid='tutorial-tools-metronome']")).toBeVisible();
 
-  await page.getByRole("tab", { name: /미니게임|Mini Game/i }).click();
+  await openToolsView(page, /미니게임|Mini Game/i);
   await expect(page.locator("[data-testid='mg-game-hub']")).toBeVisible();
 
   await page.locator("[data-testid='mg-enter-game-FBH']").click();
@@ -41,13 +40,29 @@ test("E2E-29 practice tools merges tab builder, minigame, theory, and popup sett
   await expect(page.locator("[data-testid='mg-lb-item-1']")).toContainText("321");
 
   await page.getByRole("button", { name: /연습 도구 설정|Practice Tool Settings/i }).click();
+  const modal = page.locator(".practice-tools-modal-card");
+  await expect(modal).toBeVisible();
+  const modalBefore = await modal.boundingBox();
+  const modalHead = page.locator(".practice-tools-modal-head");
+  const headBefore = await modalHead.boundingBox();
+  if (!modalBefore || !headBefore) {
+    throw new Error("Practice tools settings modal did not render with a measurable bounding box.");
+  }
+  await page.mouse.move(headBefore.x + 48, headBefore.y + 28);
+  await page.mouse.down();
+  await page.mouse.move(headBefore.x + 168, headBefore.y + 72, { steps: 10 });
+  await page.mouse.up();
+  const modalAfterDrag = await modal.boundingBox();
+  expect(modalAfterDrag).not.toBeNull();
+  expect(Math.abs((modalAfterDrag?.x ?? modalBefore.x) - modalBefore.x)).toBeGreaterThan(40);
+
   await expect(page.locator("[data-testid='mg-settings-page']")).toBeVisible();
   const scaleSpreadInput = page.locator("[data-testid='mg-theory-scale-spread-number']").first();
   await scaleSpreadInput.fill("180");
   await page.getByRole("button", { name: "설정 저장" }).click();
   await page.locator(".practice-tools-modal-head .ghost-btn").click();
 
-  await page.getByRole("tab", { name: /이론·코드·스케일|Theory/i }).click();
+  await openToolsView(page, /이론·코드·스케일|Theory/i);
   await expect(page.locator("[data-testid='mg-theory-page']")).toBeVisible();
   await page.getByRole("button", { name: "연습 도구 설정" }).first().click();
   await expect(page.locator("[data-testid='mg-settings-page']")).toBeVisible();

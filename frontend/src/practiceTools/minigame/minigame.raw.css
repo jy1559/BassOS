@@ -1207,9 +1207,8 @@ textarea {
 .mg-theory-top {
   grid-template-columns: minmax(0, 1.72fr) minmax(0, 0.95fr);
   align-items: stretch;
-  height: clamp(138px, 20vh, 186px);
-  min-height: 136px;
-  overflow: hidden;
+  min-height: clamp(148px, 21vh, 196px);
+  overflow: visible;
 }
 
 .mg-theory-bottom-meta {
@@ -1228,17 +1227,17 @@ textarea {
   display: grid;
   align-items: stretch;
   min-height: 0;
-  overflow: hidden;
+  overflow: visible;
 }
 
 .mg-theory-note-grid-side {
   height: 100%;
   grid-auto-flow: row;
-  grid-auto-rows: minmax(0, 1fr);
+  grid-auto-rows: minmax(42px, 1fr);
   align-content: stretch;
   justify-content: stretch;
   min-height: 0;
-  overflow: hidden;
+  overflow: visible;
 }
 
 .mg-theory-staff-wrap {
@@ -1304,7 +1303,7 @@ textarea {
 .mg-theory-note-card {
   border: 1px solid var(--border);
   border-radius: 10px;
-  padding: 6px 10px;
+  padding: 5px 10px;
   display: flex;
   align-items: center;
   justify-content: space-between;

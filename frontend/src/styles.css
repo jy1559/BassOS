@@ -291,7 +291,7 @@ body {
 
 .sidebar {
   border-right: 1px solid var(--border);
-  padding: 22px;
+  padding: 18px 18px 16px;
   background: linear-gradient(180deg, var(--panel), var(--panel-2));
   display: flex;
   flex-direction: column;
@@ -313,19 +313,19 @@ body {
 }
 
 nav {
-  margin-top: 24px;
+  margin-top: 18px;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
   flex: 1;
 }
 
 .sidebar-bottom {
-  margin-top: 14px;
-  padding-top: 12px;
+  margin-top: 10px;
+  padding-top: 10px;
   border-top: 1px solid color-mix(in srgb, var(--border) 74%, transparent);
   display: grid;
-  gap: 8px;
+  gap: 6px;
 }
 
 .sidebar-guide-btn {
@@ -336,14 +336,14 @@ nav {
 .nav-group {
   display: grid;
   gap: 6px;
-  padding-top: 6px;
+  padding-top: 4px;
   border-top: 1px solid color-mix(in srgb, var(--border) 74%, transparent);
 }
 
 .nav-subgroup {
   display: grid;
-  gap: 6px;
-  padding-top: 6px;
+  gap: 4px;
+  padding-top: 4px;
   border-top: 1px solid color-mix(in srgb, var(--border) 74%, transparent);
 }
 
@@ -393,6 +393,12 @@ nav {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.nav-btn-compact {
+  padding: 7px 10px;
+  min-height: 34px;
+  border-radius: 9px;
 }
 
 .nav-btn.active {
@@ -11975,16 +11981,6 @@ textarea {
   gap: 10px;
 }
 
-.practice-tools-tab-strip {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.practice-tools-tab-btn {
-  min-height: 38px;
-}
-
 .practice-tools-stage {
   min-height: 0;
 }
@@ -12001,9 +11997,7 @@ textarea {
   position: fixed;
   inset: 0;
   z-index: 118;
-  display: grid;
-  place-items: center;
-  padding: 18px;
+  padding: 16px;
   background: rgba(8, 12, 17, 0.66);
 }
 
@@ -12015,9 +12009,21 @@ textarea {
   border-radius: 18px;
   background: linear-gradient(160deg, var(--panel), var(--panel-2));
   box-shadow: var(--shadow);
+  position: fixed;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
   display: grid;
   grid-template-rows: auto minmax(0, 1fr);
   gap: 0;
+}
+
+.practice-tools-modal-card.is-positioned {
+  transform: none;
+}
+
+.practice-tools-modal-card.dragging {
+  box-shadow: 0 20px 48px rgba(18, 38, 51, 0.22);
 }
 
 .practice-tools-modal-head {
@@ -12027,11 +12033,19 @@ textarea {
   gap: 12px;
   padding: 14px 16px;
   border-bottom: 1px solid var(--border);
+  cursor: grab;
+  user-select: none;
+  touch-action: none;
+}
+
+.practice-tools-modal-card.dragging .practice-tools-modal-head {
+  cursor: grabbing;
 }
 
 .practice-tools-modal-head > div {
   display: grid;
   gap: 4px;
+  min-width: 0;
 }
 
 .practice-tools-modal-shadow {
