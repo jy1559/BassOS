@@ -1,0 +1,164 @@
+﻿{
+  "major_pentatonic": {
+    "name_ko": "메이저 펜타토닉",
+    "group": "Pentatonic",
+    "description_ko": "가장 기본적인 밝은 5음 스케일",
+    "mood_ko": "밝고 안정적",
+    "usage_ko": "팝/록/컨트리 멜로디, 베이스 필인",
+    "intervals": [0, 2, 4, 7, 9],
+    "degree_labels": ["1", "2", "3", "5", "6"]
+  },
+  "minor_pentatonic": {
+    "name_ko": "마이너 펜타토닉",
+    "group": "Pentatonic",
+    "description_ko": "블루스/록에서 가장 자주 쓰는 5음 스케일",
+    "mood_ko": "거칠고 단단함",
+    "usage_ko": "록 리프, 블루스 워킹, 솔로 기본기",
+    "intervals": [0, 3, 5, 7, 10],
+    "degree_labels": ["1", "b3", "4", "5", "b7"]
+  },
+  "blues": {
+    "name_ko": "블루스 스케일",
+    "group": "Pentatonic",
+    "description_ko": "마이너 펜타토닉에 블루노트(b5)를 더한 형태",
+    "mood_ko": "블루지하고 긴장감 있음",
+    "usage_ko": "12마디 블루스, 펑크/록 애드립",
+    "intervals": [0, 3, 5, 6, 7, 10],
+    "degree_labels": ["1", "b3", "4", "b5", "5", "b7"]
+  },
+  "ionian": {
+    "name_ko": "아이오니안(메이저)",
+    "group": "Diatonic Modes",
+    "description_ko": "메이저 스케일의 기준 모드",
+    "mood_ko": "가장 밝고 정통적인 메이저",
+    "usage_ko": "메이저 키 기본 라인",
+    "intervals": [0, 2, 4, 5, 7, 9, 11],
+    "degree_labels": ["1", "2", "3", "4", "5", "6", "7"]
+  },
+  "dorian": {
+    "name_ko": "도리안",
+    "group": "Diatonic Modes",
+    "description_ko": "마이너 성격에 6도가 자연음",
+    "mood_ko": "펑키하고 모던한 마이너",
+    "usage_ko": "재즈/펑크 m7 vamp",
+    "intervals": [0, 2, 3, 5, 7, 9, 10],
+    "degree_labels": ["1", "2", "b3", "4", "5", "6", "b7"]
+  },
+  "phrygian": {
+    "name_ko": "프리지안",
+    "group": "Diatonic Modes",
+    "description_ko": "b2가 강한 다크한 모드",
+    "mood_ko": "어둡고 이국적",
+    "usage_ko": "메탈/스패니시 느낌 리프",
+    "intervals": [0, 1, 3, 5, 7, 8, 10],
+    "degree_labels": ["1", "b2", "b3", "4", "5", "b6", "b7"]
+  },
+  "lydian": {
+    "name_ko": "리디안",
+    "group": "Diatonic Modes",
+    "description_ko": "#4가 특징인 메이저 모드",
+    "mood_ko": "몽환적이고 떠있는 느낌",
+    "usage_ko": "영화음악/퓨전 메이저",
+    "intervals": [0, 2, 4, 6, 7, 9, 11],
+    "degree_labels": ["1", "2", "3", "#4", "5", "6", "7"]
+  },
+  "mixolydian": {
+    "name_ko": "믹솔리디안",
+    "group": "Diatonic Modes",
+    "description_ko": "메이저 성격에 b7",
+    "mood_ko": "블루지한 메이저",
+    "usage_ko": "도미넌트7 코드 vamp",
+    "intervals": [0, 2, 4, 5, 7, 9, 10],
+    "degree_labels": ["1", "2", "3", "4", "5", "6", "b7"]
+  },
+  "aeolian": {
+    "name_ko": "에올리안(내추럴 마이너)",
+    "group": "Diatonic Modes",
+    "description_ko": "자연단음계",
+    "mood_ko": "감성적이고 안정적인 마이너",
+    "usage_ko": "팝/록 마이너 키 기본",
+    "intervals": [0, 2, 3, 5, 7, 8, 10],
+    "degree_labels": ["1", "2", "b3", "4", "5", "b6", "b7"]
+  },
+  "locrian": {
+    "name_ko": "로크리안",
+    "group": "Diatonic Modes",
+    "description_ko": "b2와 b5를 가진 불안정 모드",
+    "mood_ko": "불안정하고 긴장된 사운드",
+    "usage_ko": "m7b5 코드 위 텐션",
+    "intervals": [0, 1, 3, 5, 6, 8, 10],
+    "degree_labels": ["1", "b2", "b3", "4", "b5", "b6", "b7"]
+  },
+  "harmonic_minor": {
+    "name_ko": "하모닉 마이너",
+    "group": "Minor Variants",
+    "description_ko": "7도를 올린 단음계",
+    "mood_ko": "드라마틱하고 클래식한 긴장",
+    "usage_ko": "V7-i 마이너 진행, 네오클래식",
+    "intervals": [0, 2, 3, 5, 7, 8, 11],
+    "degree_labels": ["1", "2", "b3", "4", "5", "b6", "7"]
+  },
+  "phrygian_dominant": {
+    "name_ko": "프리지안 도미넌트",
+    "group": "Minor Variants",
+    "description_ko": "하모닉 마이너 5모드",
+    "mood_ko": "중동/스패니시 색채",
+    "usage_ko": "도미넌트7 알터드 느낌 대체",
+    "intervals": [0, 1, 4, 5, 7, 8, 10],
+    "degree_labels": ["1", "b2", "3", "4", "5", "b6", "b7"]
+  },
+  "melodic_minor": {
+    "name_ko": "멜로딕 마이너",
+    "group": "Minor Variants",
+    "description_ko": "상행 기준 6,7도를 올린 단음계",
+    "mood_ko": "재즈 지향의 세련된 마이너",
+    "usage_ko": "재즈 minor-maj7, 모달 라인",
+    "intervals": [0, 2, 3, 5, 7, 9, 11],
+    "degree_labels": ["1", "2", "b3", "4", "5", "6", "7"]
+  },
+  "lydian_dominant": {
+    "name_ko": "리디안 도미넌트",
+    "group": "Minor Variants",
+    "description_ko": "멜로딕 마이너 4모드",
+    "mood_ko": "밝지만 강한 도미넌트 텐션",
+    "usage_ko": "7(#11) 코드 위",
+    "intervals": [0, 2, 4, 6, 7, 9, 10],
+    "degree_labels": ["1", "2", "3", "#4", "5", "6", "b7"]
+  },
+  "altered": {
+    "name_ko": "알터드 스케일",
+    "group": "Minor Variants",
+    "description_ko": "멜로딕 마이너 7모드",
+    "mood_ko": "강한 불협/해결 긴장",
+    "usage_ko": "V7alt에서 I로 해결",
+    "intervals": [0, 1, 3, 4, 6, 8, 10],
+    "degree_labels": ["1", "b2", "#2", "3", "b5", "#5", "b7"]
+  },
+  "whole_tone": {
+    "name_ko": "홀톤",
+    "group": "Symmetric/Exotic",
+    "description_ko": "전음만으로 구성된 대칭 스케일",
+    "mood_ko": "몽환적, 부유감",
+    "usage_ko": "증5 도미넌트, 현대 재즈",
+    "intervals": [0, 2, 4, 6, 8, 10],
+    "degree_labels": ["1", "2", "3", "#4", "#5", "b7"]
+  },
+  "diminished_half_whole": {
+    "name_ko": "디미니시드(하프-홀)",
+    "group": "Symmetric/Exotic",
+    "description_ko": "반음-전음 반복 대칭",
+    "mood_ko": "강한 긴장과 대칭감",
+    "usage_ko": "도미넌트7(b9,#9,#11,13)",
+    "intervals": [0, 1, 3, 4, 6, 7, 9, 10],
+    "degree_labels": ["1", "b2", "#2", "3", "#4", "5", "13", "b7"]
+  },
+  "diminished_whole_half": {
+    "name_ko": "디미니시드(홀-하프)",
+    "group": "Symmetric/Exotic",
+    "description_ko": "전음-반음 반복 대칭",
+    "mood_ko": "불안정하고 기계적인 긴장",
+    "usage_ko": "dim7 코드",
+    "intervals": [0, 2, 3, 5, 6, 8, 9, 11],
+    "degree_labels": ["1", "2", "b3", "4", "b5", "b6", "6", "7"]
+  }
+}

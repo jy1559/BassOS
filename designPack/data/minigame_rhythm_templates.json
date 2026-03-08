@@ -1,0 +1,356 @@
+{
+  "easy": [
+    {
+      "name": "quarter_space_walk",
+      "bpm": [72, 96],
+      "measures": [
+        { "events": [{ "start": 0, "dur": 48, "kind": "HIT" }, { "start": 48, "dur": 48, "kind": "REST" }, { "start": 96, "dur": 48, "kind": "HIT" }, { "start": 144, "dur": 48, "kind": "HIT" }] },
+        { "events": [{ "start": 0, "dur": 24, "kind": "HIT" }, { "start": 24, "dur": 24, "kind": "HIT" }, { "start": 48, "dur": 48, "kind": "REST" }, { "start": 96, "dur": 48, "kind": "HIT" }, { "start": 144, "dur": 48, "kind": "HIT" }] }
+      ]
+    },
+    {
+      "name": "eighth_push_rest",
+      "bpm": [76, 102],
+      "measures": [
+        { "events": [{ "start": 0, "dur": 24, "kind": "HIT" }, { "start": 24, "dur": 24, "kind": "HIT" }, { "start": 48, "dur": 24, "kind": "REST" }, { "start": 72, "dur": 24, "kind": "HIT" }, { "start": 96, "dur": 48, "kind": "HIT" }, { "start": 144, "dur": 48, "kind": "REST" }] },
+        { "events": [{ "start": 0, "dur": 48, "kind": "REST" }, { "start": 48, "dur": 24, "kind": "HIT" }, { "start": 72, "dur": 24, "kind": "HIT" }, { "start": 96, "dur": 24, "kind": "HIT" }, { "start": 120, "dur": 24, "kind": "HIT" }, { "start": 144, "dur": 48, "kind": "HIT" }] }
+      ]
+    },
+    {
+      "name": "late_entry_basic",
+      "bpm": [74, 98],
+      "measures": [
+        { "events": [{ "start": 0, "dur": 48, "kind": "REST" }, { "start": 48, "dur": 48, "kind": "HIT" }, { "start": 96, "dur": 24, "kind": "HIT" }, { "start": 120, "dur": 24, "kind": "HIT" }, { "start": 144, "dur": 24, "kind": "REST" }, { "start": 168, "dur": 24, "kind": "HIT" }] },
+        { "events": [{ "start": 0, "dur": 24, "kind": "HIT" }, { "start": 24, "dur": 24, "kind": "REST" }, { "start": 48, "dur": 48, "kind": "HIT" }, { "start": 96, "dur": 24, "kind": "HIT" }, { "start": 120, "dur": 24, "kind": "REST" }, { "start": 144, "dur": 48, "kind": "HIT" }] },
+        { "events": [{ "start": 0, "dur": 48, "kind": "HIT" }, { "start": 48, "dur": 24, "kind": "HIT" }, { "start": 72, "dur": 24, "kind": "HIT" }, { "start": 96, "dur": 48, "kind": "REST" }, { "start": 144, "dur": 48, "kind": "HIT" }] }
+      ]
+    },
+    {
+      "name": "two_bar_anchor",
+      "bpm": [80, 104],
+      "measures": [
+        { "events": [{ "start": 0, "dur": 48, "kind": "HIT" }, { "start": 48, "dur": 24, "kind": "REST" }, { "start": 72, "dur": 24, "kind": "HIT" }, { "start": 96, "dur": 48, "kind": "HIT" }, { "start": 144, "dur": 48, "kind": "REST" }] },
+        { "events": [{ "start": 0, "dur": 24, "kind": "REST" }, { "start": 24, "dur": 24, "kind": "HIT" }, { "start": 48, "dur": 48, "kind": "HIT" }, { "start": 96, "dur": 24, "kind": "HIT" }, { "start": 120, "dur": 24, "kind": "REST" }, { "start": 144, "dur": 48, "kind": "HIT" }] },
+        { "events": [{ "start": 0, "dur": 48, "kind": "REST" }, { "start": 48, "dur": 48, "kind": "HIT" }, { "start": 96, "dur": 48, "kind": "HIT" }, { "start": 144, "dur": 48, "kind": "HIT" }] },
+        { "events": [{ "start": 0, "dur": 24, "kind": "HIT" }, { "start": 24, "dur": 24, "kind": "HIT" }, { "start": 48, "dur": 24, "kind": "REST" }, { "start": 72, "dur": 24, "kind": "HIT" }, { "start": 96, "dur": 48, "kind": "REST" }, { "start": 144, "dur": 48, "kind": "HIT" }] }
+      ]
+    },
+    {
+      "name": "eighth_note_drive",
+      "bpm": [78, 102],
+      "measures": [
+        {
+          "events": [
+            { "start": 0, "dur": 24, "kind": "HIT", "lane": "LOW", "accent": true },
+            { "start": 24, "dur": 24, "kind": "HIT", "lane": "LOW" },
+            { "start": 48, "dur": 24, "kind": "HIT", "lane": "LOW" },
+            { "start": 72, "dur": 24, "kind": "HIT", "lane": "LOW" },
+            { "start": 96, "dur": 24, "kind": "HIT", "lane": "LOW", "accent": true },
+            { "start": 120, "dur": 24, "kind": "HIT", "lane": "LOW" },
+            { "start": 144, "dur": 24, "kind": "HIT", "lane": "LOW" },
+            { "start": 168, "dur": 24, "kind": "HIT", "lane": "LOW" }
+          ]
+        },
+        {
+          "events": [
+            { "start": 0, "dur": 24, "kind": "HIT", "lane": "LOW", "accent": true },
+            { "start": 24, "dur": 24, "kind": "HIT", "lane": "MID" },
+            { "start": 48, "dur": 24, "kind": "HIT", "lane": "LOW" },
+            { "start": 72, "dur": 24, "kind": "HIT", "lane": "MID" },
+            { "start": 96, "dur": 24, "kind": "HIT", "lane": "LOW", "accent": true },
+            { "start": 120, "dur": 24, "kind": "HIT", "lane": "MID" },
+            { "start": 144, "dur": 24, "kind": "HIT", "lane": "LOW" },
+            { "start": 168, "dur": 24, "kind": "HIT", "lane": "MID" }
+          ]
+        }
+      ]
+    }
+  ],
+  "normal": [
+    {
+      "name": "sixteenth_ghost_hint",
+      "bpm": [88, 112],
+      "measures": [
+        { "events": [{ "start": 0, "dur": 12, "kind": "HIT" }, { "start": 12, "dur": 12, "kind": "GHOST" }, { "start": 24, "dur": 24, "kind": "HIT" }, { "start": 48, "dur": 48, "kind": "REST" }, { "start": 96, "dur": 24, "kind": "HIT" }, { "start": 120, "dur": 24, "kind": "GHOST" }, { "start": 144, "dur": 48, "kind": "HIT" }] },
+        { "events": [{ "start": 0, "dur": 36, "kind": "HIT", "dot": true }, { "start": 36, "dur": 12, "kind": "HIT" }, { "start": 48, "dur": 24, "kind": "REST" }, { "start": 72, "dur": 24, "kind": "HIT" }, { "start": 96, "dur": 24, "kind": "GHOST" }, { "start": 120, "dur": 24, "kind": "HIT" }, { "start": 144, "dur": 48, "kind": "HIT" }] }
+      ]
+    },
+    {
+      "name": "dotted_release",
+      "bpm": [90, 116],
+      "measures": [
+        { "events": [{ "start": 0, "dur": 36, "kind": "HIT", "dot": true }, { "start": 36, "dur": 12, "kind": "GHOST" }, { "start": 48, "dur": 24, "kind": "HIT" }, { "start": 72, "dur": 24, "kind": "REST" }, { "start": 96, "dur": 48, "kind": "HIT" }, { "start": 144, "dur": 24, "kind": "GHOST" }, { "start": 168, "dur": 24, "kind": "HIT" }] },
+        { "events": [{ "start": 0, "dur": 24, "kind": "REST" }, { "start": 24, "dur": 24, "kind": "HIT" }, { "start": 48, "dur": 12, "kind": "HIT" }, { "start": 60, "dur": 12, "kind": "GHOST" }, { "start": 72, "dur": 24, "kind": "HIT" }, { "start": 96, "dur": 48, "kind": "REST" }, { "start": 144, "dur": 48, "kind": "HIT" }] }
+      ]
+    },
+    {
+      "name": "two_bar_mixed_pickup",
+      "bpm": [92, 118],
+      "measures": [
+        { "events": [{ "start": 0, "dur": 24, "kind": "HIT" }, { "start": 24, "dur": 24, "kind": "REST" }, { "start": 48, "dur": 24, "kind": "HIT" }, { "start": 72, "dur": 24, "kind": "GHOST" }, { "start": 96, "dur": 48, "kind": "HIT" }, { "start": 144, "dur": 48, "kind": "REST" }] },
+        { "events": [{ "start": 0, "dur": 12, "kind": "HIT" }, { "start": 12, "dur": 12, "kind": "HIT" }, { "start": 24, "dur": 24, "kind": "GHOST" }, { "start": 48, "dur": 24, "kind": "HIT" }, { "start": 72, "dur": 24, "kind": "REST" }, { "start": 96, "dur": 24, "kind": "HIT" }, { "start": 120, "dur": 24, "kind": "GHOST" }, { "start": 144, "dur": 48, "kind": "HIT" }] },
+        { "events": [{ "start": 0, "dur": 48, "kind": "REST" }, { "start": 48, "dur": 24, "kind": "HIT" }, { "start": 72, "dur": 24, "kind": "GHOST" }, { "start": 96, "dur": 36, "kind": "HIT", "dot": true }, { "start": 132, "dur": 12, "kind": "HIT" }, { "start": 144, "dur": 48, "kind": "HIT" }] }
+      ]
+    },
+    {
+      "name": "three_bar_ghost_answer",
+      "bpm": [94, 120],
+      "measures": [
+        { "events": [{ "start": 0, "dur": 24, "kind": "HIT" }, { "start": 24, "dur": 24, "kind": "GHOST" }, { "start": 48, "dur": 48, "kind": "HIT" }, { "start": 96, "dur": 24, "kind": "REST" }, { "start": 120, "dur": 24, "kind": "HIT" }, { "start": 144, "dur": 48, "kind": "HIT" }] },
+        { "events": [{ "start": 0, "dur": 48, "kind": "REST" }, { "start": 48, "dur": 36, "kind": "HIT", "dot": true }, { "start": 84, "dur": 12, "kind": "GHOST" }, { "start": 96, "dur": 24, "kind": "HIT" }, { "start": 120, "dur": 24, "kind": "REST" }, { "start": 144, "dur": 48, "kind": "HIT" }] },
+        { "events": [{ "start": 0, "dur": 12, "kind": "HIT" }, { "start": 12, "dur": 12, "kind": "GHOST" }, { "start": 24, "dur": 24, "kind": "HIT" }, { "start": 48, "dur": 24, "kind": "REST" }, { "start": 72, "dur": 24, "kind": "HIT" }, { "start": 96, "dur": 48, "kind": "HIT" }, { "start": 144, "dur": 48, "kind": "REST" }] }
+      ]
+    },
+    {
+      "name": "sixteenth_note_grid",
+      "bpm": [90, 116],
+      "measures": [
+        {
+          "events": [
+            { "start": 0, "dur": 12, "kind": "HIT", "lane": "LOW", "accent": true },
+            { "start": 12, "dur": 12, "kind": "HIT", "lane": "LOW" },
+            { "start": 24, "dur": 12, "kind": "HIT", "lane": "MID" },
+            { "start": 36, "dur": 12, "kind": "HIT", "lane": "MID" },
+            { "start": 48, "dur": 12, "kind": "HIT", "lane": "LOW", "accent": true },
+            { "start": 60, "dur": 12, "kind": "HIT", "lane": "LOW" },
+            { "start": 72, "dur": 12, "kind": "HIT", "lane": "MID" },
+            { "start": 84, "dur": 12, "kind": "HIT", "lane": "MID" },
+            { "start": 96, "dur": 12, "kind": "HIT", "lane": "LOW", "accent": true },
+            { "start": 108, "dur": 12, "kind": "HIT", "lane": "LOW" },
+            { "start": 120, "dur": 12, "kind": "HIT", "lane": "MID" },
+            { "start": 132, "dur": 12, "kind": "HIT", "lane": "MID" },
+            { "start": 144, "dur": 12, "kind": "HIT", "lane": "LOW", "accent": true },
+            { "start": 156, "dur": 12, "kind": "HIT", "lane": "LOW" },
+            { "start": 168, "dur": 12, "kind": "HIT", "lane": "MID" },
+            { "start": 180, "dur": 12, "kind": "HIT", "lane": "MID" }
+          ]
+        },
+        {
+          "events": [
+            { "start": 0, "dur": 12, "kind": "HIT", "lane": "LOW", "accent": true },
+            { "start": 12, "dur": 12, "kind": "HIT", "lane": "MID" },
+            { "start": 24, "dur": 12, "kind": "HIT", "lane": "LOW" },
+            { "start": 36, "dur": 12, "kind": "HIT", "lane": "MID" },
+            { "start": 48, "dur": 12, "kind": "HIT", "lane": "LOW", "accent": true },
+            { "start": 60, "dur": 12, "kind": "HIT", "lane": "MID" },
+            { "start": 72, "dur": 12, "kind": "HIT", "lane": "LOW" },
+            { "start": 84, "dur": 12, "kind": "HIT", "lane": "MID" },
+            { "start": 96, "dur": 12, "kind": "HIT", "lane": "LOW", "accent": true },
+            { "start": 108, "dur": 12, "kind": "HIT", "lane": "MID" },
+            { "start": 120, "dur": 12, "kind": "HIT", "lane": "LOW" },
+            { "start": 132, "dur": 12, "kind": "HIT", "lane": "MID" },
+            { "start": 144, "dur": 12, "kind": "HIT", "lane": "LOW", "accent": true },
+            { "start": 156, "dur": 12, "kind": "HIT", "lane": "MID" },
+            { "start": 168, "dur": 12, "kind": "HIT", "lane": "LOW" },
+            { "start": 180, "dur": 12, "kind": "HIT", "lane": "MID" }
+          ]
+        }
+      ]
+    }
+  ],
+  "hard": [
+    {
+      "name": "offbeat_tie_drive",
+      "bpm": [96, 122],
+      "measures": [
+        { "events": [{ "start": 0, "dur": 24, "kind": "REST" }, { "start": 24, "dur": 24, "kind": "HIT" }, { "start": 48, "dur": 24, "kind": "REST" }, { "start": 72, "dur": 24, "kind": "GHOST" }, { "start": 96, "dur": 24, "kind": "HIT", "tieToNext": true }, { "start": 120, "dur": 24, "kind": "HIT" }, { "start": 144, "dur": 24, "kind": "REST" }, { "start": 168, "dur": 24, "kind": "HIT" }] },
+        { "events": [{ "start": 0, "dur": 36, "kind": "HIT", "dot": true }, { "start": 36, "dur": 12, "kind": "HIT" }, { "start": 48, "dur": 24, "kind": "REST" }, { "start": 72, "dur": 48, "kind": "HIT", "tieToNext": true }, { "start": 120, "dur": 24, "kind": "HIT" }, { "start": 144, "dur": 24, "kind": "GHOST" }, { "start": 168, "dur": 24, "kind": "HIT" }] }
+      ]
+    },
+    {
+      "name": "backbeat_hold",
+      "bpm": [98, 124],
+      "measures": [
+        { "events": [{ "start": 0, "dur": 48, "kind": "REST" }, { "start": 48, "dur": 24, "kind": "HIT" }, { "start": 72, "dur": 24, "kind": "GHOST" }, { "start": 96, "dur": 48, "kind": "HIT", "tieToNext": true }, { "start": 144, "dur": 24, "kind": "HIT" }, { "start": 168, "dur": 24, "kind": "REST" }] },
+        { "events": [{ "start": 0, "dur": 24, "kind": "HIT" }, { "start": 24, "dur": 24, "kind": "REST" }, { "start": 48, "dur": 24, "kind": "HIT" }, { "start": 72, "dur": 24, "kind": "HIT" }, { "start": 96, "dur": 24, "kind": "REST" }, { "start": 120, "dur": 24, "kind": "GHOST" }, { "start": 144, "dur": 48, "kind": "HIT" }] },
+        { "events": [{ "start": 0, "dur": 24, "kind": "REST" }, { "start": 24, "dur": 24, "kind": "GHOST" }, { "start": 48, "dur": 48, "kind": "HIT" }, { "start": 96, "dur": 24, "kind": "REST" }, { "start": 120, "dur": 24, "kind": "HIT" }, { "start": 144, "dur": 24, "kind": "HIT" }, { "start": 168, "dur": 24, "kind": "REST" }] }
+      ]
+    },
+    {
+      "name": "sync_rest_chain",
+      "bpm": [100, 126],
+      "measures": [
+        { "events": [{ "start": 0, "dur": 24, "kind": "HIT" }, { "start": 24, "dur": 24, "kind": "REST" }, { "start": 48, "dur": 24, "kind": "HIT" }, { "start": 72, "dur": 24, "kind": "GHOST" }, { "start": 96, "dur": 24, "kind": "REST" }, { "start": 120, "dur": 24, "kind": "HIT" }, { "start": 144, "dur": 24, "kind": "REST" }, { "start": 168, "dur": 24, "kind": "HIT" }] },
+        { "events": [{ "start": 0, "dur": 48, "kind": "HIT" }, { "start": 48, "dur": 24, "kind": "GHOST" }, { "start": 72, "dur": 24, "kind": "REST" }, { "start": 96, "dur": 24, "kind": "HIT" }, { "start": 120, "dur": 24, "kind": "REST" }, { "start": 144, "dur": 48, "kind": "HIT" }] }
+      ]
+    },
+    {
+      "name": "three_bar_syncopation",
+      "bpm": [102, 128],
+      "measures": [
+        { "events": [{ "start": 0, "dur": 36, "kind": "HIT", "dot": true }, { "start": 36, "dur": 12, "kind": "GHOST" }, { "start": 48, "dur": 24, "kind": "REST" }, { "start": 72, "dur": 24, "kind": "HIT" }, { "start": 96, "dur": 24, "kind": "REST" }, { "start": 120, "dur": 24, "kind": "HIT" }, { "start": 144, "dur": 48, "kind": "HIT" }] },
+        { "events": [{ "start": 0, "dur": 24, "kind": "REST" }, { "start": 24, "dur": 24, "kind": "HIT" }, { "start": 48, "dur": 24, "kind": "HIT", "tieToNext": true }, { "start": 72, "dur": 24, "kind": "HIT" }, { "start": 96, "dur": 48, "kind": "REST" }, { "start": 144, "dur": 24, "kind": "GHOST" }, { "start": 168, "dur": 24, "kind": "HIT" }] },
+        { "events": [{ "start": 0, "dur": 24, "kind": "HIT" }, { "start": 24, "dur": 24, "kind": "REST" }, { "start": 48, "dur": 48, "kind": "HIT" }, { "start": 96, "dur": 24, "kind": "GHOST" }, { "start": 120, "dur": 24, "kind": "REST" }, { "start": 144, "dur": 24, "kind": "HIT" }, { "start": 168, "dur": 24, "kind": "HIT" }] }
+      ]
+    },
+    {
+      "name": "octave_pump_drive",
+      "bpm": [98, 126],
+      "measures": [
+        {
+          "events": [
+            { "start": 0, "dur": 24, "kind": "HIT", "lane": "LOW", "accent": true, "technique": "OCT" },
+            { "start": 24, "dur": 24, "kind": "HIT", "lane": "OCTAVE" },
+            { "start": 48, "dur": 24, "kind": "HIT", "lane": "LOW" },
+            { "start": 72, "dur": 24, "kind": "HIT", "lane": "OCTAVE" },
+            { "start": 96, "dur": 24, "kind": "HIT", "lane": "LOW", "accent": true },
+            { "start": 120, "dur": 24, "kind": "HIT", "lane": "OCTAVE" },
+            { "start": 144, "dur": 24, "kind": "HIT", "lane": "LOW" },
+            { "start": 168, "dur": 24, "kind": "HIT", "lane": "OCTAVE" }
+          ]
+        },
+        {
+          "events": [
+            { "start": 0, "dur": 24, "kind": "HIT", "lane": "LOW", "accent": true },
+            { "start": 24, "dur": 24, "kind": "HIT", "lane": "OCTAVE" },
+            { "start": 48, "dur": 24, "kind": "REST" },
+            { "start": 72, "dur": 24, "kind": "HIT", "lane": "OCTAVE" },
+            { "start": 96, "dur": 24, "kind": "HIT", "lane": "LOW", "accent": true },
+            { "start": 120, "dur": 24, "kind": "HIT", "lane": "OCTAVE" },
+            { "start": 144, "dur": 24, "kind": "HIT", "lane": "LOW", "tieToNext": true },
+            { "start": 168, "dur": 24, "kind": "HIT", "lane": "LOW" }
+          ]
+        }
+      ]
+    }
+  ],
+  "very_hard": [
+    {
+      "name": "triplet_cell_answer",
+      "bpm": [104, 132],
+      "measures": [
+        { "events": [{ "start": 0, "dur": 16, "kind": "HIT", "tuplet": 3 }, { "start": 16, "dur": 16, "kind": "GHOST", "tuplet": 3 }, { "start": 32, "dur": 16, "kind": "HIT", "tuplet": 3 }, { "start": 48, "dur": 24, "kind": "REST" }, { "start": 72, "dur": 24, "kind": "HIT" }, { "start": 96, "dur": 16, "kind": "HIT", "tuplet": 3 }, { "start": 112, "dur": 16, "kind": "GHOST", "tuplet": 3 }, { "start": 128, "dur": 16, "kind": "HIT", "tuplet": 3 }, { "start": 144, "dur": 48, "kind": "HIT" }] },
+        { "events": [{ "start": 0, "dur": 24, "kind": "REST" }, { "start": 24, "dur": 24, "kind": "HIT" }, { "start": 48, "dur": 16, "kind": "HIT", "tuplet": 3 }, { "start": 64, "dur": 16, "kind": "GHOST", "tuplet": 3 }, { "start": 80, "dur": 16, "kind": "HIT", "tuplet": 3 }, { "start": 96, "dur": 24, "kind": "REST" }, { "start": 120, "dur": 24, "kind": "HIT" }, { "start": 144, "dur": 48, "kind": "HIT" }] }
+      ]
+    },
+    {
+      "name": "dense_sixteenth_ghosts",
+      "bpm": [108, 136],
+      "measures": [
+        { "events": [{ "start": 0, "dur": 12, "kind": "HIT" }, { "start": 12, "dur": 12, "kind": "GHOST" }, { "start": 24, "dur": 12, "kind": "HIT" }, { "start": 36, "dur": 12, "kind": "REST" }, { "start": 48, "dur": 24, "kind": "HIT" }, { "start": 72, "dur": 24, "kind": "GHOST" }, { "start": 96, "dur": 24, "kind": "REST" }, { "start": 120, "dur": 12, "kind": "HIT" }, { "start": 132, "dur": 12, "kind": "HIT" }, { "start": 144, "dur": 48, "kind": "HIT" }] },
+        { "events": [{ "start": 0, "dur": 24, "kind": "REST" }, { "start": 24, "dur": 12, "kind": "GHOST" }, { "start": 36, "dur": 12, "kind": "HIT" }, { "start": 48, "dur": 12, "kind": "HIT" }, { "start": 60, "dur": 12, "kind": "GHOST" }, { "start": 72, "dur": 24, "kind": "HIT" }, { "start": 96, "dur": 48, "kind": "REST" }, { "start": 144, "dur": 24, "kind": "HIT" }, { "start": 168, "dur": 24, "kind": "HIT" }] }
+      ]
+    },
+    {
+      "name": "displaced_ghost_hold",
+      "bpm": [110, 138],
+      "measures": [
+        { "events": [{ "start": 0, "dur": 48, "kind": "REST" }, { "start": 48, "dur": 24, "kind": "HIT" }, { "start": 72, "dur": 24, "kind": "GHOST" }, { "start": 96, "dur": 24, "kind": "HIT", "tieToNext": true }, { "start": 120, "dur": 24, "kind": "HIT" }, { "start": 144, "dur": 16, "kind": "HIT", "tuplet": 3 }, { "start": 160, "dur": 16, "kind": "GHOST", "tuplet": 3 }, { "start": 176, "dur": 16, "kind": "HIT", "tuplet": 3 }] },
+        { "events": [{ "start": 0, "dur": 36, "kind": "HIT", "dot": true }, { "start": 36, "dur": 12, "kind": "GHOST" }, { "start": 48, "dur": 24, "kind": "REST" }, { "start": 72, "dur": 24, "kind": "HIT" }, { "start": 96, "dur": 24, "kind": "REST" }, { "start": 120, "dur": 24, "kind": "GHOST" }, { "start": 144, "dur": 48, "kind": "HIT" }] },
+        { "events": [{ "start": 0, "dur": 12, "kind": "HIT" }, { "start": 12, "dur": 12, "kind": "GHOST" }, { "start": 24, "dur": 24, "kind": "REST" }, { "start": 48, "dur": 24, "kind": "HIT" }, { "start": 72, "dur": 24, "kind": "REST" }, { "start": 96, "dur": 24, "kind": "HIT" }, { "start": 120, "dur": 24, "kind": "GHOST" }, { "start": 144, "dur": 48, "kind": "HIT" }] }
+      ]
+    },
+    {
+      "name": "tied_sync_triplet",
+      "bpm": [112, 140],
+      "measures": [
+        { "events": [{ "start": 0, "dur": 24, "kind": "HIT" }, { "start": 24, "dur": 24, "kind": "REST" }, { "start": 48, "dur": 48, "kind": "HIT", "tieToNext": true }, { "start": 96, "dur": 24, "kind": "HIT" }, { "start": 120, "dur": 24, "kind": "GHOST" }, { "start": 144, "dur": 16, "kind": "HIT", "tuplet": 3 }, { "start": 160, "dur": 16, "kind": "HIT", "tuplet": 3 }, { "start": 176, "dur": 16, "kind": "GHOST", "tuplet": 3 }] },
+        { "events": [{ "start": 0, "dur": 16, "kind": "HIT", "tuplet": 3 }, { "start": 16, "dur": 16, "kind": "GHOST", "tuplet": 3 }, { "start": 32, "dur": 16, "kind": "HIT", "tuplet": 3 }, { "start": 48, "dur": 24, "kind": "REST" }, { "start": 72, "dur": 24, "kind": "HIT" }, { "start": 96, "dur": 48, "kind": "REST" }, { "start": 144, "dur": 24, "kind": "HIT" }, { "start": 168, "dur": 24, "kind": "HIT" }] }
+      ]
+    },
+    {
+      "name": "ghost_octave_push",
+      "bpm": [108, 136],
+      "measures": [
+        {
+          "events": [
+            { "start": 0, "dur": 12, "kind": "HIT", "lane": "LOW", "accent": true, "technique": "OCT" },
+            { "start": 12, "dur": 12, "kind": "GHOST", "lane": "LOW" },
+            { "start": 24, "dur": 24, "kind": "HIT", "lane": "OCTAVE" },
+            { "start": 48, "dur": 12, "kind": "HIT", "lane": "LOW", "accent": true },
+            { "start": 60, "dur": 12, "kind": "GHOST", "lane": "LOW" },
+            { "start": 72, "dur": 24, "kind": "HIT", "lane": "OCTAVE" },
+            { "start": 96, "dur": 24, "kind": "REST" },
+            { "start": 120, "dur": 24, "kind": "HIT", "lane": "LOW", "tieToNext": true },
+            { "start": 144, "dur": 24, "kind": "HIT", "lane": "LOW" },
+            { "start": 168, "dur": 24, "kind": "GHOST", "lane": "LOW" }
+          ]
+        },
+        {
+          "events": [
+            { "start": 0, "dur": 16, "kind": "HIT", "lane": "LOW", "tuplet": 3, "accent": true },
+            { "start": 16, "dur": 16, "kind": "GHOST", "lane": "LOW", "tuplet": 3 },
+            { "start": 32, "dur": 16, "kind": "HIT", "lane": "OCTAVE", "tuplet": 3 },
+            { "start": 48, "dur": 24, "kind": "REST" },
+            { "start": 72, "dur": 24, "kind": "HIT", "lane": "LOW" },
+            { "start": 96, "dur": 24, "kind": "HIT", "lane": "LOW", "tieToNext": true },
+            { "start": 120, "dur": 24, "kind": "HIT", "lane": "LOW" },
+            { "start": 144, "dur": 24, "kind": "GHOST", "lane": "LOW" },
+            { "start": 168, "dur": 24, "kind": "HIT", "lane": "OCTAVE" }
+          ]
+        }
+      ]
+    }
+  ],
+  "master": [
+    {
+      "name": "four_bar_triplet_pocket",
+      "bpm": [114, 144],
+      "measures": [
+        { "events": [{ "start": 0, "dur": 16, "kind": "HIT", "tuplet": 3 }, { "start": 16, "dur": 16, "kind": "GHOST", "tuplet": 3 }, { "start": 32, "dur": 16, "kind": "HIT", "tuplet": 3 }, { "start": 48, "dur": 24, "kind": "REST" }, { "start": 72, "dur": 24, "kind": "HIT" }, { "start": 96, "dur": 24, "kind": "REST" }, { "start": 120, "dur": 24, "kind": "GHOST" }, { "start": 144, "dur": 48, "kind": "HIT" }] },
+        { "events": [{ "start": 0, "dur": 24, "kind": "REST" }, { "start": 24, "dur": 24, "kind": "HIT" }, { "start": 48, "dur": 12, "kind": "HIT" }, { "start": 60, "dur": 12, "kind": "GHOST" }, { "start": 72, "dur": 24, "kind": "HIT" }, { "start": 96, "dur": 24, "kind": "REST" }, { "start": 120, "dur": 24, "kind": "HIT" }, { "start": 144, "dur": 48, "kind": "HIT", "tieToNext": true }] },
+        { "events": [{ "start": 0, "dur": 48, "kind": "HIT" }, { "start": 48, "dur": 16, "kind": "HIT", "tuplet": 3 }, { "start": 64, "dur": 16, "kind": "GHOST", "tuplet": 3 }, { "start": 80, "dur": 16, "kind": "HIT", "tuplet": 3 }, { "start": 96, "dur": 24, "kind": "REST" }, { "start": 120, "dur": 24, "kind": "GHOST" }, { "start": 144, "dur": 48, "kind": "HIT" }] },
+        { "events": [{ "start": 0, "dur": 12, "kind": "HIT" }, { "start": 12, "dur": 12, "kind": "GHOST" }, { "start": 24, "dur": 24, "kind": "REST" }, { "start": 48, "dur": 48, "kind": "HIT" }, { "start": 96, "dur": 24, "kind": "GHOST" }, { "start": 120, "dur": 24, "kind": "REST" }, { "start": 144, "dur": 24, "kind": "HIT" }, { "start": 168, "dur": 24, "kind": "HIT" }] }
+      ]
+    },
+    {
+      "name": "dense_rebound_grid",
+      "bpm": [116, 146],
+      "measures": [
+        { "events": [{ "start": 0, "dur": 12, "kind": "HIT" }, { "start": 12, "dur": 12, "kind": "GHOST" }, { "start": 24, "dur": 12, "kind": "HIT" }, { "start": 36, "dur": 12, "kind": "REST" }, { "start": 48, "dur": 12, "kind": "HIT" }, { "start": 60, "dur": 12, "kind": "GHOST" }, { "start": 72, "dur": 24, "kind": "HIT" }, { "start": 96, "dur": 24, "kind": "REST" }, { "start": 120, "dur": 24, "kind": "HIT" }, { "start": 144, "dur": 48, "kind": "HIT" }] },
+        { "events": [{ "start": 0, "dur": 24, "kind": "REST" }, { "start": 24, "dur": 24, "kind": "HIT" }, { "start": 48, "dur": 24, "kind": "HIT", "tieToNext": true }, { "start": 72, "dur": 24, "kind": "HIT" }, { "start": 96, "dur": 16, "kind": "HIT", "tuplet": 3 }, { "start": 112, "dur": 16, "kind": "GHOST", "tuplet": 3 }, { "start": 128, "dur": 16, "kind": "HIT", "tuplet": 3 }, { "start": 144, "dur": 48, "kind": "REST" }] },
+        { "events": [{ "start": 0, "dur": 36, "kind": "HIT", "dot": true }, { "start": 36, "dur": 12, "kind": "GHOST" }, { "start": 48, "dur": 24, "kind": "REST" }, { "start": 72, "dur": 24, "kind": "HIT" }, { "start": 96, "dur": 24, "kind": "REST" }, { "start": 120, "dur": 24, "kind": "HIT" }, { "start": 144, "dur": 16, "kind": "HIT", "tuplet": 3 }, { "start": 160, "dur": 16, "kind": "GHOST", "tuplet": 3 }, { "start": 176, "dur": 16, "kind": "HIT", "tuplet": 3 }] },
+        { "events": [{ "start": 0, "dur": 48, "kind": "REST" }, { "start": 48, "dur": 24, "kind": "GHOST" }, { "start": 72, "dur": 24, "kind": "HIT" }, { "start": 96, "dur": 24, "kind": "REST" }, { "start": 120, "dur": 24, "kind": "HIT" }, { "start": 144, "dur": 24, "kind": "GHOST" }, { "start": 168, "dur": 24, "kind": "HIT" }] }
+      ]
+    },
+    {
+      "name": "syncopated_triplet_release",
+      "bpm": [118, 148],
+      "measures": [
+        { "events": [{ "start": 0, "dur": 24, "kind": "HIT" }, { "start": 24, "dur": 24, "kind": "REST" }, { "start": 48, "dur": 48, "kind": "HIT", "tieToNext": true }, { "start": 96, "dur": 24, "kind": "HIT" }, { "start": 120, "dur": 24, "kind": "GHOST" }, { "start": 144, "dur": 48, "kind": "REST" }] },
+        { "events": [{ "start": 0, "dur": 16, "kind": "HIT", "tuplet": 3 }, { "start": 16, "dur": 16, "kind": "GHOST", "tuplet": 3 }, { "start": 32, "dur": 16, "kind": "HIT", "tuplet": 3 }, { "start": 48, "dur": 12, "kind": "HIT" }, { "start": 60, "dur": 12, "kind": "GHOST" }, { "start": 72, "dur": 24, "kind": "HIT" }, { "start": 96, "dur": 24, "kind": "REST" }, { "start": 120, "dur": 24, "kind": "HIT" }, { "start": 144, "dur": 48, "kind": "HIT" }] },
+        { "events": [{ "start": 0, "dur": 36, "kind": "HIT", "dot": true }, { "start": 36, "dur": 12, "kind": "HIT" }, { "start": 48, "dur": 24, "kind": "REST" }, { "start": 72, "dur": 24, "kind": "GHOST" }, { "start": 96, "dur": 48, "kind": "HIT" }, { "start": 144, "dur": 24, "kind": "REST" }, { "start": 168, "dur": 24, "kind": "HIT" }] }
+      ]
+    },
+    {
+      "name": "master_grid_displacement",
+      "bpm": [120, 150],
+      "measures": [
+        { "events": [{ "start": 0, "dur": 12, "kind": "HIT" }, { "start": 12, "dur": 12, "kind": "GHOST" }, { "start": 24, "dur": 24, "kind": "REST" }, { "start": 48, "dur": 24, "kind": "HIT" }, { "start": 72, "dur": 24, "kind": "REST" }, { "start": 96, "dur": 24, "kind": "GHOST" }, { "start": 120, "dur": 24, "kind": "HIT" }, { "start": 144, "dur": 48, "kind": "HIT" }] },
+        { "events": [{ "start": 0, "dur": 48, "kind": "REST" }, { "start": 48, "dur": 16, "kind": "HIT", "tuplet": 3 }, { "start": 64, "dur": 16, "kind": "GHOST", "tuplet": 3 }, { "start": 80, "dur": 16, "kind": "HIT", "tuplet": 3 }, { "start": 96, "dur": 24, "kind": "HIT" }, { "start": 120, "dur": 24, "kind": "REST" }, { "start": 144, "dur": 24, "kind": "HIT" }, { "start": 168, "dur": 24, "kind": "GHOST" }] },
+        { "events": [{ "start": 0, "dur": 24, "kind": "HIT" }, { "start": 24, "dur": 24, "kind": "REST" }, { "start": 48, "dur": 48, "kind": "HIT", "tieToNext": true }, { "start": 96, "dur": 24, "kind": "HIT" }, { "start": 120, "dur": 24, "kind": "REST" }, { "start": 144, "dur": 16, "kind": "HIT", "tuplet": 3 }, { "start": 160, "dur": 16, "kind": "GHOST", "tuplet": 3 }, { "start": 176, "dur": 16, "kind": "HIT", "tuplet": 3 }] },
+        { "events": [{ "start": 0, "dur": 36, "kind": "HIT", "dot": true }, { "start": 36, "dur": 12, "kind": "GHOST" }, { "start": 48, "dur": 24, "kind": "REST" }, { "start": 72, "dur": 24, "kind": "HIT" }, { "start": 96, "dur": 24, "kind": "GHOST" }, { "start": 120, "dur": 24, "kind": "REST" }, { "start": 144, "dur": 48, "kind": "HIT" }] }
+      ]
+    },
+    {
+      "name": "crossbar_octave_tie",
+      "bpm": [118, 148],
+      "measures": [
+        {
+          "events": [
+            { "start": 0, "dur": 24, "kind": "HIT", "lane": "LOW", "accent": true, "technique": "OCT" },
+            { "start": 24, "dur": 24, "kind": "GHOST", "lane": "LOW" },
+            { "start": 48, "dur": 24, "kind": "HIT", "lane": "OCTAVE" },
+            { "start": 72, "dur": 24, "kind": "REST" },
+            { "start": 96, "dur": 24, "kind": "HIT", "lane": "LOW" },
+            { "start": 120, "dur": 24, "kind": "HIT", "lane": "OCTAVE" },
+            { "start": 144, "dur": 48, "kind": "HIT", "lane": "LOW", "tieToNext": true }
+          ]
+        },
+        {
+          "events": [
+            { "start": 0, "dur": 24, "kind": "HIT", "lane": "LOW" },
+            { "start": 24, "dur": 24, "kind": "REST" },
+            { "start": 48, "dur": 16, "kind": "HIT", "lane": "LOW", "tuplet": 3, "accent": true },
+            { "start": 64, "dur": 16, "kind": "GHOST", "lane": "LOW", "tuplet": 3 },
+            { "start": 80, "dur": 16, "kind": "HIT", "lane": "OCTAVE", "tuplet": 3 },
+            { "start": 96, "dur": 24, "kind": "HIT", "lane": "LOW" },
+            { "start": 120, "dur": 24, "kind": "GHOST", "lane": "LOW" },
+            { "start": 144, "dur": 24, "kind": "HIT", "lane": "OCTAVE" },
+            { "start": 168, "dur": 24, "kind": "HIT", "lane": "LOW" }
+          ]
+        }
+      ]
+    }
+  ]
+}

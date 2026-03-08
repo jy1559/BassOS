@@ -29,6 +29,7 @@ from bassos.services.calculations import to_int
 from bassos.services.data_bootstrap import ensure_bootstrap_data, initialize_quest_templates
 from bassos.services.events import create_event_row
 from bassos.services.game import GameService
+from bassos.services.minigame_service import MinigameService
 from bassos.services.quests import claim_quest, create_custom_quest, fail_quest, list_current_quests, refresh_auto_quests, update_quest
 from bassos.services.runtime_profile import RuntimeProfileManager
 from bassos.services.storage import Storage
@@ -256,6 +257,7 @@ def _runtime_profiles() -> RuntimeProfileManager:
 def _set_runtime_storage(storage: Storage) -> None:
     current_app.config["storage"] = storage
     current_app.config["game_service"] = GameService(storage)
+    current_app.config["minigame_service"] = MinigameService(storage)
 
 
 def _split_csv_tags(raw: str | None) -> list[str]:

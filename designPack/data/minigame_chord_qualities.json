@@ -1,0 +1,182 @@
+﻿{
+  "maj": {
+    "name_ko": "메이저 트라이어드",
+    "group": "Triad",
+    "description_ko": "장3도+완전5도",
+    "mood_ko": "밝고 안정적",
+    "usage_ko": "메이저 코드 기본",
+    "intervals": [0, 4, 7],
+    "degree_labels": ["1", "3", "5"]
+  },
+  "min": {
+    "name_ko": "마이너 트라이어드",
+    "group": "Triad",
+    "description_ko": "단3도+완전5도",
+    "mood_ko": "차분하고 감성적",
+    "usage_ko": "마이너 코드 기본",
+    "intervals": [0, 3, 7],
+    "degree_labels": ["1", "b3", "5"]
+  },
+  "dim": {
+    "name_ko": "디미니시드 트라이어드",
+    "group": "Triad",
+    "description_ko": "단3도+감5도",
+    "mood_ko": "불안정, 긴장",
+    "usage_ko": "패싱 디미니시드",
+    "intervals": [0, 3, 6],
+    "degree_labels": ["1", "b3", "b5"]
+  },
+  "aug": {
+    "name_ko": "어그먼트 트라이어드",
+    "group": "Triad",
+    "description_ko": "장3도+증5도",
+    "mood_ko": "부유감, 긴장",
+    "usage_ko": "도미넌트 대체",
+    "intervals": [0, 4, 8],
+    "degree_labels": ["1", "3", "#5"]
+  },
+  "sus2": {
+    "name_ko": "서스2",
+    "group": "Suspended",
+    "description_ko": "3도 대신 2도",
+    "mood_ko": "열린 느낌",
+    "usage_ko": "팝/록 인트로",
+    "intervals": [0, 2, 7],
+    "degree_labels": ["1", "2", "5"]
+  },
+  "sus4": {
+    "name_ko": "서스4",
+    "group": "Suspended",
+    "description_ko": "3도 대신 4도",
+    "mood_ko": "해결 대기감",
+    "usage_ko": "sus4→maj 해결",
+    "intervals": [0, 5, 7],
+    "degree_labels": ["1", "4", "5"]
+  },
+  "7": {
+    "name_ko": "도미넌트7",
+    "group": "Seventh",
+    "description_ko": "메이저 트라이어드+b7",
+    "mood_ko": "긴장과 추진력",
+    "usage_ko": "블루스, V7",
+    "intervals": [0, 4, 7, 10],
+    "degree_labels": ["1", "3", "5", "b7"]
+  },
+  "maj7": {
+    "name_ko": "메이저7",
+    "group": "Seventh",
+    "description_ko": "메이저 트라이어드+7",
+    "mood_ko": "세련되고 부드러움",
+    "usage_ko": "재즈/시티팝 메이저",
+    "intervals": [0, 4, 7, 11],
+    "degree_labels": ["1", "3", "5", "7"]
+  },
+  "m7": {
+    "name_ko": "마이너7",
+    "group": "Seventh",
+    "description_ko": "마이너 트라이어드+b7",
+    "mood_ko": "따뜻하고 안정적인 마이너",
+    "usage_ko": "ii-V-I의 ii, 펑크 vamp",
+    "intervals": [0, 3, 7, 10],
+    "degree_labels": ["1", "b3", "5", "b7"]
+  },
+  "mMaj7": {
+    "name_ko": "마이너 메이저7",
+    "group": "Seventh",
+    "description_ko": "마이너 트라이어드+7",
+    "mood_ko": "어둡지만 영화적",
+    "usage_ko": "멜로딕 마이너 토닉",
+    "intervals": [0, 3, 7, 11],
+    "degree_labels": ["1", "b3", "5", "7"]
+  },
+  "m7b5": {
+    "name_ko": "하프디미니시드",
+    "group": "Seventh",
+    "description_ko": "dim triad + b7",
+    "mood_ko": "불안정한 중간 긴장",
+    "usage_ko": "마이너 ii-V-i",
+    "intervals": [0, 3, 6, 10],
+    "degree_labels": ["1", "b3", "b5", "b7"]
+  },
+  "dim7": {
+    "name_ko": "디미니시드7",
+    "group": "Seventh",
+    "description_ko": "완전 대칭 3도 구조",
+    "mood_ko": "강한 긴장/전환",
+    "usage_ko": "전조/패싱",
+    "intervals": [0, 3, 6, 9],
+    "degree_labels": ["1", "b3", "b5", "bb7"]
+  },
+  "add9": {
+    "name_ko": "애드9",
+    "group": "Added Tone",
+    "description_ko": "트라이어드에 9도 추가",
+    "mood_ko": "맑고 넓은 공간감",
+    "usage_ko": "팝 발라드",
+    "intervals": [0, 2, 4, 7],
+    "degree_labels": ["1", "2", "3", "5"]
+  },
+  "9": {
+    "name_ko": "도미넌트9",
+    "group": "Extended",
+    "description_ko": "7 코드에 9도 추가",
+    "mood_ko": "재즈/펑크 그루브",
+    "usage_ko": "V9, 펑크 comp",
+    "intervals": [0, 2, 4, 7, 10],
+    "degree_labels": ["1", "9", "3", "5", "b7"]
+  },
+  "m9": {
+    "name_ko": "마이너9",
+    "group": "Extended",
+    "description_ko": "m7에 9도 추가",
+    "mood_ko": "부드럽고 서정적",
+    "usage_ko": "neo-soul, 재즈",
+    "intervals": [0, 2, 3, 7, 10],
+    "degree_labels": ["1", "9", "b3", "5", "b7"]
+  },
+  "11": {
+    "name_ko": "11 코드",
+    "group": "Extended",
+    "description_ko": "도미넌트 계열 확장",
+    "mood_ko": "두터운 텐션",
+    "usage_ko": "재즈 텐션 코드",
+    "intervals": [0, 2, 4, 5, 7, 10],
+    "degree_labels": ["1", "9", "3", "11", "5", "b7"]
+  },
+  "13": {
+    "name_ko": "13 코드",
+    "group": "Extended",
+    "description_ko": "도미넌트 계열 완성형 확장",
+    "mood_ko": "풍성하고 세련됨",
+    "usage_ko": "재즈, 퓨전 종지",
+    "intervals": [0, 2, 4, 7, 9, 10],
+    "degree_labels": ["1", "9", "3", "5", "13", "b7"]
+  },
+  "7b9": {
+    "name_ko": "7(b9)",
+    "group": "Altered",
+    "description_ko": "도미넌트에 b9 긴장",
+    "mood_ko": "강한 해결 욕구",
+    "usage_ko": "마이너 종지",
+    "intervals": [0, 1, 4, 7, 10],
+    "degree_labels": ["1", "b9", "3", "5", "b7"]
+  },
+  "7#9": {
+    "name_ko": "7(#9)",
+    "group": "Altered",
+    "description_ko": "도미넌트에 #9 긴장",
+    "mood_ko": "블루지/공격적",
+    "usage_ko": "록/펑크 도미넌트",
+    "intervals": [0, 3, 4, 7, 10],
+    "degree_labels": ["1", "#9", "3", "5", "b7"]
+  },
+  "7sus4": {
+    "name_ko": "7sus4",
+    "group": "Suspended",
+    "description_ko": "3도 대신 4도 + b7",
+    "mood_ko": "열린 긴장",
+    "usage_ko": "서스펜디드 도미넌트",
+    "intervals": [0, 5, 7, 10],
+    "degree_labels": ["1", "4", "5", "b7"]
+  }
+}

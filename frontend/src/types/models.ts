@@ -811,6 +811,9 @@ export type Settings = {
     gate_enabled?: boolean;
     pin_hash?: string;
   };
+  practice_tools?: {
+    minigame_user_settings?: Record<string, unknown>;
+  };
   [key: string]: unknown;
 };
 

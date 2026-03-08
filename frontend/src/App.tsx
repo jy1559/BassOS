@@ -1001,7 +1001,7 @@ function AppBody() {
       {
         id: "tools",
         title: lang === "ko" ? "연습 도구" : "Practice Tools",
-        tabs: [{ id: "tools", label: lang === "ko" ? "TAB 생성기" : "TAB Builder" }],
+        tabs: [{ id: "tools", label: lang === "ko" ? "연습 도구" : "Practice Tools" }],
       },
       {
         id: "records",

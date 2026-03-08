@@ -1,5 +1,7 @@
 """Project-wide constants."""
 
+from bassos.minigame_defaults import MINIGAME_USER_SETTINGS_DEFAULTS
+
 EVENT_HEADERS = [
     "event_id",
     "created_at",
@@ -248,7 +250,7 @@ JOURNAL_TEMPLATE_CATALOG_DEFAULTS = [
 
 
 SETTINGS_DEFAULTS = {
-    "policy_version": 17,
+    "policy_version": 18,
     "ui": {
         "default_theme": "midnight",
         "enable_confetti": True,
@@ -397,6 +399,9 @@ SETTINGS_DEFAULTS = {
         "journal_tag_catalog": [],
         "journal_header_catalog": JOURNAL_HEADER_CATALOG_DEFAULTS,
         "journal_template_catalog": JOURNAL_TEMPLATE_CATALOG_DEFAULTS,
+    },
+    "practice_tools": {
+        "minigame_user_settings": MINIGAME_USER_SETTINGS_DEFAULTS,
     },
 }
 

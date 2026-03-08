@@ -32,6 +32,7 @@ from bassos.constants import (
     SONG_LIBRARY_HEADERS,
     XP_BALANCE_V2,
 )
+from bassos.minigame_defaults import MINIGAME_RECORD_HEADERS, normalize_minigame_user_settings
 from bassos.services.calculations import to_int
 
 DRILL_TAG_CANONICAL = [
@@ -401,10 +402,12 @@ class Storage:
         for source_dir in self.seed_data_sources:
             if not source_dir.exists():
                 continue
-            for src in source_dir.glob("*"):
+            for src in source_dir.rglob("*"):
                 if not src.is_file():
                     continue
-                dst = self.paths.runtime_data / src.name
+                rel_path = src.relative_to(source_dir)
+                dst = self.paths.runtime_data / rel_path
+                dst.parent.mkdir(parents=True, exist_ok=True)
                 if not dst.exists():
                     shutil.copy2(src, dst)
         events_path = self.paths.runtime_data / "events.csv"
@@ -516,6 +519,23 @@ class Storage:
         settings_fallback = self.normalize_settings({}) if filename == "settings.json" else {}
         return self._read_json_file(path, fallback=settings_fallback, encodings=("utf-8-sig", "utf-8"))
 
+    def find_data_file(self, relative_path: str) -> Path | None:
+        normalized = Path(relative_path)
+        runtime_candidate = self.paths.runtime_data / normalized
+        if runtime_candidate.exists() and runtime_candidate.is_file():
+            return runtime_candidate
+        for source_dir in self.seed_data_sources:
+            candidate = source_dir / normalized
+            if candidate.exists() and candidate.is_file():
+                return candidate
+        return None
+
+    def read_data_json(self, relative_path: str) -> dict[str, Any]:
+        path = self.find_data_file(relative_path)
+        if path is None:
+            return {}
+        return self._read_json_file(path, fallback={}, encodings=("utf-8-sig", "utf-8"))
+
     def write_json(self, filename: str, payload: dict[str, Any]) -> None:
         path = self.paths.runtime_data / filename
         self._write_json_atomic(path, payload)
@@ -561,6 +581,7 @@ class Storage:
         self._migrate_achievements()
         self._migrate_quests()
         self._migrate_settings()
+        self._migrate_minigame_records()
         self._migrate_events_header()
         self._migrate_song_library()
         self._migrate_drill_library()
@@ -571,6 +592,21 @@ class Storage:
     def _migrate_events_header(self) -> None:
         rows = self.read_csv("events.csv")
         self.write_csv("events.csv", rows, headers=EVENT_HEADERS)
+
+    def _migrate_minigame_records(self) -> None:
+        headers = self.read_csv_headers("minigame_records.csv")
+        rows = self.read_csv("minigame_records.csv")
+        for row in rows:
+            for key in MINIGAME_RECORD_HEADERS:
+                row.setdefault(key, "")
+            if not str(row.get("detail_json", "")).strip():
+                row["detail_json"] = "{}"
+            row["source"] = str(row.get("source", "app") or "app")
+        if headers != MINIGAME_RECORD_HEADERS:
+            self.write_csv("minigame_records.csv", rows, headers=MINIGAME_RECORD_HEADERS)
+            return
+        if not (self.paths.runtime_data / "minigame_records.csv").exists():
+            self.write_csv("minigame_records.csv", [], headers=MINIGAME_RECORD_HEADERS)
 
     def _migrate_achievements(self) -> None:
         rows = self.read_csv("achievements_master.csv")
@@ -1024,6 +1060,14 @@ class Storage:
                 tutorial_state[key] = str(tutorial_state.get(key) or default)
         profile["tutorial_state"] = tutorial_state
 
+        practice_tools = merged.get("practice_tools")
+        if not isinstance(practice_tools, dict):
+            practice_tools = {}
+        practice_tools["minigame_user_settings"] = normalize_minigame_user_settings(
+            practice_tools.get("minigame_user_settings")
+        )
+        merged["practice_tools"] = practice_tools
+
         return merged
 
     def _migrate_settings(self) -> None:
@@ -1270,6 +1314,17 @@ class Storage:
             profile.setdefault("journal_header_catalog", _deep_copy_json(JOURNAL_HEADER_CATALOG_DEFAULTS))
             profile.setdefault("journal_template_catalog", _deep_copy_json(JOURNAL_TEMPLATE_CATALOG_DEFAULTS))
             merged["policy_version"] = 17
+
+        if current_version < 18:
+            practice_tools = merged.setdefault("practice_tools", {})
+            if not isinstance(practice_tools, dict):
+                practice_tools = {}
+                merged["practice_tools"] = practice_tools
+            practice_tools.setdefault(
+                "minigame_user_settings",
+                _deep_copy_json(SETTINGS_DEFAULTS["practice_tools"]["minigame_user_settings"]),
+            )
+            merged["policy_version"] = 18
 
         merged = self.normalize_settings(merged, source_settings=source_settings)
 

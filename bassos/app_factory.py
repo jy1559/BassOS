@@ -9,9 +9,11 @@ from werkzeug.exceptions import HTTPException
 
 from bassos.api import api_bp
 from bassos.constants import ACHIEVEMENT_HEADERS, QUEST_HEADERS
+from bassos.minigame_api import minigame_bp
 from bassos.services.backups import maybe_create_backup
 from bassos.services.data_bootstrap import ensure_bootstrap_data, initialize_quest_templates
 from bassos.services.game import GameService
+from bassos.services.minigame_service import MinigameService
 from bassos.services.runtime_profile import RuntimeProfileManager
 from bassos.services.storage import Storage
 
@@ -57,8 +59,10 @@ def create_app(project_root: Path | None = None) -> Flask:
 
     app.config["storage"] = storage
     app.config["game_service"] = GameService(storage)
+    app.config["minigame_service"] = MinigameService(storage)
     app.config["runtime_profile_manager"] = runtime_profiles
     app.register_blueprint(api_bp)
+    app.register_blueprint(minigame_bp)
 
     @app.errorhandler(HTTPException)
     def handle_http_exception(exc: HTTPException):

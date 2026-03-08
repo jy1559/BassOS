@@ -11966,6 +11966,79 @@ textarea {
   justify-content: flex-end;
 }
 
+.practice-tools-shell {
+  align-content: start;
+}
+
+.practice-tools-overview {
+  display: grid;
+  gap: 10px;
+}
+
+.practice-tools-tab-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.practice-tools-tab-btn {
+  min-height: 38px;
+}
+
+.practice-tools-stage {
+  min-height: 0;
+}
+
+.practice-tools-shadow-host {
+  display: block;
+  width: 100%;
+  min-height: 680px;
+  border-radius: 14px;
+  overflow: hidden;
+}
+
+.practice-tools-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 118;
+  display: grid;
+  place-items: center;
+  padding: 18px;
+  background: rgba(8, 12, 17, 0.66);
+}
+
+.practice-tools-modal-card {
+  width: min(1180px, 96vw);
+  max-height: 94vh;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  background: linear-gradient(160deg, var(--panel), var(--panel-2));
+  box-shadow: var(--shadow);
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: 0;
+}
+
+.practice-tools-modal-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+.practice-tools-modal-head > div {
+  display: grid;
+  gap: 4px;
+}
+
+.practice-tools-modal-shadow {
+  min-height: 0;
+  max-height: calc(94vh - 78px);
+}
+
 @media (max-width: 920px) {
   .settings-shortcut-row {
     grid-template-columns: 1fr;
@@ -11977,5 +12050,13 @@ textarea {
 
   .settings-shortcut-actions {
     justify-content: flex-start;
+  }
+
+  .practice-tools-modal-card {
+    width: min(96vw, 96vw);
+  }
+
+  .practice-tools-shadow-host {
+    min-height: 560px;
   }
 }
