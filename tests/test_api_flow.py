@@ -116,6 +116,29 @@ def test_api_unhandled_error_returns_json(tmp_path):
     assert "boom-test" in payload["message"]
 
 
+def test_settings_endpoints_tolerate_partial_settings_json(tmp_path):
+    root = _prepare_temp_root(tmp_path)
+    app = create_app(root)
+    client = app.test_client()
+    storage = app.config["storage"]
+
+    settings_path = storage.paths.runtime_data / "settings.json"
+    settings_path.write_text('{"ui": ', encoding="utf-8")
+
+    settings_res = client.get("/api/settings")
+    assert settings_res.status_code == 200
+    settings_payload = settings_res.get_json()["settings"]
+    assert settings_payload["ui"]["language"] in {"ko", "en"}
+
+    hud_res = client.get("/api/hud/summary")
+    assert hud_res.status_code == 200
+    assert "summary" in hud_res.get_json()
+
+    unlockables_res = client.get("/api/unlockables")
+    assert unlockables_res.status_code == 200
+    assert isinstance(unlockables_res.get_json()["items"], list)
+
+
 def test_settings_basic_keyboard_shortcuts_are_normalized(tmp_path):
     root = _prepare_temp_root(tmp_path)
     app = create_app(root)

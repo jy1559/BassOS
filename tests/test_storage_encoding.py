@@ -121,3 +121,37 @@ def test_settings_migration_removes_journal_status_catalog(tmp_path: Path):
     assert "journal_status_catalog" not in profile
     assert "status_id" not in profile["journal_template_catalog"][0]
     assert "default_source_context" not in profile["journal_template_catalog"][0]
+
+
+def test_read_json_returns_defaults_for_empty_settings_file(tmp_path: Path):
+    storage = _build_storage(tmp_path)
+    settings_path = storage.paths.runtime_data / "settings.json"
+    settings_path.parent.mkdir(parents=True, exist_ok=True)
+    settings_path.write_text("", encoding="utf-8")
+
+    settings = storage.read_json("settings.json")
+
+    assert settings["policy_version"] >= 1
+    assert settings["ui"]["language"] in {"ko", "en"}
+    assert "profile" in settings
+
+
+def test_read_json_returns_defaults_for_invalid_settings_file(tmp_path: Path):
+    storage = _build_storage(tmp_path)
+    settings_path = storage.paths.runtime_data / "settings.json"
+    settings_path.parent.mkdir(parents=True, exist_ok=True)
+    settings_path.write_text('{"ui": ', encoding="utf-8")
+
+    settings = storage.read_json("settings.json")
+
+    assert settings["policy_version"] >= 1
+    assert settings["ui"]["language"] in {"ko", "en"}
+    assert "profile" in settings
+
+
+def test_read_session_state_ignores_partial_json(tmp_path: Path):
+    storage = _build_storage(tmp_path)
+    storage.paths.session_state.parent.mkdir(parents=True, exist_ok=True)
+    storage.paths.session_state.write_text('{"session_id": ', encoding="utf-8")
+
+    assert storage.read_session_state() == {}

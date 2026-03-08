@@ -5,6 +5,7 @@ from __future__ import annotations
 import csv
 import io
 import json
+import os
 import shutil
 import uuid
 from dataclasses import dataclass
@@ -466,28 +467,64 @@ class Storage:
                 continue
         return raw.decode("utf-8", errors="replace")
 
+    def _read_json_file(
+        self,
+        path: Path,
+        *,
+        fallback: dict[str, Any] | None = None,
+        encodings: tuple[str, ...] = ("utf-8",),
+    ) -> dict[str, Any]:
+        safe_fallback = dict(fallback or {})
+        if not path.exists():
+            return safe_fallback
+        try:
+            raw = path.read_bytes()
+        except OSError:
+            return safe_fallback
+        if not raw.strip():
+            return safe_fallback
+        text = ""
+        for encoding in encodings:
+            try:
+                text = raw.decode(encoding)
+                break
+            except UnicodeDecodeError:
+                continue
+        if not text:
+            text = raw.decode(encodings[0] if encodings else "utf-8", errors="replace")
+        try:
+            payload = json.loads(text)
+        except json.JSONDecodeError:
+            return safe_fallback
+        return payload if isinstance(payload, dict) else safe_fallback
+
+    def _write_json_atomic(self, path: Path, payload: dict[str, Any], *, encoding: str = "utf-8") -> None:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        temp_path = path.with_name(f".{path.name}.{uuid.uuid4().hex}.tmp")
+        try:
+            with temp_path.open("w", encoding=encoding, newline="\n") as fh:
+                json.dump(payload, fh, ensure_ascii=False, indent=2)
+                fh.flush()
+                os.fsync(fh.fileno())
+            temp_path.replace(path)
+        finally:
+            if temp_path.exists():
+                temp_path.unlink(missing_ok=True)
+
     def read_json(self, filename: str) -> dict[str, Any]:
         path = self.paths.runtime_data / filename
-        if not path.exists():
-            return {}
-        with path.open("r", encoding="utf-8-sig") as fh:
-            return json.load(fh)
+        settings_fallback = self.normalize_settings({}) if filename == "settings.json" else {}
+        return self._read_json_file(path, fallback=settings_fallback, encodings=("utf-8-sig", "utf-8"))
 
     def write_json(self, filename: str, payload: dict[str, Any]) -> None:
         path = self.paths.runtime_data / filename
-        path.parent.mkdir(parents=True, exist_ok=True)
-        with path.open("w", encoding="utf-8") as fh:
-            json.dump(payload, fh, ensure_ascii=False, indent=2)
+        self._write_json_atomic(path, payload)
 
     def read_session_state(self) -> dict[str, Any]:
-        if not self.paths.session_state.exists():
-            return {}
-        with self.paths.session_state.open("r", encoding="utf-8") as fh:
-            return json.load(fh)
+        return self._read_json_file(self.paths.session_state, fallback={}, encodings=("utf-8", "utf-8-sig"))
 
     def write_session_state(self, state: dict[str, Any]) -> None:
-        with self.paths.session_state.open("w", encoding="utf-8") as fh:
-            json.dump(state, fh, ensure_ascii=False, indent=2)
+        self._write_json_atomic(self.paths.session_state, state)
 
     def clear_session_state(self) -> None:
         if self.paths.session_state.exists():

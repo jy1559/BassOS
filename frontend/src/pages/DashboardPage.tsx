@@ -15,7 +15,6 @@ import { formatDisplayXp, getXpDisplayScale } from "../utils/xpDisplay";
 import type {
   Achievement,
   AchievementRecent,
-  GalleryItem,
   HudSummary,
   Quest,
   SessionStopResult,
@@ -30,7 +29,6 @@ type Props = {
   quests: Quest[];
   achievements: Achievement[];
   recentAchievements: AchievementRecent[];
-  gallery: GalleryItem[];
   catalogs: {
     song_ladder: Array<Record<string, string>>;
     song_library: Array<Record<string, string>>;
@@ -287,7 +285,6 @@ export function DashboardPage({
   quests,
   achievements,
   recentAchievements,
-  gallery,
   catalogs,
   settings,
   onRefresh,
@@ -798,6 +795,34 @@ export function DashboardPage({
     lang === "ko"
       ? `오늘 마감 ${dueTodayCount} · 7일 이내 ${dueInSevenDaysCount} · 전체 ${quests.length}`
       : `Due today ${dueTodayCount} · Due in 7d ${dueInSevenDaysCount} · Total ${quests.length}`;
+  const lowPressureHook = useMemo(() => {
+    const remainingSessions = Math.max(0, weeklyGoalSessions - weekSessions);
+    if (remainingSessions > 0) {
+      return lang === "ko"
+        ? `이번 주 목표까지 세션 ${remainingSessions}번 남음. 짧게 한 번만 해도 카운트됩니다.`
+        : `${remainingSessions} session${remainingSessions === 1 ? "" : "s"} left for this week. A short one still counts.`;
+    }
+    const remainingWeekMinutes = Math.max(0, weeklyGoalMinutes - weekMinutes);
+    if (remainingWeekMinutes > 0) {
+      return lang === "ko"
+        ? `주간 시간 목표까지 ${remainingWeekMinutes}분 남음. 5~10분만 이어가도 충분합니다.`
+        : `${remainingWeekMinutes} minutes left for the weekly goal. Even 5-10 minutes is enough.`;
+    }
+    const remainingMonthMinutes = Math.max(0, monthlyGoalMinutes - monthMinutes);
+    if (remainingMonthMinutes > 0) {
+      return lang === "ko"
+        ? `월간 목표는 ${remainingMonthMinutes}분 남았습니다. 몰아서 하지 않아도 됩니다.`
+        : `${remainingMonthMinutes} minutes left this month. No need to force a long catch-up session.`;
+    }
+    if (hud.next_unlock?.name) {
+      return lang === "ko"
+        ? `지금 페이스면 다음 해금 ${hud.next_unlock.name}도 곧 열립니다.`
+        : `At this pace, ${hud.next_unlock.name} is close too.`;
+    }
+    return lang === "ko"
+      ? "지금 페이스면 충분합니다. 짧게라도 루프만 끊기지 않게 가면 됩니다."
+      : "Your pace is fine. Keeping the loop alive is enough.";
+  }, [hud.next_unlock?.name, lang, monthMinutes, monthlyGoalMinutes, weekMinutes, weekSessions, weeklyGoalMinutes, weeklyGoalSessions]);
   const DashboardView = dashboardVersion === "focus" ? FocusDashboardView : LegacyDashboardView;
 
   return (
@@ -1007,6 +1032,7 @@ export function DashboardPage({
           <div className="progress-wrap"><div className="progress-bar"><div style={{ width: `${sessionPct}%` }} /></div><small>{lang === "ko" ? "주간 세션 목표" : "Weekly session goal"} {sessionPct}%</small></div>
           <div className="progress-wrap"><div className="progress-bar"><div style={{ width: `${weekMinPct}%` }} /></div><small>{lang === "ko" ? "주간 시간 목표" : "Weekly minute goal"} {weekMinPct}%</small></div>
           <div className="progress-wrap"><div className="progress-bar"><div style={{ width: `${monthMinPct}%` }} /></div><small>{lang === "ko" ? "월간 시간 목표" : "Monthly minute goal"} {monthMinPct}%</small></div>
+          <small className="muted">{lowPressureHook}</small>
         </section>
       ) : null}
 

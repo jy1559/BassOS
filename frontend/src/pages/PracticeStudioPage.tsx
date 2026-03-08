@@ -73,6 +73,12 @@ type PendingSwitchPrompt = {
   underMin: boolean;
 };
 
+type ActiveTargetSnapshot = {
+  type: PracticeType | null;
+  songId: string;
+  drillId: string;
+};
+
 type PlaybackSurface = "none" | "video" | "metronome";
 
 type YoutubePlayerLike = {
@@ -1168,17 +1174,16 @@ export function PracticeStudioPage({
   }, [targetLogs]);
 
   const restoreActiveSelection = () => {
-    const activeSongId = String(hud.active_session?.song_library_id || "");
-    const activeDrillId = String(hud.active_session?.drill_id || "");
-    if (activeSongId) {
+    const activeTarget = resolveActiveTarget();
+    if (activeTarget.type === "song" && activeTarget.songId) {
       setPracticeType("song");
-      setSongId(activeSongId);
+      setSongId(activeTarget.songId);
       setDrillId("");
       return;
     }
-    if (activeDrillId) {
+    if (activeTarget.type === "drill" && activeTarget.drillId) {
       setPracticeType("drill");
-      setDrillId(activeDrillId);
+      setDrillId(activeTarget.drillId);
       setSongId("");
       return;
     }
@@ -1203,6 +1208,44 @@ export function PracticeStudioPage({
       drill_id: nextId,
       title: nextDrill?.name || "",
     };
+  };
+
+  const resolveActiveTarget = (): ActiveTargetSnapshot => {
+    const activeSongId = String(hud.active_session?.song_library_id || "").trim();
+    if (activeSongId) {
+      return { type: "song", songId: activeSongId, drillId: "" };
+    }
+    const activeDrillId = String(hud.active_session?.drill_id || "").trim();
+    if (activeDrillId) {
+      return { type: "drill", songId: "", drillId: activeDrillId };
+    }
+    if (!hud.active_session?.session_id) {
+      return { type: null, songId: "", drillId: "" };
+    }
+    const localSongId = String(songId || "").trim();
+    const localDrillId = String(drillId || "").trim();
+    if (practiceType === "song" && localSongId) {
+      return { type: "song", songId: localSongId, drillId: "" };
+    }
+    if (practiceType === "drill" && localDrillId) {
+      return { type: "drill", songId: "", drillId: localDrillId };
+    }
+    if (localSongId && !localDrillId) {
+      return { type: "song", songId: localSongId, drillId: "" };
+    }
+    if (localDrillId && !localSongId) {
+      return { type: "drill", songId: "", drillId: localDrillId };
+    }
+    return { type: null, songId: "", drillId: "" };
+  };
+
+  const formatTargetLabel = (targetType: PracticeType, targetId: string): string => {
+    if (targetType === "song") {
+      const nextSong = catalogs.song_library.find((item) => item.library_id === targetId) ?? null;
+      return nextSong?.title || targetId || (lang === "ko" ? "곡" : "Song");
+    }
+    const nextDrill = drillPool.find((item) => item.drill_id === targetId) ?? null;
+    return nextDrill?.name || targetId || (lang === "ko" ? "드릴" : "Drill");
   };
 
   const switchStopTags = (activity: "Song" | "Drill" | "Etc", subActivity: string) => {
@@ -1257,8 +1300,9 @@ export function PracticeStudioPage({
   };
 
   const buildSwitchStopPayload = (startIso: string, endIso: string) => {
-    const activeSongId = String(hud.active_session?.song_library_id || "");
-    const activeDrillId = String(hud.active_session?.drill_id || "");
+    const activeTarget = resolveActiveTarget();
+    const activeSongId = activeTarget.songId;
+    const activeDrillId = activeTarget.drillId;
     let activity: "Song" | "Drill" | "Etc" = "Etc";
     let subActivity = String(hud.active_session?.sub_activity || "Etc") || "Etc";
     if (activeSongId) {
@@ -1367,8 +1411,9 @@ export function PracticeStudioPage({
       restoreActiveSelection();
       return false;
     }
-    const activeSongId = String(hud.active_session.song_library_id || "");
-    const activeDrillId = String(hud.active_session.drill_id || "");
+    const activeTarget = resolveActiveTarget();
+    const activeSongId = activeTarget.songId;
+    const activeDrillId = activeTarget.drillId;
     const sameTarget = nextType === "song" ? activeSongId === nextId : activeDrillId === nextId;
     if (sameTarget && (activeSongId || activeDrillId)) {
       if (nextType === "song") setSongId(nextId);
@@ -2487,6 +2532,16 @@ export function PracticeStudioPage({
     practiceType === "song"
       ? song?.title || (lang === "ko" ? "선택 곡 없음" : "No song selected")
       : drill?.name || (lang === "ko" ? "선택 드릴 없음" : "No drill selected");
+  const activeTargetSnapshot = resolveActiveTarget();
+  const pendingCurrentTargetLabel =
+    activeTargetSnapshot.type === "song"
+      ? formatTargetLabel("song", activeTargetSnapshot.songId)
+      : activeTargetSnapshot.type === "drill"
+      ? formatTargetLabel("drill", activeTargetSnapshot.drillId)
+      : lang === "ko"
+      ? "현재 대상 없음"
+      : "No current target";
+  const pendingNextTargetLabel = pendingSwitchPrompt ? formatTargetLabel(pendingSwitchPrompt.nextType, pendingSwitchPrompt.nextId) : "";
   const showMiniDock =
     !isActive &&
     Boolean(activeSessionId) &&
@@ -3268,13 +3323,22 @@ export function PracticeStudioPage({
         <div className="modal-backdrop" onClick={closePendingSwitchPrompt}>
           <div className="modal session-switch-gate-modal" onClick={(event) => event.stopPropagation()}>
             <h3>{lang === "ko" ? "세션 전환" : "Switch Session"}</h3>
+            <p>
+              <strong>{pendingCurrentTargetLabel}</strong>
+              {" -> "}
+              <strong>{pendingNextTargetLabel}</strong>
+            </p>
             {pendingSwitchPrompt.underMin ? (
-              <p>{lang === "ko" ? "10분 미만의 세션은 저장되지 않습니다. 종료하시겠습니까?" : "Sessions under 10 minutes are not saved. End this segment?"}</p>
+              <p>
+                {lang === "ko"
+                  ? "10분 미만이라 현재 구간은 자동 저장되지 않습니다. 이 구간은 버리고 다음 대상으로 전환할까요?"
+                  : "This segment is under 10 minutes, so it will not be auto-saved. Discard it and switch to the next target?"}
+              </p>
             ) : (
               <p>
-                {lang === "ko" ? "곡 바꾸시겠습니까? 세션이 재시작됩니다" : "Switch target? Session will restart."}
+                {lang === "ko" ? "이전 구간은 자동 저장되고, 다음 대상으로 바로 이어집니다." : "The previous segment will be auto-saved, then the next target starts immediately."}
                 <br />
-                {lang === "ko" ? "이전 세션은 자동으로 저장됩니다" : "The previous segment is auto-saved."}
+                {lang === "ko" ? "저장 시각을 직접 맞추려면 시간 지정을 사용하세요." : "Use Set Time if you need to adjust the saved timing."}
               </p>
             )}
             <div className="modal-actions">

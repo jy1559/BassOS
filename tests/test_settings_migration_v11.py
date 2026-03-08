@@ -268,7 +268,7 @@ def test_migrate_v11_seeds_new_ui_notification_and_fx_keys(tmp_path: Path):
     assert ui["keyboard_shortcuts"]["bindings"]["metronome_toggle"]["code"] == "KeyM"
     assert ui["keyboard_shortcuts"]["bindings"]["video_pin_save"]["alt"] is True
     assert ui["keyboard_shortcuts"]["bindings"]["video_pin_jump"]["code"] == "KeyH"
-    assert "alt" not in ui["keyboard_shortcuts"]["bindings"]["video_pin_jump"]
+    assert ui["keyboard_shortcuts"]["bindings"]["video_pin_jump"].get("alt", False) is False
     assert ui["keyboard_shortcuts"]["bindings"]["video_pin_clear"]["alt"] is True
 
 

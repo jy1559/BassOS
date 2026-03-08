@@ -1,11 +1,10 @@
 ﻿import { useEffect, useMemo, useRef, useState } from "react";
+import { Suspense, lazy } from "react";
 import {
   completeTutorial,
   completeOnboarding,
   getAchievements,
   getCatalogs,
-  getDrillLibrary,
-  getGallery,
   getHudSummary,
   getLevelUpCopy,
   getQuests,
@@ -22,31 +21,20 @@ import { t, type Lang } from "./i18n";
 import type {
   Achievement,
   AchievementRecent,
-  GalleryItem,
   HudSummary,
   Quest,
   SessionStopResult,
   Settings,
   TutorialState,
 } from "./types/models";
-import { AchievementsPage } from "./pages/AchievementsPage";
 import { DashboardPage } from "./pages/DashboardPage";
-import { DrillLibraryPage } from "./pages/DrillLibraryPage";
-import { GalleryPage } from "./pages/GalleryPage";
 import { OnboardingWizard } from "./pages/OnboardingWizard";
 import {
   PracticeStudioPage,
   type SessionPipVideoControlPayload,
   type SessionPipVideoPayload,
 } from "./pages/PracticeStudioPage";
-import { PracticeToolsPage } from "./pages/PracticeToolsPage";
-import { QuestsPage } from "./pages/QuestsPage";
-import { RecommendationsPage } from "./pages/RecommendationsPage";
-import { ReviewPage } from "./pages/ReviewPage";
 import { SessionsPage } from "./pages/SessionsPage";
-import { SettingsPage } from "./pages/SettingsPage";
-import { SongsPage } from "./pages/SongsPage";
-import { XPPage } from "./pages/XPPage";
 import { TutorialOverlay } from "./components/tutorial/TutorialOverlay";
 import { SessionStopModal } from "./components/session/SessionStopModal";
 import { MetronomePipPanel, MetronomeProvider, useMetronome } from "./metronome";
@@ -216,6 +204,22 @@ function clampPipPosition(position: SessionPipPosition, width: number, height: n
 }
 
 const PRACTICE_SCROLL_STORAGE_KEY = "bassos.practice.scrollTop.v1";
+const LazyAchievementsPage = lazy(async () => ({ default: (await import("./pages/AchievementsPage")).AchievementsPage }));
+const LazyDrillLibraryPage = lazy(async () => ({ default: (await import("./pages/DrillLibraryPage")).DrillLibraryPage }));
+const LazyGalleryPage = lazy(async () => ({ default: (await import("./pages/GalleryPage")).GalleryPage }));
+const LazyPracticeToolsPage = lazy(async () => ({ default: (await import("./pages/PracticeToolsPage")).PracticeToolsPage }));
+const LazyQuestsPage = lazy(async () => ({ default: (await import("./pages/QuestsPage")).QuestsPage }));
+const LazyRecommendationsPage = lazy(async () => ({ default: (await import("./pages/RecommendationsPage")).RecommendationsPage }));
+const LazyReviewPage = lazy(async () => ({ default: (await import("./pages/ReviewPage")).ReviewPage }));
+const LazySettingsPage = lazy(async () => ({ default: (await import("./pages/SettingsPage")).SettingsPage }));
+const LazySongsPage = lazy(async () => ({ default: (await import("./pages/SongsPage")).SongsPage }));
+const LazyXPPage = lazy(async () => ({ default: (await import("./pages/XPPage")).XPPage }));
+
+type LoadAllOptions = {
+  includeUnlockables?: boolean;
+  includeTutorialState?: boolean;
+  silent?: boolean;
+};
 
 function AppBody() {
   const [tab, setTab] = useState<TabId>("dashboard");
@@ -237,11 +241,12 @@ function AppBody() {
     drill_library: Array<Record<string, string>>;
     backing_tracks: Array<Record<string, string>>;
   } | null>(null);
-  const [gallery, setGallery] = useState<GalleryItem[]>([]);
   const [unlockables, setUnlockables] = useState<Array<Record<string, unknown>>>([]);
+  const [unlockablesLevel, setUnlockablesLevel] = useState<number | null>(null);
   const [tutorialState, setTutorialState] = useState<TutorialState | null>(null);
   const [tutorialRuntime, setTutorialRuntime] = useState<TutorialRuntime | null>(null);
   const [busy, setBusy] = useState(false);
+  const [isDocumentVisible, setIsDocumentVisible] = useState(() => (typeof document === "undefined" ? true : !document.hidden));
   const [toasts, setToasts] = useState<Toast[]>([]);
   const [fxQueue, setFxQueue] = useState<FxOverlayEvent[]>([]);
   const [activeFx, setActiveFx] = useState<FxOverlayEvent | null>(null);
@@ -625,8 +630,8 @@ function AppBody() {
     }
   };
 
-  const loadAll = async () => {
-    setBusy(true);
+  const loadAll = async ({ includeUnlockables = false, includeTutorialState = false, silent = false }: LoadAllOptions = {}) => {
+    if (!silent) setBusy(true);
     try {
       const [
         nextSettings,
@@ -635,8 +640,6 @@ function AppBody() {
         nextAchievements,
         nextRecentAchievements,
         nextCatalogs,
-        nextDrillLibrary,
-        nextGallery,
         nextUnlockables,
         nextTutorialState,
       ] = await Promise.all([
@@ -646,35 +649,37 @@ function AppBody() {
         getAchievements(),
         getRecentAchievements(5),
         getCatalogs(),
-        getDrillLibrary(),
-        getGallery(600),
-        getUnlockables(),
-        getTutorialState(CORE_CAMPAIGN_ID),
+        includeUnlockables ? getUnlockables() : Promise.resolve(null),
+        includeTutorialState ? getTutorialState(CORE_CAMPAIGN_ID) : Promise.resolve(null),
       ]);
-      nextCatalogs.drill_library = nextDrillLibrary;
       setSettings(nextSettings);
       setHud(nextHud);
       setQuests(nextQuests);
       setAchievements(nextAchievements);
       setRecentAchievements(nextRecentAchievements);
       setCatalogs(nextCatalogs);
-      setGallery(nextGallery);
-      setUnlockables(nextUnlockables.items);
-      setTutorialState(nextTutorialState);
+      if (nextUnlockables) {
+        setUnlockables(nextUnlockables.items);
+        setUnlockablesLevel(nextUnlockables.level);
+      }
+      if (nextTutorialState) {
+        setTutorialState(nextTutorialState);
+      }
       applySignals(nextHud, nextRecentAchievements, nextQuests, nextAchievements);
     } catch (error) {
       notify(error instanceof Error ? error.message : "Unknown error", "error");
     } finally {
-      setBusy(false);
+      if (!silent) setBusy(false);
     }
   };
 
   useEffect(() => {
     preventBrowserReload();
-    void loadAll();
+    void loadAll({ includeTutorialState: true });
   }, []);
 
   useEffect(() => {
+    if (!settings || !isDocumentVisible) return;
     const interval = window.setInterval(() => {
       void Promise.all([getHudSummary(), getRecentAchievements(5), getQuests(), getAchievements()])
         .then(([nextHud, nextRecent, nextQuests, nextAchievements]) => {
@@ -687,7 +692,38 @@ function AppBody() {
         .catch(() => undefined);
     }, 5000);
     return () => window.clearInterval(interval);
+  }, [settings, isDocumentVisible]);
+
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+    const handleVisibilityChange = () => {
+      const nextVisible = !document.hidden;
+      setIsDocumentVisible(nextVisible);
+      if (!nextVisible) return;
+      void Promise.all([getHudSummary(), getRecentAchievements(5), getQuests(), getAchievements()])
+        .then(([nextHud, nextRecent, nextQuests, nextAchievements]) => {
+          setHud(nextHud);
+          setRecentAchievements(nextRecent);
+          setQuests(nextQuests);
+          setAchievements(nextAchievements);
+          applySignals(nextHud, nextRecent, nextQuests, nextAchievements);
+        })
+        .catch(() => undefined);
+    };
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
   }, [settings]);
+
+  useEffect(() => {
+    if (tab !== "settings" || !hud) return;
+    if (unlockablesLevel === hud.level) return;
+    void getUnlockables()
+      .then((nextUnlockables) => {
+        setUnlockables(nextUnlockables.items);
+        setUnlockablesLevel(nextUnlockables.level);
+      })
+      .catch(() => undefined);
+  }, [hud?.level, tab, unlockablesLevel]);
 
   useEffect(() => {
     const contentEl = contentRef.current;
@@ -1158,6 +1194,8 @@ function AppBody() {
   }
 
   const startupTheme = settings.profile.onboarded ? settings.ui.default_theme ?? "studio" : "studio";
+  const lazyPageFallback = <div className="screen-center">{lang === "ko" ? "불러오는 중..." : "Loading..."}</div>;
+  const refreshSettingsPage = () => loadAll({ includeUnlockables: true });
 
   return (
     <div className={`app-root theme-${startupTheme}`}>
@@ -1401,7 +1439,6 @@ function AppBody() {
               settings={settings}
               achievements={achievements}
               recentAchievements={recentAchievements}
-              gallery={gallery}
               onRefresh={loadAll}
               notify={notify}
               onNavigate={(nextTab) => switchTab(nextTab)}
@@ -1427,88 +1464,112 @@ function AppBody() {
               xpDisplayScale={xpDisplayScale}
             />
           </div>
-          {tab === "tools" ? <PracticeToolsPage lang={lang} /> : null}
+          {tab === "tools" ? (
+            <Suspense fallback={lazyPageFallback}>
+              <LazyPracticeToolsPage lang={lang} />
+            </Suspense>
+          ) : null}
           {tab === "recommend" ? (
-            <RecommendationsPage
-              lang={lang}
-              ladder={catalogs.song_ladder}
-              library={catalogs.song_library}
-              settings={settings}
-              onRefresh={loadAll}
-              onOpenLibrary={() => switchTab("songs")}
-              setMessage={(msg) => notify(msg, "success")}
-            />
+            <Suspense fallback={lazyPageFallback}>
+              <LazyRecommendationsPage
+                lang={lang}
+                ladder={catalogs.song_ladder}
+                library={catalogs.song_library}
+                settings={settings}
+                onRefresh={loadAll}
+                onOpenLibrary={() => switchTab("songs")}
+                setMessage={(msg) => notify(msg, "success")}
+              />
+            </Suspense>
           ) : null}
           {tab === "sessions" ? <SessionsPage lang={lang} settings={settings} notify={notify} onRefresh={loadAll} /> : null}
           {tab === "review" ? (
-            <ReviewPage
-              lang={lang}
-              refreshToken={hud.total_xp}
-              catalogs={{
-                song_library: catalogs.song_library,
-                drill_library: catalogs.drill_library,
-              }}
-            />
+            <Suspense fallback={lazyPageFallback}>
+              <LazyReviewPage
+                lang={lang}
+                refreshToken={hud.total_xp}
+                catalogs={{
+                  song_library: catalogs.song_library,
+                  drill_library: catalogs.drill_library,
+                }}
+              />
+            </Suspense>
           ) : null}
-          {tab === "xp" ? <XPPage lang={lang} refreshToken={hud.total_xp} settings={settings} onSettingsChange={setSettings} /> : null}
+          {tab === "xp" ? (
+            <Suspense fallback={lazyPageFallback}>
+              <LazyXPPage lang={lang} refreshToken={hud.total_xp} settings={settings} onSettingsChange={setSettings} />
+            </Suspense>
+          ) : null}
           {tab === "quests" ? (
-            <QuestsPage
-              lang={lang}
-              notify={notify}
-              onRefresh={loadAll}
-              onQuestClaimed={(quest) => onQuestClaimed(quest.title || (lang === "ko" ? "퀘스트" : "Quest"))}
-            />
+            <Suspense fallback={lazyPageFallback}>
+              <LazyQuestsPage
+                lang={lang}
+                notify={notify}
+                onRefresh={loadAll}
+                onQuestClaimed={(quest) => onQuestClaimed(quest.title || (lang === "ko" ? "퀘스트" : "Quest"))}
+              />
+            </Suspense>
           ) : null}
           {tab === "achievements" ? (
-            <AchievementsPage
-              lang={lang}
-              settings={settings}
-              items={achievements}
-              onRefresh={loadAll}
-              setMessage={(msg) => notify(msg, "success")}
-              onAchievementClaimed={onAchievementClaimed}
-            />
+            <Suspense fallback={lazyPageFallback}>
+              <LazyAchievementsPage
+                lang={lang}
+                settings={settings}
+                items={achievements}
+                onRefresh={loadAll}
+                setMessage={(msg) => notify(msg, "success")}
+                onAchievementClaimed={onAchievementClaimed}
+              />
+            </Suspense>
           ) : null}
           {tab === "songs" ? (
-            <SongsPage
-              lang={lang}
-              items={catalogs.song_library}
-              ladder={catalogs.song_ladder}
-              settings={settings}
-              onSettingsChange={setSettings}
-              onRefresh={loadAll}
-              setMessage={(msg) => notify(msg, "success")}
-            />
+            <Suspense fallback={lazyPageFallback}>
+              <LazySongsPage
+                lang={lang}
+                items={catalogs.song_library}
+                ladder={catalogs.song_ladder}
+                settings={settings}
+                onSettingsChange={setSettings}
+                onRefresh={loadAll}
+                setMessage={(msg) => notify(msg, "success")}
+              />
+            </Suspense>
           ) : null}
           {tab === "drills" ? (
-            <DrillLibraryPage
-              lang={lang}
-              items={catalogs.drill_library}
-              backingTracks={catalogs.backing_tracks}
-              onRefresh={loadAll}
-              setMessage={(msg) => notify(msg, "success")}
-            />
+            <Suspense fallback={lazyPageFallback}>
+              <LazyDrillLibraryPage
+                lang={lang}
+                items={catalogs.drill_library}
+                backingTracks={catalogs.backing_tracks}
+                onRefresh={loadAll}
+                setMessage={(msg) => notify(msg, "success")}
+              />
+            </Suspense>
           ) : null}
           {tab === "gallery" ? (
-            <GalleryPage
-              lang={lang}
-              catalogs={catalogs}
-              settings={settings}
-              onSettingsChange={setSettings}
-              onRefresh={loadAll}
-              setMessage={(msg) => notify(msg, "success")}
-            />
+            <Suspense fallback={lazyPageFallback}>
+              <LazyGalleryPage
+                lang={lang}
+                catalogs={catalogs}
+                settings={settings}
+                onSettingsChange={setSettings}
+                onRefresh={loadAll}
+                setMessage={(msg) => notify(msg, "success")}
+              />
+            </Suspense>
           ) : null}
           {tab === "settings" ? (
-            <SettingsPage
-              lang={lang}
-              settings={settings}
-              hud={hud}
-              unlockables={unlockables}
-              onSettingsChange={setSettings}
-              setMessage={(msg) => notify(msg, "success")}
-              onRefresh={loadAll}
-            />
+            <Suspense fallback={lazyPageFallback}>
+              <LazySettingsPage
+                lang={lang}
+                settings={settings}
+                hud={hud}
+                unlockables={unlockables}
+                onSettingsChange={setSettings}
+                setMessage={(msg) => notify(msg, "success")}
+                onRefresh={refreshSettingsPage}
+              />
+            </Suspense>
           ) : null}
 
           <SessionStopModal
