@@ -5254,12 +5254,13 @@ textarea {
 .achievement-tile::before {
   content: "";
   position: absolute;
-  left: 0;
-  right: 0;
-  top: 0;
-  height: 3px;
-  background: linear-gradient(90deg, color-mix(in srgb, var(--tile-accent) 62%, #fff), transparent 78%);
-  opacity: 0.88;
+  left: 12px;
+  right: 12px;
+  top: 9px;
+  height: 1px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, color-mix(in srgb, var(--tile-accent) 34%, #fff), transparent 74%);
+  opacity: 0.42;
   pointer-events: none;
 }
 

@@ -51,6 +51,8 @@ This exports the current runtime state as a self-contained dataset:
 - current CSV data
 - generated 60-day session history
 - referenced media copied into `media/`
+- `data/achievements_master.csv` with achievement admin edits
+- `data/events.csv` including achievement unlocked/claimed state
 
 Saved path:
 
@@ -58,6 +60,21 @@ Saved path:
 - EXE run: `dist/BASSOS/bassos/_internal/designPack/mock_datasets/<dataset_id>/`
 
 If you exported while using EXE and want that dataset in the next source build, copy the entire dataset folder into project `designPack/mock_datasets/`.
+
+### Achievement-specific notes
+
+- Achievement admin edits are saved in:
+  - `designPack/mock_datasets/<dataset_id>/data/achievements_master.csv`
+- Achievement unlocked/claimed state is saved in:
+  - `designPack/mock_datasets/<dataset_id>/data/events.csv`
+- If you exported from EXE, the same files will be under:
+  - `dist/BASSOS/bassos/_internal/designPack/mock_datasets/<dataset_id>/data/`
+
+If you want to reuse the full state later, keep the entire dataset folder and activate that dataset again.
+
+If you only want to promote achievement definitions as the new default source data, copy:
+
+- `data/achievements_master.csv` -> `designPack/data/achievements_master.csv`
 
 ## Promote as Default Mock
 

@@ -2564,8 +2564,8 @@ export function SettingsPage({ lang, settings, hud, unlockables, onSettingsChang
                     setSelectedMockDataset(result.dataset_id);
                     setMessage(
                       lang === "ko"
-                        ? `샌드박스 데이터셋 저장 완료: ${result.dataset_id} (${result.generated_sessions}개 세션 / 미디어 ${result.media_file_count}개)`
-                        : `Sandbox dataset exported: ${result.dataset_id} (${result.generated_sessions} sessions / ${result.media_file_count} media files)`
+                        ? `샌드박스 데이터셋 저장 완료: ${result.dataset_id} (${result.generated_sessions}개 세션 / 미디어 ${result.media_file_count}개 / 업적 정의·상태 포함)`
+                        : `Sandbox dataset exported: ${result.dataset_id} (${result.generated_sessions} sessions / ${result.media_file_count} media files / achievements included)`
                     );
                   } finally {
                     setMockExportBusy(false);
@@ -2582,6 +2582,16 @@ export function SettingsPage({ lang, settings, hud, unlockables, onSettingsChang
             </small>
             <small className="muted">
               {lang === "ko"
+                ? "업적 관리자 수정 내용은 data/achievements_master.csv 로 같이 저장됩니다. 이름/설명/조건/아이콘 수정이 모두 포함됩니다."
+                : "Achievement admin edits are exported together in data/achievements_master.csv, including names, descriptions, rules, and icons."}
+            </small>
+            <small className="muted">
+              {lang === "ko"
+                ? "업적 달성/수령 상태는 data/events.csv 에 같이 저장됩니다. 같은 dataset을 다시 켜면 그 상태도 따라옵니다."
+                : "Achievement unlocked/claimed state is stored in data/events.csv and comes back when you activate the same dataset again."}
+            </small>
+            <small className="muted">
+              {lang === "ko"
                 ? "소스 실행 저장 위치: designPack/mock_datasets/<dataset_id>/"
                 : "Source run export path: designPack/mock_datasets/<dataset_id>/"}
             </small>
@@ -2594,6 +2604,11 @@ export function SettingsPage({ lang, settings, hud, unlockables, onSettingsChang
               {lang === "ko"
                 ? "기본 shipped mock로 올릴 때는 designPack/mock_datasets/realistic_mix_8w/ 폴더 내용을 교체하세요. app/profiles/mock 는 런타임 결과물입니다."
                 : "To promote it as the shipped default mock, replace designPack/mock_datasets/realistic_mix_8w/. app/profiles/mock is runtime output only."}
+            </small>
+            <small className="muted">
+              {lang === "ko"
+                ? "업적 정의만 기본값으로 반영하고 싶으면 exported dataset의 data/achievements_master.csv 를 designPack/data/achievements_master.csv 로 복사하세요."
+                : "If you only want to promote achievement definitions, copy exported data/achievements_master.csv into designPack/data/achievements_master.csv."}
             </small>
           </>,
           { lowEmphasis: true }
