@@ -57,10 +57,12 @@ RULE_TYPE_OPTIONS = [
 
 DEFAULT_EVENT_TYPES = [
     "SESSION",
+    "QUEST_CLAIM",
     "LONG_GOAL_CLEAR",
     "ACHIEVEMENT_CLAIM",
     "GALLERY_UPLOAD",
     "ADMIN_ADJUST",
+    "MINIGAME_PLAY",
 ]
 
 DEFAULT_DISTINCT_FIELDS = [
@@ -73,6 +75,9 @@ DEFAULT_DISTINCT_FIELDS = [
     "source",
     "title",
     "evidence_type",
+    "minigame.game",
+    "minigame.mode",
+    "minigame.difficulty",
 ]
 
 CONDITION_OPS = ["eq", "ne", "gt", "gte", "lt", "lte", "contains", "in", "not_in", "exists", "not_exists"]
@@ -106,6 +111,14 @@ DEFAULT_CONDITION_FIELDS = [
     "quest.genres",
     "quest.linked_song_ids",
     "quest.linked_drill_ids",
+    "minigame.game",
+    "minigame.mode",
+    "minigame.difficulty",
+    "minigame.score",
+    "minigame.correct",
+    "minigame.wrong",
+    "minigame.accuracy",
+    "minigame.problems",
 ]
 
 DRILL_TAXONOMY_TAGS = [
@@ -178,6 +191,14 @@ FIELD_TYPE_META: dict[str, str] = {
     "quest.genres": "list",
     "quest.linked_song_ids": "list",
     "quest.linked_drill_ids": "list",
+    "minigame.game": "enum",
+    "minigame.mode": "enum",
+    "minigame.difficulty": "enum",
+    "minigame.score": "number",
+    "minigame.correct": "number",
+    "minigame.wrong": "number",
+    "minigame.accuracy": "number",
+    "minigame.problems": "number",
 }
 
 FIELD_LABEL_META: dict[str, dict[str, Any]] = {
@@ -210,6 +231,14 @@ FIELD_LABEL_META: dict[str, dict[str, Any]] = {
     "quest.genres": {"label": "퀘스트 장르 목록", "desc": "QUEST_CLAIM meta.quest.genres"},
     "quest.linked_song_ids": {"label": "퀘스트 연동 곡 IDs", "desc": "QUEST_CLAIM meta.quest.linked_song_ids"},
     "quest.linked_drill_ids": {"label": "퀘스트 연동 드릴 IDs", "desc": "QUEST_CLAIM meta.quest.linked_drill_ids"},
+    "minigame.game": {"label": "미니게임 종류", "desc": "MINIGAME_PLAY meta.minigame.game"},
+    "minigame.mode": {"label": "미니게임 모드", "desc": "MINIGAME_PLAY meta.minigame.mode"},
+    "minigame.difficulty": {"label": "미니게임 난이도", "desc": "MINIGAME_PLAY meta.minigame.difficulty"},
+    "minigame.score": {"label": "미니게임 점수", "desc": "MINIGAME_PLAY meta.minigame.score"},
+    "minigame.correct": {"label": "미니게임 정답 수", "desc": "MINIGAME_PLAY meta.minigame.correct"},
+    "minigame.wrong": {"label": "미니게임 오답 수", "desc": "MINIGAME_PLAY meta.minigame.wrong"},
+    "minigame.accuracy": {"label": "미니게임 정확도", "desc": "MINIGAME_PLAY meta.minigame.accuracy"},
+    "minigame.problems": {"label": "미니게임 문제 수", "desc": "MINIGAME_PLAY meta.minigame.problems"},
 }
 
 RULE_TYPE_META: dict[str, dict[str, str]] = {
@@ -686,6 +715,7 @@ def _collect_achievement_rule_options(storage: Storage) -> dict[str, Any]:
     achievements = storage.read_csv("achievements_master.csv")
     songs = storage.read_csv("song_library.csv")
     drills = storage.read_csv("drill_library.csv")
+    events = storage.read_csv("events.csv")
 
     rule_types = set(RULE_TYPE_OPTIONS)
     event_types = {token.upper() for token in DEFAULT_EVENT_TYPES}
@@ -720,6 +750,14 @@ def _collect_achievement_rule_options(storage: Storage) -> dict[str, Any]:
         "quest.genres": set(),
         "quest.linked_song_ids": set(),
         "quest.linked_drill_ids": set(),
+        "minigame.game": {"FBH", "RC", "LM"},
+        "minigame.mode": {"PRACTICE", "CHALLENGE"},
+        "minigame.difficulty": {"EASY", "NORMAL", "HARD", "VERY_HARD", "MASTER"},
+        "minigame.score": set(),
+        "minigame.correct": set(),
+        "minigame.wrong": set(),
+        "minigame.accuracy": set(),
+        "minigame.problems": set(),
     }
 
     def _collect_fields_from_tree(node: Any) -> None:
@@ -769,6 +807,34 @@ def _collect_achievement_rule_options(storage: Storage) -> dict[str, Any]:
         _collect_fields_from_tree(rule_filter.get("condition_tree"))
 
     feature_values["event_type"].update(event_types)
+
+    for row in events:
+        event_type = str(row.get("event_type") or "").strip().upper()
+        if event_type:
+            event_types.add(event_type)
+            feature_values["event_type"].add(event_type)
+        source = str(row.get("source") or "").strip().lower()
+        if source:
+            feature_values["source"].add(source)
+        evidence_type = str(row.get("evidence_type") or "").strip().lower()
+        if evidence_type:
+            feature_values["evidence_type"].add(evidence_type)
+        for token in _split_csv_tags(str(row.get("tags") or "")):
+            if token:
+                feature_values["tags"].add(token)
+                tags.add(token)
+        meta = _parse_json_dict(row.get("meta_json"))
+        minigame_meta = meta.get("minigame")
+        if isinstance(minigame_meta, dict):
+            for key in ("game", "mode", "difficulty"):
+                token = str(minigame_meta.get(key) or "").strip().upper()
+                if token:
+                    feature_values[f"minigame.{key}"].add(token)
+            for key in ("score", "correct", "wrong", "accuracy", "problems"):
+                value = minigame_meta.get(key)
+                if value is None:
+                    continue
+                feature_values[f"minigame.{key}"].add(str(value))
 
     for row in songs:
         for key, field in (
@@ -833,6 +899,19 @@ def _collect_achievement_rule_options(storage: Storage) -> dict[str, Any]:
         {"group": "시간 파생", "fields": ["event.hour_local", "event.weekday", "event.month", "event.is_weekend"]},
         {"group": "곡 feature", "fields": ["song.genre", "song.status", "song.artist", "song.title", "song.mood"]},
         {"group": "드릴 feature", "fields": ["drill.area", "drill.name", "drill.tags"]},
+        {
+            "group": "미니게임 meta",
+            "fields": [
+                "minigame.game",
+                "minigame.mode",
+                "minigame.difficulty",
+                "minigame.score",
+                "minigame.correct",
+                "minigame.wrong",
+                "minigame.accuracy",
+                "minigame.problems",
+            ],
+        },
         {
             "group": "퀘스트 meta",
             "fields": [
@@ -2341,4 +2420,3 @@ def onboarding_complete() -> Response:
         audio["enabled"] = bool(payload.get("audio_enabled"))
     storage.write_json("settings.json", settings)
     return jsonify({"ok": True, "settings": settings})
-

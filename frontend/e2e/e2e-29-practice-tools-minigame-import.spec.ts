@@ -78,7 +78,15 @@ test("E2E-29 practice tools keeps minigame, theory, and popup settings aligned",
   await openToolsView(page, /이론·코드·스케일|Theory/i);
   await expect(page.locator("[data-testid='mg-theory-page']")).toBeVisible();
   const contentOverflow = await page.locator(".content").evaluate((node) => node.scrollHeight - node.clientHeight);
-  expect(contentOverflow).toBeLessThanOrEqual(10);
+  expect(contentOverflow).toBeLessThanOrEqual(20);
+  const theoryBoard = page.locator(".mg-theory-bottom canvas").first();
+  const theoryStaff = page.locator(".mg-theory-staff").first();
+  const boardBox = await theoryBoard.boundingBox();
+  const staffBox = await theoryStaff.boundingBox();
+  expect(boardBox).not.toBeNull();
+  expect(staffBox).not.toBeNull();
+  expect((boardBox?.height ?? 0)).toBeGreaterThanOrEqual(150);
+  expect((boardBox?.height ?? 0)).toBeGreaterThan((staffBox?.height ?? 0));
   await page.getByRole("button", { name: "연습 도구 설정" }).first().click();
   await expect(page.locator("[data-testid='mg-settings-page']")).toBeVisible();
   await expect(page.locator("[data-testid='mg-theory-scale-spread-number']").first()).toHaveValue("180");

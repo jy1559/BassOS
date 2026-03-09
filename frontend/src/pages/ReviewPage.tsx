@@ -5,6 +5,8 @@ import { RecordTabHeader } from "../components/records/RecordTabHeader";
 import { buildRecordPeriodWindow, createDefaultRecordPeriodState, inRecordPeriodWindow } from "../components/records/recordPeriod";
 import { buildGenreGroups, collectGenrePool, parseGenreTokens } from "../genreCatalog";
 import type { Lang } from "../i18n";
+import { getRecords as getMinigameRecords } from "../practiceTools/minigame/api";
+import type { MinigameRecord } from "../practiceTools/minigame/types";
 import type { RecordPeriodState, RecordPost, SessionItem } from "../types/models";
 
 type Props = {
@@ -19,6 +21,7 @@ type Props = {
 type DistMetric = "duration" | "count";
 type ChartType = "bar" | "pie";
 type RowValue = { key: string; label: string; value: number; color?: string };
+type MinigameModeFilter = "ALL" | "PRACTICE" | "CHALLENGE";
 type SongDrillCardKey =
   | "song_title"
   | "song_purpose"
@@ -50,6 +53,12 @@ const CHART_THEME_COLORS = [
   "color-mix(in srgb, var(--accent) 46%, #92a141)",
   "color-mix(in srgb, var(--accent) 48%, #7f8fb4)",
 ];
+const MINIGAME_ORDER = ["FBH", "RC", "LM"] as const;
+const MINIGAME_TITLE: Record<(typeof MINIGAME_ORDER)[number], string> = {
+  FBH: "Fretboard Hunt",
+  RC: "Rhythm Copy",
+  LM: "Line Mapper",
+};
 
 function genreGroupColor(groupName: string): string {
   const key = normalizeLower(groupName);
@@ -127,6 +136,40 @@ function formatDateTimeCompact(input: string, lang: Lang): string {
 function safePct(numerator: number, denominator: number): number {
   if (!Number.isFinite(numerator) || !Number.isFinite(denominator) || denominator <= 0) return 0;
   return Math.round((numerator / denominator) * 1000) / 10;
+}
+
+function toNumeric(value: unknown): number {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function minigameCorrectCount(record: MinigameRecord): number {
+  const payload = record.detail_json ?? {};
+  if (record.game === "FBH") return Math.max(0, Math.floor(toNumeric(payload.correct ?? payload.hits)));
+  if (record.game === "RC") return Math.max(0, Math.floor(toNumeric(payload.correct ?? (toNumeric(payload.perfect) + toNumeric(payload.good)))));
+  return Math.max(0, Math.floor(toNumeric(payload.correct)));
+}
+
+function minigameWrongCount(record: MinigameRecord): number {
+  const payload = record.detail_json ?? {};
+  if (record.game === "FBH") {
+    const attempts = Math.max(0, Math.floor(toNumeric(payload.attempts)));
+    const correct = minigameCorrectCount(record);
+    return Math.max(0, Math.floor(toNumeric(payload.wrong ?? attempts - correct)));
+  }
+  if (record.game === "RC") return Math.max(0, Math.floor(toNumeric(payload.wrong ?? payload.miss)));
+  const attempts = Math.max(0, Math.floor(toNumeric(payload.attempts)));
+  const correct = minigameCorrectCount(record);
+  return Math.max(0, Math.floor(toNumeric(payload.wrong ?? attempts - correct)));
+}
+
+function formatDistributionList(entries: Array<[string, number]>, lang: Lang): string {
+  const total = entries.reduce((sum, [, value]) => sum + value, 0);
+  if (total <= 0) return lang === "ko" ? "데이터 없음" : "No data";
+  return entries
+    .sort((a, b) => b[1] - a[1])
+    .map(([key, value]) => `${key} ${value}${lang === "ko" ? "회" : ""} (${safePct(value, total)}%)`)
+    .join(" · ");
 }
 
 function groupedStatus(status: string): "before" | "progress" | "done" | "other" {
@@ -320,6 +363,7 @@ export function ReviewPage({ lang, refreshToken, catalogs }: Props) {
   const [periodState, setPeriodState] = useState<RecordPeriodState>(() => createDefaultRecordPeriodState());
   const [sessions, setSessions] = useState<SessionItem[]>([]);
   const [records, setRecords] = useState<RecordPost[]>([]);
+  const [minigameRecords, setMinigameRecords] = useState<MinigameRecord[]>([]);
   const [loading, setLoading] = useState(false);
   const [distMetric, setDistMetric] = useState<DistMetric>("duration");
   const [practiceChart, setPracticeChart] = useState<ChartType>("bar");
@@ -327,6 +371,7 @@ export function ReviewPage({ lang, refreshToken, catalogs }: Props) {
   const [songDrillChart, setSongDrillChart] = useState<ChartType>("bar");
   const [songStatusMode, setSongStatusMode] = useState<"group" | "detail">("group");
   const [songGenreMode, setSongGenreMode] = useState<"major" | "minor">("major");
+  const [minigameMode, setMinigameMode] = useState<MinigameModeFilter>("ALL");
   const [recordChart, setRecordChart] = useState<ChartType>("bar");
 
   const periodWindow = useMemo(() => buildRecordPeriodWindow(periodState, lang), [periodState, lang]);
@@ -336,10 +381,15 @@ export function ReviewPage({ lang, refreshToken, catalogs }: Props) {
     const load = async () => {
       setLoading(true);
       try {
-        const [sessionRows, recordRows] = await Promise.all([getSessions(2400), getRecords({ limit: 1200 })]);
+        const [sessionRows, recordRows, minigameRows] = await Promise.all([
+          getSessions(2400),
+          getRecords({ limit: 1200 }),
+          getMinigameRecords({ limit: 5000, mode: "ALL" }),
+        ]);
         if (!alive) return;
         setSessions(sessionRows);
         setRecords(recordRows);
+        setMinigameRecords(minigameRows);
       } finally {
         if (alive) setLoading(false);
       }
@@ -358,6 +408,14 @@ export function ReviewPage({ lang, refreshToken, catalogs }: Props) {
   const scopedRecords = useMemo(
     () => records.filter((row) => inRecordPeriodWindow(row.created_at, periodWindow)),
     [records, periodWindow]
+  );
+  const scopedMinigameRecords = useMemo(
+    () => minigameRecords.filter((row) => inRecordPeriodWindow(row.created_at, periodWindow)),
+    [minigameRecords, periodWindow]
+  );
+  const filteredMinigameRecords = useMemo(
+    () => (minigameMode === "ALL" ? scopedMinigameRecords : scopedMinigameRecords.filter((row) => row.mode === minigameMode)),
+    [minigameMode, scopedMinigameRecords]
   );
 
   const songMap = useMemo(() => {
@@ -666,6 +724,40 @@ export function ReviewPage({ lang, refreshToken, catalogs }: Props) {
     tags: lang === "ko" ? "태그별 분포" : "Tags",
     free: lang === "ko" ? "자유 태그 분포" : "Free Tags",
   };
+  const minigameCards = useMemo(
+    () =>
+      MINIGAME_ORDER.map((game) => {
+        const rows = filteredMinigameRecords.filter((row) => row.game === game);
+        const scopedRows = scopedMinigameRecords.filter((row) => row.game === game);
+        const practiceCount = scopedRows.filter((row) => row.mode === "PRACTICE").length;
+        const challengeCount = scopedRows.filter((row) => row.mode === "CHALLENGE").length;
+        const correct = rows.reduce((sum, row) => sum + minigameCorrectCount(row), 0);
+        const wrong = rows.reduce((sum, row) => sum + minigameWrongCount(row), 0);
+        const challengeRows = rows.filter((row) => row.mode === "CHALLENGE");
+        const averageScore = challengeRows.length ? Math.round((challengeRows.reduce((sum, row) => sum + Math.max(0, row.score), 0) / challengeRows.length) * 10) / 10 : 0;
+        const bestScore = challengeRows.length ? Math.max(...challengeRows.map((row) => Math.max(0, row.score))) : 0;
+        const xpTotal = rows.reduce((sum, row) => sum + Math.max(0, Number(row.xp_awarded ?? 0)), 0);
+        const difficultyMap = new Map<string, number>();
+        rows.forEach((row) => {
+          const key = String(row.difficulty || "").trim().toUpperCase() || "UNKNOWN";
+          difficultyMap.set(key, (difficultyMap.get(key) ?? 0) + 1);
+        });
+        return {
+          game,
+          title: MINIGAME_TITLE[game],
+          totalPlays: rows.length,
+          practiceCount,
+          challengeCount,
+          correct,
+          wrong,
+          averageScore,
+          bestScore,
+          xpTotal,
+          difficultyText: formatDistributionList(Array.from(difficultyMap.entries()), lang),
+        };
+      }),
+    [filteredMinigameRecords, lang, scopedMinigameRecords]
+  );
   const hourMax = Math.max(1, ...practiceDist.hourRows.map((row) => row.value));
 
   return (
@@ -922,6 +1014,87 @@ export function ReviewPage({ lang, refreshToken, catalogs }: Props) {
                 </div>
               </article>
             ))}
+          </div>
+        </div>
+      </details>
+
+      <details className="card review-toggle-section" data-testid="review-toggle-minigame">
+        <summary>{lang === "ko" ? "미니게임 분포" : "Minigame Distribution"}</summary>
+        <div className="review-toggle-body">
+          <div className="review-control-grid review-minigame-control-grid">
+            <label>
+              {lang === "ko" ? "모드 필터" : "Mode Filter"}
+              <div className="switch-row">
+                <button className={`ghost-btn ${minigameMode === "ALL" ? "active-mini" : ""}`} data-testid="review-minigame-filter-all" onClick={() => setMinigameMode("ALL")}>
+                  {lang === "ko" ? "전체" : "All"}
+                </button>
+                <button className={`ghost-btn ${minigameMode === "PRACTICE" ? "active-mini" : ""}`} data-testid="review-minigame-filter-practice" onClick={() => setMinigameMode("PRACTICE")}>
+                  {lang === "ko" ? "연습" : "Practice"}
+                </button>
+                <button className={`ghost-btn ${minigameMode === "CHALLENGE" ? "active-mini" : ""}`} data-testid="review-minigame-filter-challenge" onClick={() => setMinigameMode("CHALLENGE")}>
+                  {lang === "ko" ? "점수" : "Challenge"}
+                </button>
+              </div>
+            </label>
+          </div>
+
+          <div className="review-minigame-grid">
+            {minigameCards.map((card) => {
+              const totalAnswers = card.correct + card.wrong;
+              const answerRatio =
+                totalAnswers > 0
+                  ? `${lang === "ko" ? "정답" : "Correct"} ${card.correct} (${safePct(card.correct, totalAnswers)}%) / ${lang === "ko" ? "오답" : "Wrong"} ${card.wrong} (${safePct(card.wrong, totalAnswers)}%)`
+                  : lang === "ko"
+                    ? "정/오답 데이터 없음"
+                    : "No answer data";
+              const modeRatioTotal = card.practiceCount + card.challengeCount;
+              const modeRatio =
+                modeRatioTotal > 0
+                  ? `${lang === "ko" ? "연습" : "Practice"} ${card.practiceCount} (${safePct(card.practiceCount, modeRatioTotal)}%) / ${lang === "ko" ? "점수" : "Challenge"} ${card.challengeCount} (${safePct(card.challengeCount, modeRatioTotal)}%)`
+                  : lang === "ko"
+                    ? "플레이 데이터 없음"
+                    : "No play data";
+              const challengeScore =
+                card.bestScore > 0 || card.averageScore > 0
+                  ? `${lang === "ko" ? "평균" : "Avg"} ${card.averageScore} / ${lang === "ko" ? "최고" : "Best"} ${card.bestScore}`
+                  : "-";
+              return (
+                <article className="review-subcard review-minigame-card" key={card.game} data-testid={`review-minigame-card-${card.game}`}>
+                  <div className="review-minigame-card-head">
+                    <h3>{card.title}</h3>
+                    <span className="review-minigame-badge">{card.totalPlays}{lang === "ko" ? "회" : ""}</span>
+                  </div>
+                  <div className="review-minigame-stat-grid">
+                    <div>
+                      <span>{lang === "ko" ? "총 플레이" : "Total Plays"}</span>
+                      <strong>{card.totalPlays}</strong>
+                    </div>
+                    <div>
+                      <span>{lang === "ko" ? "누적 XP" : "Total XP"}</span>
+                      <strong>{card.xpTotal}</strong>
+                    </div>
+                    <div>
+                      <span>{lang === "ko" ? "점수모드 평균/최고" : "Challenge Avg/Best"}</span>
+                      <strong>{challengeScore}</strong>
+                    </div>
+                  </div>
+                  <div className="review-minigame-info-list">
+                    <div>
+                      <span>{lang === "ko" ? "연습/점수모드 비율" : "Practice/Challenge Ratio"}</span>
+                      <strong>{modeRatio}</strong>
+                    </div>
+                    <div>
+                      <span>{lang === "ko" ? "정/오답 비율" : "Correct/Wrong Ratio"}</span>
+                      <strong>{answerRatio}</strong>
+                    </div>
+                    <div>
+                      <span>{lang === "ko" ? "난이도 비율" : "Difficulty Ratio"}</span>
+                      <strong>{card.difficultyText}</strong>
+                    </div>
+                  </div>
+                </article>
+              );
+            })}
           </div>
         </div>
       </details>

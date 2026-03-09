@@ -99,3 +99,32 @@ def test_player_xp_window_invalid_query_returns_400(tmp_path):
 
   bad_anchor = client.get("/api/player/xp-window?scope=period&period_unit=week&anchor=2026-99-99")
   assert bad_anchor.status_code == 400
+
+
+def test_player_xp_window_includes_minigame_source(tmp_path):
+  root = _prepare_temp_root(tmp_path)
+  app = create_app(root)
+  client = app.test_client()
+
+  create = client.post(
+    "/api/minigame/records",
+    json={
+      "game": "LM",
+      "mode": "PRACTICE",
+      "difficulty": "EASY",
+      "score": 8,
+      "accuracy": 71.4,
+      "seed": "2026-03-01",
+      "duration_sec": 55,
+      "share_text": "LM|PRACTICE|EASY|CORRECT=5|SEED=2026-03-01",
+      "detail_json": {"attempts": 7, "correct": 5, "wrong": 2},
+    },
+  )
+  assert create.status_code == 200
+  assert create.get_json()["xp_awarded"] == 3
+
+  res = client.get("/api/player/xp-window?scope=recent&recent_days=7")
+  assert res.status_code == 200
+  payload = res.get_json()["window"]
+  source_keys = {str(row.get("key") or "").lower() for row in payload["xp_sources"]}
+  assert "minigame" in source_keys

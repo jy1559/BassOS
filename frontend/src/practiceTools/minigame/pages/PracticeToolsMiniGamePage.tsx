@@ -67,11 +67,6 @@ const diffColorClass: Record<string, string> = {
   MASTER: "is-master",
 };
 
-function buildShareText(game: GameId, difficulty: string, score: number, accuracy: number, seed: string): string {
-  if (game === "RC") return `RC|CHALLENGE|${difficulty}|SCORE=${score}|ACC=${Math.round(accuracy)}%|SEED=${seed}`;
-  return `${game}|CHALLENGE|${difficulty}|SCORE=${score}|SEED=${seed}`;
-}
-
 function mergedDifficultyList(config: MinigameConfig | null, game: GameId): string[] {
   const fromConfig = config?.difficulties?.[game] ?? [];
   const merged = Array.from(new Set([...fromConfig, ...RC_DIFFICULTIES]));
@@ -207,6 +202,41 @@ function recordWrongCount(record: MinigameRecord): number {
   return Math.max(0, valueNumber(payload.wrong, valueNumber(payload.miss, 0)));
 }
 
+function practiceProblemCount(game: GameId, metrics: GameMetrics): number {
+  const detail = (metrics.detail ?? {}) as Record<string, unknown>;
+  if (game === "FBH") return Math.max(0, Math.floor(valueNumber(detail.attempts, 0)));
+  if (game === "RC") return Math.max(0, Math.floor(valueNumber(detail.practiced_patterns, valueNumber(detail.problems, 0))));
+  return Math.max(0, Math.floor(valueNumber(detail.attempts, valueNumber(detail.problems, 0))));
+}
+
+function hasMeaningfulPracticeMetrics(game: GameId, metrics: GameMetrics): boolean {
+  if (game === "LM") {
+    const detail = (metrics.detail ?? {}) as Record<string, unknown>;
+    return Math.max(0, Math.floor(valueNumber(detail.attempts, 0))) > 0;
+  }
+  return practiceProblemCount(game, metrics) > 0;
+}
+
+function buildRunShareText(game: GameId, mode: GameMode, difficulty: string, metrics: GameMetrics, seed: string): string {
+  const score = Math.round(metrics.score || 0);
+  const accuracy = Number(metrics.accuracy || 0);
+  const detail = (metrics.detail ?? {}) as Record<string, unknown>;
+  if (mode === "CHALLENGE") {
+    if (game === "RC") return `RC|CHALLENGE|${difficulty}|SCORE=${score}|ACC=${Math.round(accuracy)}%|SEED=${seed}`;
+    return `${game}|CHALLENGE|${difficulty}|SCORE=${score}|SEED=${seed}`;
+  }
+  if (game === "FBH") return `FBH|PRACTICE|${difficulty}|ATT=${Math.floor(valueNumber(detail.attempts, 0))}|SEED=${seed}`;
+  if (game === "RC") {
+    return `RC|PRACTICE|${difficulty}|PATTERNS=${Math.floor(valueNumber(detail.practiced_patterns, valueNumber(detail.problems, 0)))}|ACC=${Math.round(accuracy)}%|SEED=${seed}`;
+  }
+  return `LM|PRACTICE|${difficulty}|CORRECT=${Math.floor(valueNumber(detail.correct, 0))}|SEED=${seed}`;
+}
+
+function saveStatusLabel(mode: GameMode, xpAwarded: number): string {
+  const xpLine = xpAwarded > 0 ? ` · +${xpAwarded} XP` : "";
+  return mode === "PRACTICE" ? `연습 기록 저장 완료${xpLine}` : `기록 저장 완료${xpLine}`;
+}
+
 export function PracticeToolsMiniGamePage({ selectedGame, onSelectGame, onBackToHub, userSettings, onUserSettingsChange, onOpenUtilityTab }: Props) {
   const [config, setConfig] = useState<MinigameConfig | null>(null);
   const [loading, setLoading] = useState(true);
@@ -249,6 +279,7 @@ export function PracticeToolsMiniGamePage({ selectedGame, onSelectGame, onBackTo
   const [settingsDraft, setSettingsDraft] = useState<MinigameUserSettings | null>(null);
   const [deletingRecordId, setDeletingRecordId] = useState("");
 
+  const mountedRef = useRef(true);
   const activeGame: GameId = selectedGame ?? "FBH";
   const currentMode = modeByGame[activeGame];
   const currentView = viewByGame[activeGame];
@@ -266,13 +297,20 @@ export function PracticeToolsMiniGamePage({ selectedGame, onSelectGame, onBackTo
   const rhythmWindows = { ...(config?.rhythm_windows_ms ?? {}), ...userSettings.rhythm.windowsMs };
   const moveViewFor = (game: GameId, next: TabView) => setViewByGame((prev) => ({ ...prev, [game]: next }));
   const moveView = (next: TabView) => moveViewFor(activeGame, next);
+  const modeByGameRef = useRef(modeByGame);
+  const viewByGameRef = useRef(viewByGame);
+  const difficultyByGameRef = useRef(difficultyByGame);
+  const practiceRunTokenRef = useRef<Record<GameId, number>>({ FBH: 0, RC: 0, LM: 0 });
+  const settledPracticeTokenRef = useRef<Record<GameId, number>>({ FBH: 0, RC: 0, LM: 0 });
+  const practiceStartedAtRef = useRef<Record<GameId, number>>({ FBH: 0, RC: 0, LM: 0 });
+  const previousSelectedGameRef = useRef<GameId | null>(selectedGame);
 
   const refreshDashboard = async (game: GameId, diff: string, period: RecordPeriod) => {
     setLoadingDashboard(true);
     try {
       const [top, stat] = await Promise.all([
-        getLeaderboard({ game, difficulty: diff || "ALL", period, limit: 20 }),
-        getStats({ game, difficulty: diff || "ALL", period }),
+        getLeaderboard({ game, difficulty: diff || "ALL", mode: "CHALLENGE", period, limit: 20 }),
+        getStats({ game, difficulty: diff || "ALL", mode: "CHALLENGE", period }),
       ]);
       setLeaderboard(top);
       setStats(stat);
@@ -314,6 +352,22 @@ export function PracticeToolsMiniGamePage({ selectedGame, onSelectGame, onBackTo
   }, [metricsByGame]);
 
   useEffect(() => {
+    modeByGameRef.current = modeByGame;
+  }, [modeByGame]);
+
+  useEffect(() => {
+    viewByGameRef.current = viewByGame;
+  }, [viewByGame]);
+
+  useEffect(() => {
+    difficultyByGameRef.current = difficultyByGame;
+  }, [difficultyByGame]);
+
+  useEffect(() => () => {
+    mountedRef.current = false;
+  }, []);
+
+  useEffect(() => {
     const boot = async () => {
       setLoading(true);
       try {
@@ -338,18 +392,25 @@ export function PracticeToolsMiniGamePage({ selectedGame, onSelectGame, onBackTo
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [config, selectedGame, lbDiffByGame.FBH, lbDiffByGame.RC, lbDiffByGame.LM, periodByGame.FBH, periodByGame.RC, periodByGame.LM]);
 
-  const saveAndShowResult = async (game: GameId, metrics: GameMetrics, durationSec: number, reason: string) => {
+  const saveRecord = async (
+    game: GameId,
+    mode: GameMode,
+    metrics: GameMetrics,
+    durationSec: number,
+    reason: string,
+    options?: { openResult?: boolean }
+  ) => {
     const score = Math.round(metrics.score || 0);
     const accuracy = Number(metrics.accuracy || 0);
     const { correct, wrong } = extractCorrectWrong(game, metrics);
     const ratio = correct + wrong > 0 ? Number(((correct / (correct + wrong)) * 100).toFixed(1)) : 0;
-    const diff = difficultyByGame[game] || "EASY";
-    const share = buildShareText(game, diff, score, accuracy, seedText);
+    const diff = difficultyByGameRef.current[game] || "EASY";
+    const share = buildRunShareText(game, mode, diff, metrics, seedText);
     const detailPayload = { ...(metrics.detail ?? {}), reason, correct, wrong, ratio };
     try {
-      await postRecord({
+      const saved = await postRecord({
         game,
-        mode: "CHALLENGE",
+        mode,
         difficulty: diff,
         score,
         accuracy,
@@ -359,12 +420,63 @@ export function PracticeToolsMiniGamePage({ selectedGame, onSelectGame, onBackTo
         detail_json: detailPayload,
         source: "app",
       });
-      setStatusByGame((prev) => ({ ...prev, [game]: `기록 저장 완료: ${share}` }));
-      if (selectedGame === game) await refreshDashboard(game, lbDiffByGame[game], periodByGame[game]);
+      if (mountedRef.current) {
+        setStatusByGame((prev) => ({ ...prev, [game]: `${saveStatusLabel(mode, saved.xp_awarded ?? 0)}: ${share}` }));
+      }
+      if (options?.openResult && selectedGame === game) await refreshDashboard(game, lbDiffByGame[game], periodByGame[game]);
+      if (options?.openResult && mountedRef.current) {
+        setChallengeResult({
+          game,
+          score,
+          accuracy,
+          correct,
+          wrong,
+          ratio,
+          durationSec,
+          reason,
+          share,
+          detail: detailPayload,
+        });
+      }
     } catch (error) {
-      setStatusByGame((prev) => ({ ...prev, [game]: error instanceof Error ? error.message : "기록 저장 실패" }));
+      if (mountedRef.current) {
+        setStatusByGame((prev) => ({ ...prev, [game]: error instanceof Error ? error.message : "기록 저장 실패" }));
+      }
     }
-    setChallengeResult({ game, score, accuracy, correct, wrong, ratio, durationSec, reason, share, detail: detailPayload });
+  };
+
+  const saveAndShowResult = async (game: GameId, metrics: GameMetrics, durationSec: number, reason: string) => {
+    await saveRecord(game, "CHALLENGE", metrics, durationSec, reason, { openResult: true });
+  };
+
+  const startPracticeRun = (game: GameId) => {
+    practiceRunTokenRef.current[game] += 1;
+    settledPracticeTokenRef.current[game] = 0;
+    practiceStartedAtRef.current[game] = performance.now();
+    setMetricsByGame((prev) => ({ ...prev, [game]: { score: 0, accuracy: 0 } }));
+    setStatusByGame((prev) => ({ ...prev, [game]: "연습 진행 중" }));
+    moveViewFor(game, "PLAY");
+  };
+
+  const settlePracticeRun = async (game: GameId, reason: string, options?: { moveHome?: boolean }) => {
+    const currentToken = practiceRunTokenRef.current[game];
+    if (!currentToken || settledPracticeTokenRef.current[game] === currentToken) {
+      if (options?.moveHome !== false && mountedRef.current) moveViewFor(game, "HOME");
+      return;
+    }
+    settledPracticeTokenRef.current[game] = currentToken;
+    const metrics = metricsRef.current[game];
+    if (!hasMeaningfulPracticeMetrics(game, metrics)) {
+      if (mountedRef.current) {
+        setStatusByGame((prev) => ({ ...prev, [game]: "연습 기록 없이 종료" }));
+      }
+      if (options?.moveHome !== false && mountedRef.current) moveViewFor(game, "HOME");
+      return;
+    }
+    const startedAt = practiceStartedAtRef.current[game];
+    const durationSec = startedAt > 0 ? Math.max(1, Math.round((performance.now() - startedAt) / 1000)) : 1;
+    await saveRecord(game, "PRACTICE", metrics, durationSec, reason);
+    if (options?.moveHome !== false && mountedRef.current) moveViewFor(game, "HOME");
   };
 
   const finalizeTimedChallenge = async (reason: string, metricsOverride?: GameMetrics) => {
@@ -439,6 +551,10 @@ export function PracticeToolsMiniGamePage({ selectedGame, onSelectGame, onBackTo
       await stopActiveChallenge();
       return;
     }
+    if (modeByGameRef.current[selectedGame] === "PRACTICE") {
+      await settlePracticeRun(selectedGame, "LEAVE_PLAY", { moveHome: true });
+      return;
+    }
     moveView("HOME");
   };
 
@@ -487,6 +603,28 @@ export function PracticeToolsMiniGamePage({ selectedGame, onSelectGame, onBackTo
     void finalizeRcChallenge("GAME_SWITCH");
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedGame, rcChallengeRunning]);
+
+  useEffect(() => {
+    const previous = previousSelectedGameRef.current;
+    if (previous && previous !== selectedGame) {
+      if (modeByGameRef.current[previous] === "PRACTICE" && viewByGameRef.current[previous] === "PLAY") {
+        void settlePracticeRun(previous, "GAME_SWITCH", { moveHome: true });
+      }
+    }
+    previousSelectedGameRef.current = selectedGame;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedGame]);
+
+  useEffect(() => {
+    return () => {
+      (["FBH", "RC", "LM"] as GameId[]).forEach((game) => {
+        if (modeByGameRef.current[game] === "PRACTICE" && viewByGameRef.current[game] === "PLAY") {
+          void settlePracticeRun(game, "UNMOUNT", { moveHome: false });
+        }
+      });
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     if (!challengeResult) return;
@@ -708,7 +846,7 @@ export function PracticeToolsMiniGamePage({ selectedGame, onSelectGame, onBackTo
 
           <section className="mg-home-action-bar">
             <button className="ghost-btn mg-home-action-btn" onClick={onBackToHub}>뒤로가기</button>
-            {currentMode === "PRACTICE" ? <button data-testid="mg-start-practice" className="mg-start-btn mg-home-action-btn" onClick={() => moveView("PLAY")}>연습 시작</button> : null}
+            {currentMode === "PRACTICE" ? <button data-testid="mg-start-practice" className="mg-start-btn mg-home-action-btn" onClick={() => startPracticeRun(selectedGame)}>연습 시작</button> : null}
             {currentMode === "CHALLENGE" && selectedGame !== "RC" ? <button data-testid="mg-start-challenge-120" className="mg-start-btn mg-home-action-btn" onClick={() => startTimedChallengeFor(selectedGame as "FBH" | "LM")}>점수 모드 시작 ({challengeDurationLabel}s)</button> : null}
             {currentMode === "CHALLENGE" && selectedGame === "RC" ? <button data-testid="mg-start-challenge-rc" className="mg-start-btn mg-home-action-btn" onClick={startRcChallenge}>점수 모드 시작 ({rcChallengeLabel})</button> : null}
           </section>

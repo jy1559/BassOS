@@ -102,7 +102,7 @@ export type MinigameRecord = {
   record_id: string;
   created_at: string;
   game: GameId;
-  mode: "CHALLENGE";
+  mode: GameMode;
   difficulty: string;
   score: number;
   accuracy: number;
@@ -111,9 +111,12 @@ export type MinigameRecord = {
   share_text: string;
   detail_json: Record<string, unknown>;
   source: string;
+  xp_awarded?: number;
+  event_id?: string;
 };
 
 export type RecordPeriod = "ALL" | "D30" | "TODAY";
+export type RecordModeFilter = "ALL" | GameMode;
 
 export type MinigameStats = {
   summary: {

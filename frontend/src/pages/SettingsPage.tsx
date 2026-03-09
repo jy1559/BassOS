@@ -2564,17 +2564,37 @@ export function SettingsPage({ lang, settings, hud, unlockables, onSettingsChang
                     setSelectedMockDataset(result.dataset_id);
                     setMessage(
                       lang === "ko"
-                        ? `샌드박스 데이터셋 저장 완료: ${result.dataset_id} (${result.generated_sessions}개 세션 생성)`
-                        : `Sandbox dataset exported: ${result.dataset_id} (${result.generated_sessions} sessions)`
+                        ? `샌드박스 데이터셋 저장 완료: ${result.dataset_id} (${result.generated_sessions}개 세션 / 미디어 ${result.media_file_count}개)`
+                        : `Sandbox dataset exported: ${result.dataset_id} (${result.generated_sessions} sessions / ${result.media_file_count} media files)`
                     );
                   } finally {
                     setMockExportBusy(false);
                   }
                 }}
               >
-                {lang === "ko" ? "현재 상태를 샌드박스로 저장 (+60일 세션)" : "Export current state (+60d sessions)"}
+                {lang === "ko" ? "현재 상태를 샌드박스로 저장 (+60일 세션 + 미디어)" : "Export current state (+60d sessions + media)"}
               </button>
             </div>
+            <small className="muted">
+              {lang === "ko"
+                ? "내보내기 결과는 dataset 폴더 전체(data + media)를 같이 써야 합니다."
+                : "Use the entire exported dataset folder together (data + media)."}
+            </small>
+            <small className="muted">
+              {lang === "ko"
+                ? "소스 실행 저장 위치: designPack/mock_datasets/<dataset_id>/"
+                : "Source run export path: designPack/mock_datasets/<dataset_id>/"}
+            </small>
+            <small className="muted">
+              {lang === "ko"
+                ? "EXE 저장 위치: dist/BASSOS/bassos/_internal/designPack/mock_datasets/<dataset_id>/"
+                : "EXE export path: dist/BASSOS/bassos/_internal/designPack/mock_datasets/<dataset_id>/"}
+            </small>
+            <small className="muted">
+              {lang === "ko"
+                ? "기본 shipped mock로 올릴 때는 designPack/mock_datasets/realistic_mix_8w/ 폴더 내용을 교체하세요. app/profiles/mock 는 런타임 결과물입니다."
+                : "To promote it as the shipped default mock, replace designPack/mock_datasets/realistic_mix_8w/. app/profiles/mock is runtime output only."}
+            </small>
           </>,
           { lowEmphasis: true }
         )}

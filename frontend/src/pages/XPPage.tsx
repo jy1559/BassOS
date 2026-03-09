@@ -641,6 +641,7 @@ export function XPPage({ lang, refreshToken, settings, onSettingsChange }: Props
   const sourceRows = windowData.xp_sources ?? [];
   const sourceMap = new Map<string, number>(sourceRows.map((row) => [String(row.key).toLowerCase(), Math.max(0, row.xp)]));
   const practiceXp = sourceMap.get("practice") ?? 0;
+  const minigameXp = sourceMap.get("minigame") ?? 0;
   const questXp = (sourceMap.get("quest") ?? 0) + (sourceMap.get("long_goal") ?? 0);
   const achievementXp = sourceMap.get("achievement") ?? 0;
   const songSessionXp = sessionActivityRows.reduce((total, row) => {
@@ -662,6 +663,7 @@ export function XPPage({ lang, refreshToken, settings, onSettingsChange }: Props
     { key: "song", label: lang === "ko" ? "곡연습" : "Song Practice", xp: songSessionXp, color: "#2bc2c7" },
     { key: "drill", label: lang === "ko" ? "드릴연습" : "Drill Practice", xp: drillSessionXp, color: "#56a2ff" },
     { key: "other", label: lang === "ko" ? "기타세션" : "Other Session", xp: otherSessionXp, color: "#7dc38e" },
+    { key: "minigame", label: lang === "ko" ? "미니게임" : "Minigame", xp: minigameXp, color: "#ff7d6b" },
     { key: "quest", label: lang === "ko" ? "퀘스트" : "Quest", xp: questXp, color: "#f2b24d" },
     { key: "achievement", label: lang === "ko" ? "업적" : "Achievement", xp: achievementXp, color: "#9d80ff" },
   ];

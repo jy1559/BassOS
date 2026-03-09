@@ -9,7 +9,7 @@ def test_achievement_catalog_v2_shape():
     path = Path('app/data/achievements_master.csv')
     assert path.exists()
     rows = list(csv.DictReader(path.open(encoding='utf-8-sig')))
-    assert len(rows) == 125
+    assert len(rows) == 136
 
     groups: dict[str, list[dict[str, str]]] = defaultdict(list)
     for row in rows:
@@ -17,7 +17,8 @@ def test_achievement_catalog_v2_shape():
 
     size_dist = Counter(len(items) for items in groups.values())
     assert size_dist[6] == 18
-    assert size_dist[1] == 17
+    assert size_dist[3] == 1
+    assert size_dist[1] == 25
 
     tier_rows = [row for row in rows if str(row.get('achievement_id', '')).startswith('ACH_TIER_')]
     one_rows = [row for row in rows if str(row.get('achievement_id', '')).startswith('ACH_ONE_')]
@@ -40,3 +41,5 @@ def test_achievement_catalog_v2_shape():
     ids = {str(row.get('achievement_id') or '') for row in rows}
     assert 'ACH_ONE_QUEST_HIGH_FIRST' in ids
     assert 'ACH_HID_QUEST_GENRE_TRIO' in ids
+    assert 'ACH_MG_FBH_FIRST_PLAY' in ids
+    assert 'ACH_MG_HARD_PLUS_10' in ids

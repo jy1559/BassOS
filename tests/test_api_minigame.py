@@ -6,7 +6,9 @@ from datetime import datetime, timedelta
 from pathlib import Path
 
 from bassos.app_factory import create_app
+from bassos.constants import EVENT_HEADERS
 from bassos.minigame_defaults import MINIGAME_RECORD_HEADERS
+from bassos.services.events import create_event_row
 
 
 def _prepare_temp_root(tmp_path: Path) -> Path:
@@ -14,6 +16,17 @@ def _prepare_temp_root(tmp_path: Path) -> Path:
     dst_designpack = tmp_path / "designPack"
     shutil.copytree(src_designpack, dst_designpack)
     return tmp_path
+
+
+def _find_minigame_event(storage, record_id: str) -> dict[str, str]:
+    for row in storage.read_csv("events.csv"):
+        if str(row.get("event_type") or "").strip().upper() != "MINIGAME_PLAY":
+            continue
+        meta = json.loads(str(row.get("meta_json") or "{}"))
+        minigame = meta.get("minigame") if isinstance(meta.get("minigame"), dict) else {}
+        if str(minigame.get("record_id") or meta.get("record_id") or "").strip() == record_id:
+            return row
+    raise AssertionError(f"MINIGAME_PLAY event not found for {record_id}")
 
 
 def test_minigame_config_and_seed(tmp_path: Path):
@@ -48,6 +61,7 @@ def test_minigame_record_crud_leaderboard_and_stats(tmp_path: Path):
     root = _prepare_temp_root(tmp_path)
     app = create_app(root)
     client = app.test_client()
+    storage = app.config["storage"]
 
     create_res = client.post(
         "/api/minigame/records",
@@ -72,19 +86,24 @@ def test_minigame_record_crud_leaderboard_and_stats(tmp_path: Path):
         },
     )
     assert create_res.status_code == 200
-    record_id = create_res.get_json()["item"]["record_id"]
+    payload = create_res.get_json()
+    record_id = payload["item"]["record_id"]
+    assert payload["xp_awarded"] == 1
+    assert payload["event_id"]
 
-    list_res = client.get("/api/minigame/records?game=RC&difficulty=NORMAL&period=ALL&limit=30")
+    list_res = client.get("/api/minigame/records?game=RC&difficulty=NORMAL&mode=CHALLENGE&period=ALL&limit=30")
     assert list_res.status_code == 200
     items = list_res.get_json()["items"]
     assert len(items) == 1
     assert items[0]["record_id"] == record_id
+    assert items[0]["xp_awarded"] == 1
+    assert items[0]["event_id"] == payload["event_id"]
 
-    leaderboard_res = client.get("/api/minigame/leaderboard?game=RC&difficulty=ALL&period=ALL&limit=10")
+    leaderboard_res = client.get("/api/minigame/leaderboard?game=RC&difficulty=ALL&mode=CHALLENGE&period=ALL&limit=10")
     assert leaderboard_res.status_code == 200
     assert leaderboard_res.get_json()["items"][0]["score"] == 77
 
-    stats_res = client.get("/api/minigame/stats?game=RC&difficulty=ALL&period=ALL")
+    stats_res = client.get("/api/minigame/stats?game=RC&difficulty=ALL&mode=CHALLENGE&period=ALL")
     assert stats_res.status_code == 200
     stats = stats_res.get_json()
     assert stats["summary"]["plays"] == 1
@@ -93,10 +112,218 @@ def test_minigame_record_crud_leaderboard_and_stats(tmp_path: Path):
     assert stats["detail"]["avg_timing_accuracy"] == 88.5
     assert stats["detail"]["total_stray_inputs"] == 1
 
+    event = _find_minigame_event(storage, record_id)
+    meta = json.loads(str(event.get("meta_json") or "{}"))
+    assert event["event_type"] == "MINIGAME_PLAY"
+    assert meta["minigame"]["game"] == "RC"
+    assert meta["minigame"]["mode"] == "CHALLENGE"
+    assert meta["minigame"]["xp_awarded"] == 1
+
     delete_res = client.delete(f"/api/minigame/records/{record_id}")
     assert delete_res.status_code == 200
-    after_delete = client.get("/api/minigame/records?game=RC&difficulty=ALL&period=ALL&limit=30").get_json()["items"]
+    after_delete = client.get("/api/minigame/records?game=RC&difficulty=ALL&mode=ALL&period=ALL&limit=30").get_json()["items"]
     assert after_delete == []
+    assert all(
+        str(json.loads(str(row.get("meta_json") or "{}")).get("minigame", {}).get("record_id") or "") != record_id
+        for row in storage.read_csv("events.csv")
+        if str(row.get("event_type") or "").strip().upper() == "MINIGAME_PLAY"
+    )
+
+
+def test_minigame_practice_records_award_expected_xp_and_unlock_first_play(tmp_path: Path):
+    root = _prepare_temp_root(tmp_path)
+    app = create_app(root)
+    client = app.test_client()
+    storage = app.config["storage"]
+
+    cases = [
+        (
+            {
+                "game": "FBH",
+                "mode": "PRACTICE",
+                "difficulty": "EASY",
+                "score": 0,
+                "accuracy": 40,
+                "seed": "2026-03-01",
+                "duration_sec": 65,
+                "share_text": "FBH|PRACTICE|EASY|ATT=10|SEED=2026-03-01",
+                "detail_json": {"attempts": 10, "hits": 4, "wrong": 6, "judge": "PC_RANGE"},
+            },
+            2,
+            "ACH_MG_FBH_FIRST_PLAY",
+        ),
+        (
+            {
+                "game": "RC",
+                "mode": "PRACTICE",
+                "difficulty": "EASY",
+                "score": 81,
+                "accuracy": 81,
+                "seed": "2026-03-01",
+                "duration_sec": 72,
+                "share_text": "RC|PRACTICE|EASY|PATTERNS=5|ACC=81%|SEED=2026-03-01",
+                "detail_json": {"practiced_patterns": 5, "perfect": 3, "good": 1, "miss": 1, "timing_accuracy": 81},
+            },
+            2,
+            "ACH_MG_RC_FIRST_PLAY",
+        ),
+        (
+            {
+                "game": "LM",
+                "mode": "PRACTICE",
+                "difficulty": "EASY",
+                "score": 9,
+                "accuracy": 71.4,
+                "seed": "2026-03-01",
+                "duration_sec": 58,
+                "share_text": "LM|PRACTICE|EASY|CORRECT=5|SEED=2026-03-01",
+                "detail_json": {"attempts": 7, "correct": 5, "wrong": 2},
+            },
+            3,
+            "ACH_MG_LM_FIRST_PLAY",
+        ),
+    ]
+
+    created_ids: list[str] = []
+    for payload, expected_xp, achievement_id in cases:
+        response = client.post("/api/minigame/records", json=payload)
+        assert response.status_code == 200
+        body = response.get_json()
+        created_ids.append(body["item"]["record_id"])
+        assert body["item"]["mode"] == "PRACTICE"
+        assert body["xp_awarded"] == expected_xp
+        event = _find_minigame_event(storage, body["item"]["record_id"])
+        meta = json.loads(str(event.get("meta_json") or "{}"))
+        assert meta["minigame"]["mode"] == "PRACTICE"
+        assert meta["minigame"]["xp_awarded"] == expected_xp
+
+        achievements = client.get("/api/achievements")
+        assert achievements.status_code == 200
+        target = next(item for item in achievements.get_json()["achievements"] if item.get("achievement_id") == achievement_id)
+        assert target["claimed"] is True
+
+    practice_rows = client.get("/api/minigame/records?mode=PRACTICE&limit=20").get_json()["items"]
+    assert {row["record_id"] for row in practice_rows} >= set(created_ids)
+
+
+def test_minigame_record_filters_support_mode_and_day_range(tmp_path: Path):
+    root = _prepare_temp_root(tmp_path)
+    app = create_app(root)
+    client = app.test_client()
+    storage = app.config["storage"]
+
+    now = datetime.now().replace(microsecond=0)
+    old = now - timedelta(days=45)
+    old_record = {
+        "record_id": "MR_TEST_OLD_PRACTICE",
+        "created_at": old.isoformat(),
+        "game": "FBH",
+        "mode": "PRACTICE",
+        "difficulty": "EASY",
+        "score": "0",
+        "accuracy": "50",
+        "seed": "2026-01-01",
+        "duration_sec": "60",
+        "share_text": "FBH|PRACTICE|EASY|ATT=10|SEED=2026-01-01",
+        "detail_json": json.dumps({"attempts": 10, "hits": 5, "wrong": 5}, ensure_ascii=False),
+        "source": "app",
+    }
+
+    create_practice = client.post(
+        "/api/minigame/records",
+        json={
+            "game": "FBH",
+            "mode": "PRACTICE",
+            "difficulty": "EASY",
+            "score": 0,
+            "accuracy": 50,
+            "seed": "2026-03-01",
+            "duration_sec": 62,
+            "share_text": "FBH|PRACTICE|EASY|ATT=10|SEED=2026-03-01",
+            "detail_json": {"attempts": 10, "hits": 5, "wrong": 5},
+        },
+    )
+    assert create_practice.status_code == 200
+    today_practice_id = create_practice.get_json()["item"]["record_id"]
+
+    create_challenge = client.post(
+        "/api/minigame/records",
+        json={
+            "game": "FBH",
+            "mode": "CHALLENGE",
+            "difficulty": "EASY",
+            "score": 14,
+            "accuracy": 80,
+            "seed": "2026-03-01",
+            "duration_sec": 90,
+            "share_text": "FBH|CHALLENGE|EASY|SCORE=14|SEED=2026-03-01",
+            "detail_json": {"attempts": 5, "hits": 4, "wrong": 1},
+        },
+    )
+    assert create_challenge.status_code == 200
+    today_challenge_id = create_challenge.get_json()["item"]["record_id"]
+
+    rows = storage.read_csv("minigame_records.csv")
+    rows.append(old_record)
+    storage.write_csv("minigame_records.csv", rows, headers=MINIGAME_RECORD_HEADERS)
+
+    event_rows = storage.read_csv("events.csv")
+    event_rows.append(
+        create_event_row(
+            created_at=old,
+            duration_min=0,
+            event_type="MINIGAME_PLAY",
+            activity="Minigame",
+            xp=2,
+            title="FBH PRACTICE",
+            tags=["MINIGAME", "FBH", "PRACTICE", "DIFF_EASY"],
+            meta={
+                "game": "FBH",
+                "mode": "PRACTICE",
+                "difficulty": "EASY",
+                "score": 0,
+                "correct": 5,
+                "wrong": 5,
+                "accuracy": 50,
+                "problems": 10,
+                "record_id": "MR_TEST_OLD_PRACTICE",
+                "xp_awarded": 2,
+                "minigame": {
+                    "game": "FBH",
+                    "mode": "PRACTICE",
+                    "difficulty": "EASY",
+                    "score": 0,
+                    "correct": 5,
+                    "wrong": 5,
+                    "accuracy": 50,
+                    "problems": 10,
+                    "record_id": "MR_TEST_OLD_PRACTICE",
+                    "xp_awarded": 2,
+                },
+            },
+            source="app",
+        )
+    )
+    storage.write_csv("events.csv", event_rows, headers=EVENT_HEADERS)
+
+    today_key = now.date().isoformat()
+    practice_today = client.get(
+        f"/api/minigame/records?game=FBH&mode=PRACTICE&start_key={today_key}&end_key={today_key}&limit=20"
+    )
+    assert practice_today.status_code == 200
+    practice_items = practice_today.get_json()["items"]
+    assert [item["record_id"] for item in practice_items] == [today_practice_id]
+
+    all_practice = client.get("/api/minigame/records?game=FBH&mode=PRACTICE&period=ALL&limit=20")
+    assert all_practice.status_code == 200
+    assert {item["record_id"] for item in all_practice.get_json()["items"]} >= {"MR_TEST_OLD_PRACTICE", today_practice_id}
+
+    challenge_today = client.get(
+        f"/api/minigame/records?game=FBH&mode=CHALLENGE&start_key={today_key}&end_key={today_key}&limit=20"
+    )
+    assert challenge_today.status_code == 200
+    challenge_items = challenge_today.get_json()["items"]
+    assert [item["record_id"] for item in challenge_items] == [today_challenge_id]
 
 
 def test_minigame_period_filter_and_image_endpoint(tmp_path: Path):
@@ -142,7 +369,7 @@ def test_minigame_period_filter_and_image_endpoint(tmp_path: Path):
         headers=MINIGAME_RECORD_HEADERS,
     )
 
-    d30_res = client.get("/api/minigame/records?game=FBH&difficulty=ALL&period=D30&limit=30")
+    d30_res = client.get("/api/minigame/records?game=FBH&difficulty=ALL&mode=CHALLENGE&period=D30&limit=30")
     assert d30_res.status_code == 200
     assert [item["record_id"] for item in d30_res.get_json()["items"]] == ["MR_TEST_NOW"]
 

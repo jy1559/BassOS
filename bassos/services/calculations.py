@@ -252,6 +252,12 @@ def _resolve_feature(
         if isinstance(quest_meta, dict):
             return quest_meta.get(tail, "")
         return ""
+    if head == "minigame":
+        meta = parse_json(event.get("meta_json"))
+        minigame_meta = meta.get("minigame")
+        if isinstance(minigame_meta, dict):
+            return minigame_meta.get(tail, meta.get(tail, ""))
+        return meta.get(tail, "")
     return ""
 
 

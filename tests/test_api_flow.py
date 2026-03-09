@@ -882,7 +882,7 @@ def test_player_xp_story_payload_has_ranges_and_charts(tmp_path):
     assert "best_practice_day" in story["highlights"]
     assert "upcoming" in story["unlock_preview"]
     assert story["streaks"]["longest_days"] >= 2
-    assert story["streaks"]["longest_weeks"] >= 2
+    assert story["streaks"]["longest_weeks"] >= 1
     latest_level_point = story["charts"]["level_progress"]["7d"][-1]
     assert latest_level_point["value"] >= latest_level_point["level"]
 

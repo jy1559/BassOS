@@ -81,6 +81,7 @@ type RcTransport = {
 
 type RcMetricsState = {
   score: number;
+  practicedPatterns: number;
   totalInputs: number;
   totalOnsets: number;
   matchedOnsets: number;
@@ -169,6 +170,7 @@ function round1(value: number): number {
 function createEmptyMetrics(): RcMetricsState {
   return {
     score: 0,
+    practicedPatterns: 0,
     totalInputs: 0,
     totalOnsets: 0,
     matchedOnsets: 0,
@@ -519,6 +521,8 @@ export function RhythmCopyGame({
       score: Math.round(nextMetrics.score),
       accuracy: nextView.timingAccuracy,
       detail: {
+        correct: nextMetrics.perfect + nextMetrics.good,
+        wrong: nextMetrics.miss,
         perfect: nextMetrics.perfect,
         good: nextMetrics.good,
         miss: nextMetrics.miss,
@@ -536,7 +540,8 @@ export function RhythmCopyGame({
         matched_onsets: nextMetrics.matchedOnsets,
         stray_inputs: nextMetrics.strayInputs,
         cleared: progress.clearedCount,
-        problems: mode === "CHALLENGE" ? rhythmConfig.challenge_problem_count : 1,
+        problems: mode === "CHALLENGE" ? rhythmConfig.challenge_problem_count : Math.max(0, nextMetrics.practicedPatterns),
+        practiced_patterns: nextMetrics.practicedPatterns,
         calibration_std_ms: calibrationProfile?.std_ms ?? null,
       },
     });
@@ -656,10 +661,11 @@ export function RhythmCopyGame({
     syncBoard(null, null);
 
     const passed = summary.timingAccuracy >= ACCURACY_THRESHOLD;
-    const baseMetrics = mode === "PRACTICE" ? createEmptyMetrics() : cloneMetrics(metricsRef.current);
+    const baseMetrics = cloneMetrics(metricsRef.current);
     const nextMetrics: RcMetricsState = {
       ...baseMetrics,
       score: baseMetrics.score,
+      practicedPatterns: baseMetrics.practicedPatterns + (mode === "PRACTICE" ? 1 : 0),
       totalInputs: baseMetrics.totalInputs + historyRef.current.length,
       totalOnsets: baseMetrics.totalOnsets + summary.totalOnsets,
       matchedOnsets: baseMetrics.matchedOnsets + summary.matchedOnsets,
@@ -679,7 +685,7 @@ export function RhythmCopyGame({
     };
 
     if (mode === "PRACTICE") {
-      nextMetrics.score = Math.round(summary.timingAccuracy);
+      nextMetrics.score = Math.round(calcRcTimingAccuracy(nextMetrics));
       pushMetrics(nextMetrics);
       setStatusText(
         `${passed ? "성공" : "실패"}: 노트 ${summary.noteAccuracy.toFixed(1)}% / 타이밍 ${summary.timingAccuracy.toFixed(1)}% / 평균 오차 ${summary.avgAbsMs.toFixed(1)}ms`
@@ -942,7 +948,6 @@ export function RhythmCopyGame({
   const loadNextPracticePattern = (autoStart = false) => {
     practicePatternCounterRef.current += 1;
     const pattern = buildPatternForScope(rhythmTemplates, difficulty, seed, `practice:${practicePatternCounterRef.current}`);
-    pushMetrics(createEmptyMetrics());
     loadPattern(pattern, "문제를 준비했습니다.");
     if (autoStart) {
       window.setTimeout(() => {
@@ -961,6 +966,7 @@ export function RhythmCopyGame({
   useEffect(() => {
     if (mode !== "PRACTICE") return;
     challengeFinishedRef.current = false;
+    practicePatternCounterRef.current = 0;
     progressRef.current = {
       problemIndex: 0,
       attemptsLeft: 1,
@@ -968,6 +974,7 @@ export function RhythmCopyGame({
       failedAttempts: 0,
     };
     setChallengeView({ ...progressRef.current });
+    pushMetrics(createEmptyMetrics());
     loadNextPracticePattern(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mode, difficulty, seed, notationMode]);

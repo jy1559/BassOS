@@ -886,6 +886,9 @@ class Storage:
         merged.setdefault("critical", {}).setdefault(
             "daily_session_xp_cap", SETTINGS_DEFAULTS["critical"]["daily_session_xp_cap"]
         )
+        merged.setdefault("critical", {}).setdefault(
+            "minigame_xp_multiplier", SETTINGS_DEFAULTS["critical"]["minigame_xp_multiplier"]
+        )
         level_curve = merged.setdefault("level_curve", {})
         _apply_level_curve_defaults(level_curve, overwrite=False)
         merged.setdefault("ui", {}).setdefault("song_genres", SETTINGS_DEFAULTS["ui"]["song_genres"])
@@ -1326,6 +1329,14 @@ class Storage:
                 _deep_copy_json(SETTINGS_DEFAULTS["practice_tools"]["minigame_user_settings"]),
             )
             merged["policy_version"] = 18
+
+        if current_version < 19:
+            critical = merged.setdefault("critical", {})
+            if not isinstance(critical, dict):
+                critical = {}
+                merged["critical"] = critical
+            critical["minigame_xp_multiplier"] = SETTINGS_DEFAULTS["critical"]["minigame_xp_multiplier"]
+            merged["policy_version"] = 19
 
         merged = self.normalize_settings(merged, source_settings=source_settings)
 

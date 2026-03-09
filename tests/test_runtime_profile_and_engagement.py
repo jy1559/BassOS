@@ -121,6 +121,12 @@ def test_export_current_state_as_mock_dataset_with_generated_sessions(tmp_path: 
     root = _prepare_temp_root(tmp_path)
     app = create_app(root)
     client = app.test_client()
+    storage = app.config["storage"]
+
+    cover_rel = "songs/covers/export_cover.png"
+    cover_path = storage.paths.runtime_media / cover_rel
+    cover_path.parent.mkdir(parents=True, exist_ok=True)
+    cover_path.write_bytes(b"fake-cover")
 
     create_song = client.post(
         "/api/song-library",
@@ -129,6 +135,7 @@ def test_export_current_state_as_mock_dataset_with_generated_sessions(tmp_path: 
             "title": "Export Song",
             "artist": "Test Artist",
             "genre": "Rock",
+            "cover_path": cover_rel,
             "status": "시작",
         },
     )
@@ -168,12 +175,17 @@ def test_export_current_state_as_mock_dataset_with_generated_sessions(tmp_path: 
     payload = export_res.get_json()
     assert payload["dataset_id"] == "my_snapshot"
     assert payload["generated_sessions"] >= 20
+    assert payload["media_file_count"] >= 1
+    assert str(payload["media_path"]).replace("\\", "/").endswith("designPack/mock_datasets/my_snapshot/media")
 
+    dataset_root = root / "designPack" / "mock_datasets" / "my_snapshot"
     dataset_data_dir = root / "designPack" / "mock_datasets" / "my_snapshot" / "data"
+    dataset_media_dir = dataset_root / "media"
     assert (dataset_data_dir / "song_library.csv").exists()
     assert (dataset_data_dir / "drill_library.csv").exists()
     assert (dataset_data_dir / "backing_tracks.csv").exists()
     assert (dataset_data_dir / "events.csv").exists()
+    assert (dataset_media_dir / cover_rel).exists()
 
     with (dataset_data_dir / "song_library.csv").open("r", newline="", encoding="utf-8-sig") as fh:
         rows = list(csv.DictReader(fh))
@@ -184,6 +196,11 @@ def test_export_current_state_as_mock_dataset_with_generated_sessions(tmp_path: 
     assert len(events) >= 20
     created_at = sorted(datetime.fromisoformat(item["created_at"]) for item in events if item.get("created_at"))
     assert (created_at[-1] - created_at[0]).days >= 45
+
+    activate = client.post("/api/admin/mock-data/activate", json={"dataset_id": "my_snapshot", "reset": True})
+    assert activate.status_code == 200
+    runtime_media = root / "app" / "profiles" / "mock" / "my_snapshot" / "media" / cover_rel
+    assert runtime_media.exists()
 
 
 def test_song_library_create_persists_mood_difficulty_and_semicolon_genres(tmp_path: Path):

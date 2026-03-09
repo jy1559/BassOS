@@ -84,13 +84,13 @@ export function TheoryStaff({ notes, title = "오선지", clef = "TREBLE", compa
   const noteCount = Math.max(1, notes.length);
   const reservedSlots = Math.max(BASE_RESERVED_SLOTS, noteCount);
 
-  const contentWidth = compact ? 500 : 640;
-  const viewHeight = compact ? 138 : 160;
-  const baseTopLineY = compact ? 20 : 24;
-  const lineGap = compact ? 8 : 9.8;
+  const contentWidth = compact ? 492 : 640;
+  const viewHeight = compact ? 120 : 160;
+  const baseTopLineY = compact ? 18 : 24;
+  const lineGap = compact ? 7.2 : 9.8;
   const baseBottomLineY = baseTopLineY + lineGap * 4;
 
-  const firstX = compact ? 56 : 68;
+  const firstX = compact ? 52 : 68;
   const usableWidth = Math.max(240, contentWidth - firstX - 18);
   const slotGap = reservedSlots > 1 ? usableWidth / (reservedSlots - 1) : usableWidth;
 
@@ -102,8 +102,8 @@ export function TheoryStaff({ notes, title = "오선지", clef = "TREBLE", compa
   const clickable = Boolean(onNoteClick);
   const metrics = notes.map((item) => staffStepByNote(item, clef));
 
-  const safeTopY = compact ? 10 : 12;
-  const safeBottomY = viewHeight - 50;
+  const safeTopY = compact ? 8 : 12;
+  const safeBottomY = compact ? viewHeight - 44 : viewHeight - 50;
   let minShiftY = Number.NEGATIVE_INFINITY;
   let maxShiftY = Number.POSITIVE_INFINITY;
   for (const metric of metrics) {
@@ -125,10 +125,10 @@ export function TheoryStaff({ notes, title = "오선지", clef = "TREBLE", compa
   const noteYs = metrics.map((metric) => bottomLineY - metric.step * (lineGap / 2));
   const lowestNoteY = noteYs.length ? Math.max(...noteYs) : bottomLineY;
   const lowDepth = Math.max(0, lowestNoteY - bottomLineY);
-  const labelOffset = lowDepth > lineGap ? 24 : 18;
-  const labelAnchorY = Math.max(bottomLineY + 20, lowestNoteY + labelOffset);
-  const noteLabelY = Math.min(viewHeight - 22, labelAnchorY);
-  const degreeLabelY = Math.min(viewHeight - 8, noteLabelY + 13);
+  const labelOffset = lowDepth > lineGap ? 20 : 16;
+  const labelAnchorY = Math.max(bottomLineY + 16, lowestNoteY + labelOffset);
+  const noteLabelY = Math.min(viewHeight - 20, labelAnchorY);
+  const degreeLabelY = Math.min(viewHeight - 8, noteLabelY + 11);
 
   return (
     <div className="mg-theory-staff-wrap">
@@ -148,7 +148,7 @@ export function TheoryStaff({ notes, title = "오선지", clef = "TREBLE", compa
           />
         ))}
 
-        <text x={27} y={topLineY + lineGap * 2.28} className="mg-theory-clef" textAnchor="middle">
+        <text x={27} y={topLineY + lineGap * 2.18} className="mg-theory-clef" textAnchor="middle">
           {clef === "TREBLE" ? "\uD834\uDD1E" : "\uD834\uDD22"}
         </text>
 
@@ -191,12 +191,12 @@ export function TheoryStaff({ notes, title = "오선지", clef = "TREBLE", compa
               })}
 
               {metric.accidental ? (
-                <text x={x - 18} y={y + 5} className="mg-theory-accidental" textAnchor="middle">
+                <text x={x - 16} y={y + 4} className="mg-theory-accidental" textAnchor="middle">
                   {metric.accidental}
                 </text>
               ) : null}
 
-              <ellipse cx={x} cy={y} rx={10.4} ry={7.4} transform={`rotate(-22 ${x} ${y})`} fill={color} />
+              <ellipse cx={x} cy={y} rx={9.6} ry={6.9} transform={`rotate(-22 ${x} ${y})`} fill={color} />
               <text x={x} y={noteLabelY} className="mg-theory-note-label" textAnchor="middle">
                 {item.note}
               </text>

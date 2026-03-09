@@ -1,4 +1,4 @@
-import type { GameId, MinigameConfig, MinigameRecord, MinigameStats, RecordPeriod } from "./types";
+import type { GameId, MinigameConfig, MinigameRecord, MinigameStats, RecordModeFilter, RecordPeriod } from "./types";
 import { normalizeUserSettings, type MinigameUserSettings } from "./userSettings";
 
 type SeedPayload = {
@@ -34,13 +34,19 @@ export async function getSeed(date?: string): Promise<SeedPayload> {
 export async function getRecords(params: {
   game?: GameId;
   difficulty?: string;
+  mode?: RecordModeFilter;
   period?: RecordPeriod;
+  start_key?: string;
+  end_key?: string;
   limit?: number;
 }): Promise<MinigameRecord[]> {
   const query = new URLSearchParams();
   if (params.game) query.set("game", params.game);
   if (params.difficulty) query.set("difficulty", params.difficulty);
+  if (params.mode) query.set("mode", params.mode);
   if (params.period) query.set("period", params.period);
+  if (params.start_key) query.set("start_key", params.start_key);
+  if (params.end_key) query.set("end_key", params.end_key);
   if (params.limit) query.set("limit", String(params.limit));
   const data = await call<{ ok: true; items: MinigameRecord[] }>(`/api/minigame/records?${query.toString()}`);
   return data.items;
@@ -48,7 +54,7 @@ export async function getRecords(params: {
 
 export async function postRecord(payload: {
   game: GameId;
-  mode: "CHALLENGE";
+  mode: "PRACTICE" | "CHALLENGE";
   difficulty: string;
   score: number;
   accuracy?: number;
@@ -58,11 +64,11 @@ export async function postRecord(payload: {
   detail_json?: Record<string, unknown>;
   source?: string;
 }): Promise<MinigameRecord> {
-  const data = await call<{ ok: true; item: MinigameRecord }>("/api/minigame/records", {
+  const data = await call<{ ok: true; item: MinigameRecord; xp_awarded: number; event_id?: string }>("/api/minigame/records", {
     method: "POST",
     body: JSON.stringify(payload),
   });
-  return data.item;
+  return { ...data.item, xp_awarded: data.xp_awarded, event_id: data.event_id };
 }
 
 export async function deleteRecord(recordId: string): Promise<void> {
@@ -72,13 +78,19 @@ export async function deleteRecord(recordId: string): Promise<void> {
 export async function getLeaderboard(params: {
   game?: GameId;
   difficulty?: string;
+  mode?: RecordModeFilter;
   period?: RecordPeriod;
+  start_key?: string;
+  end_key?: string;
   limit?: number;
 }): Promise<MinigameRecord[]> {
   const query = new URLSearchParams();
   if (params.game) query.set("game", params.game);
   if (params.difficulty) query.set("difficulty", params.difficulty);
+  if (params.mode) query.set("mode", params.mode);
   if (params.period) query.set("period", params.period);
+  if (params.start_key) query.set("start_key", params.start_key);
+  if (params.end_key) query.set("end_key", params.end_key);
   if (params.limit) query.set("limit", String(params.limit));
   const data = await call<{ ok: true; items: MinigameRecord[] }>(`/api/minigame/leaderboard?${query.toString()}`);
   return data.items;
@@ -87,12 +99,18 @@ export async function getLeaderboard(params: {
 export async function getStats(params: {
   game?: GameId;
   difficulty?: string;
+  mode?: RecordModeFilter;
   period?: RecordPeriod;
+  start_key?: string;
+  end_key?: string;
 }): Promise<MinigameStats> {
   const query = new URLSearchParams();
   if (params.game) query.set("game", params.game);
   if (params.difficulty) query.set("difficulty", params.difficulty);
+  if (params.mode) query.set("mode", params.mode);
   if (params.period) query.set("period", params.period);
+  if (params.start_key) query.set("start_key", params.start_key);
+  if (params.end_key) query.set("end_key", params.end_key);
   return call<MinigameStats & { ok: true }>(`/api/minigame/stats?${query.toString()}`);
 }
 

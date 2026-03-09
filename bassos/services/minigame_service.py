@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import json
 import uuid
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 from pathlib import Path
 from typing import Any
 
@@ -15,6 +15,8 @@ from bassos.minigame_defaults import (
     normalize_minigame_user_settings,
     seed_payload,
 )
+from bassos.services.achievements import auto_grant_claims, reconcile_auto_claims
+from bassos.services.events import create_event_row
 from bassos.services.storage import Storage
 
 
@@ -85,6 +87,10 @@ class MinigameService:
         value = str(period or "").strip().upper()
         return value if value in {"ALL", "D30", "TODAY"} else "ALL"
 
+    def _normalize_mode_filter(self, mode: str | None) -> str:
+        value = str(mode or "").strip().upper()
+        return value if value in {"ALL", *ALLOWED_MODE} else "ALL"
+
     def _parse_created_at(self, value: str | None) -> datetime | None:
         text = str(value or "").strip()
         if not text:
@@ -106,7 +112,31 @@ class MinigameService:
             return created.date() == now.date()
         return created >= now - timedelta(days=30)
 
-    def _parse_detail_json(self, raw: str) -> dict[str, Any]:
+    def _normalize_day_key(self, value: str | None) -> str:
+        text = str(value or "").strip()
+        if not text:
+            return ""
+        try:
+            return date.fromisoformat(text[:10]).isoformat()
+        except ValueError:
+            return ""
+
+    def _passes_day_range_filter(self, created_at: str, start_key: str, end_key: str) -> bool:
+        normalized_start = self._normalize_day_key(start_key)
+        normalized_end = self._normalize_day_key(end_key)
+        if not normalized_start and not normalized_end:
+            return True
+        created = self._parse_created_at(created_at)
+        if created is None:
+            return False
+        day_key = created.date().isoformat()
+        if normalized_start and day_key < normalized_start:
+            return False
+        if normalized_end and day_key > normalized_end:
+            return False
+        return True
+
+    def _parse_json_object(self, raw: str) -> dict[str, Any]:
         text = str(raw or "").strip()
         if not text:
             return {}
@@ -116,25 +146,170 @@ class MinigameService:
             return {}
         return parsed if isinstance(parsed, dict) else {}
 
+    def _parse_detail_json(self, raw: str) -> dict[str, Any]:
+        return self._parse_json_object(raw)
+
+    def _event_meta_by_record_id(self) -> dict[str, dict[str, Any]]:
+        out: dict[str, dict[str, Any]] = {}
+        for row in self.storage.read_csv("events.csv"):
+            if str(row.get("event_type") or "").strip().upper() != "MINIGAME_PLAY":
+                continue
+            meta = self._parse_json_object(row.get("meta_json", ""))
+            minigame_meta = meta.get("minigame") if isinstance(meta.get("minigame"), dict) else {}
+            record_id = str(minigame_meta.get("record_id") or meta.get("record_id") or "").strip()
+            if not record_id:
+                continue
+            out[record_id] = {
+                "event_id": str(row.get("event_id") or "").strip(),
+                "xp_awarded": self._to_int(minigame_meta.get("xp_awarded", meta.get("xp_awarded", row.get("xp", 0))), 0),
+            }
+        return out
+
+    def _detail_correct_wrong_problems(self, game: str, detail: dict[str, Any]) -> dict[str, int]:
+        game_key = str(game or "").strip().upper()
+        if game_key == "FBH":
+            attempts = self._to_int(detail.get("attempts"), 0)
+            correct = self._to_int(detail.get("correct", detail.get("hits", 0)), 0)
+            wrong = self._to_int(detail.get("wrong"), max(0, attempts - correct))
+            return {
+                "correct": max(0, correct),
+                "wrong": max(0, wrong),
+                "problems": max(0, max(attempts, correct + wrong)),
+            }
+        if game_key == "RC":
+            perfect = self._to_int(detail.get("perfect"), 0)
+            good = self._to_int(detail.get("good"), 0)
+            correct = self._to_int(detail.get("correct"), perfect + good)
+            wrong = self._to_int(detail.get("wrong"), self._to_int(detail.get("miss"), 0))
+            problems = self._to_int(detail.get("problems"), self._to_int(detail.get("practiced_patterns"), 0))
+            return {
+                "correct": max(0, correct),
+                "wrong": max(0, wrong),
+                "problems": max(0, max(problems, correct + wrong)),
+            }
+        attempts = self._to_int(detail.get("attempts"), 0)
+        correct = self._to_int(detail.get("correct"), 0)
+        wrong = self._to_int(detail.get("wrong"), max(0, attempts - correct))
+        return {
+            "correct": max(0, correct),
+            "wrong": max(0, wrong),
+            "problems": max(0, max(attempts, correct + wrong)),
+        }
+
+    def _is_meaningful_practice_record(self, game: str, detail: dict[str, Any]) -> bool:
+        game_key = str(game or "").strip().upper()
+        if game_key == "FBH":
+            return self._to_int(detail.get("attempts"), 0) > 0
+        if game_key == "RC":
+            return self._to_int(detail.get("practiced_patterns"), self._to_int(detail.get("problems"), 0)) > 0
+        if game_key == "LM":
+            return self._to_int(detail.get("attempts"), 0) > 0
+        return False
+
+    def _difficulty_multiplier(self, difficulty: str) -> float:
+        return {
+            "EASY": 1.0,
+            "NORMAL": 1.1,
+            "HARD": 1.25,
+            "VERY_HARD": 1.4,
+            "MASTER": 1.6,
+        }.get(str(difficulty or "").strip().upper(), 1.0)
+
+    def _base_reward(self, game: str, mode: str, detail: dict[str, Any]) -> int:
+        normalized_mode = str(mode or "").strip().upper()
+        if normalized_mode == "CHALLENGE":
+            return 1
+        game_key = str(game or "").strip().upper()
+        if game_key == "FBH":
+            return 2 if self._to_int(detail.get("attempts"), 0) >= 10 else 0
+        if game_key == "RC":
+            practiced = self._to_int(detail.get("practiced_patterns"), self._to_int(detail.get("problems"), 0))
+            return 2 if practiced >= 5 else 0
+        if game_key == "LM":
+            return 3 if self._to_int(detail.get("correct"), 0) >= 5 else 0
+        return 0
+
+    def _reward_for_record(self, game: str, mode: str, difficulty: str, detail: dict[str, Any]) -> int:
+        base = self._base_reward(game, mode, detail)
+        if base <= 0:
+            return 0
+        multiplier = self._difficulty_multiplier(difficulty)
+        settings = self._settings()
+        global_multiplier = self._to_float(settings.get("critical", {}).get("minigame_xp_multiplier", 1.0), 1.0)
+        awarded = int(round(base * multiplier * global_multiplier))
+        return max(1, awarded)
+
+    def _append_minigame_event(
+        self,
+        record: dict[str, str],
+        detail: dict[str, Any],
+        *,
+        xp_awarded: int,
+    ) -> str:
+        created_at = self._parse_created_at(record.get("created_at")) or datetime.now().replace(microsecond=0)
+        counts = self._detail_correct_wrong_problems(record.get("game", ""), detail)
+        minigame_meta = {
+            "game": record.get("game", ""),
+            "mode": record.get("mode", ""),
+            "difficulty": record.get("difficulty", ""),
+            "score": self._to_int(record.get("score"), 0),
+            "correct": counts["correct"],
+            "wrong": counts["wrong"],
+            "accuracy": self._to_float(record.get("accuracy"), 0.0),
+            "problems": counts["problems"],
+            "record_id": record.get("record_id", ""),
+            "xp_awarded": max(0, xp_awarded),
+        }
+        event = create_event_row(
+            created_at=created_at,
+            duration_min=0,
+            event_type="MINIGAME_PLAY",
+            activity="Minigame",
+            xp=max(0, xp_awarded),
+            title=f"{record.get('game', '')} {record.get('mode', '')}",
+            notes=record.get("share_text", ""),
+            tags=[
+                "MINIGAME",
+                str(record.get("game", "")).strip().upper(),
+                str(record.get("mode", "")).strip().upper(),
+                f"DIFF_{str(record.get('difficulty', '')).strip().upper()}",
+            ],
+            meta={**minigame_meta, "minigame": minigame_meta},
+            source=str(record.get("source", "app") or "app"),
+        )
+        self.storage.append_csv_row("events.csv", event, self.storage.read_csv_headers("events.csv"))
+        auto_grant_claims(self.storage, self._settings(), created_at=created_at)
+        return event["event_id"]
+
     def list_records(
         self,
         *,
         game: str = "",
         difficulty: str = "",
+        mode: str = "ALL",
         limit: int = 30,
         period: str = "ALL",
+        start_key: str = "",
+        end_key: str = "",
     ) -> list[dict[str, Any]]:
         rows = self.storage.read_csv("minigame_records.csv")
         normalized_diff = difficulty.upper()
         normalized_period = self._normalize_period(period)
+        normalized_mode = self._normalize_mode_filter(mode)
+        event_meta = self._event_meta_by_record_id()
         items: list[dict[str, Any]] = []
         for row in rows:
             if game and row.get("game", "").upper() != game.upper():
+                continue
+            if normalized_mode != "ALL" and row.get("mode", "").upper() != normalized_mode:
                 continue
             if normalized_diff and normalized_diff != "ALL" and row.get("difficulty", "").upper() != normalized_diff:
                 continue
             if not self._passes_period_filter(row.get("created_at", ""), normalized_period):
                 continue
+            if not self._passes_day_range_filter(row.get("created_at", ""), start_key, end_key):
+                continue
+            event_payload = event_meta.get(str(row.get("record_id", "")).strip(), {})
             items.append(
                 {
                     "record_id": row.get("record_id", ""),
@@ -149,6 +324,8 @@ class MinigameService:
                     "share_text": row.get("share_text", ""),
                     "detail_json": self._parse_detail_json(row.get("detail_json", "")),
                     "source": row.get("source", "app"),
+                    "xp_awarded": self._to_int(event_payload.get("xp_awarded"), 0),
+                    "event_id": str(event_payload.get("event_id") or ""),
                 }
             )
         items.sort(key=lambda item: item.get("created_at", ""), reverse=True)
@@ -159,10 +336,21 @@ class MinigameService:
         *,
         game: str = "",
         difficulty: str = "",
+        mode: str = "ALL",
         limit: int = 10,
         period: str = "ALL",
+        start_key: str = "",
+        end_key: str = "",
     ) -> list[dict[str, Any]]:
-        rows = self.list_records(game=game, difficulty=difficulty, limit=100000, period=period)
+        rows = self.list_records(
+            game=game,
+            difficulty=difficulty,
+            mode=mode,
+            limit=100000,
+            period=period,
+            start_key=start_key,
+            end_key=end_key,
+        )
         rows.sort(key=lambda item: (-self._to_int(item.get("score"), 0), item.get("created_at", "")))
         return rows[: max(1, limit)]
 
@@ -178,7 +366,7 @@ class MinigameService:
         if game not in ALLOWED_GAMES:
             return False, "game must be one of FBH, RC, LM"
         if mode not in ALLOWED_MODE:
-            return False, "mode must be CHALLENGE"
+            return False, "mode must be PRACTICE or CHALLENGE"
         if not diff:
             return False, "difficulty is required"
         try:
@@ -193,22 +381,29 @@ class MinigameService:
             return False, "duration_sec must be positive"
         return True, ""
 
-    def create_record(self, payload: dict[str, Any]) -> tuple[bool, str, dict[str, Any] | None]:
+    def create_record(
+        self, payload: dict[str, Any]
+    ) -> tuple[bool, str, dict[str, Any] | None, int, str | None]:
         ok, message = self._validate_record_payload(payload)
         if not ok:
-            return False, message, None
+            return False, message, None, 0, None
 
         detail = payload.get("detail_json", {})
         if detail is None:
             detail = {}
         if not isinstance(detail, dict):
-            return False, "detail_json must be object", None
+            return False, "detail_json must be object", None, 0, None
+
+        mode = str(payload.get("mode", "")).upper()
+        game = str(payload.get("game", "")).upper()
+        if mode == "PRACTICE" and not self._is_meaningful_practice_record(game, detail):
+            return False, "practice record requires meaningful play data", None, 0, None
 
         record = {
             "record_id": f"MR_{uuid.uuid4().hex[:12]}",
             "created_at": self.now_iso(),
-            "game": str(payload.get("game", "")).upper(),
-            "mode": "CHALLENGE",
+            "game": game,
+            "mode": mode,
             "difficulty": str(payload.get("difficulty", "")).upper(),
             "score": str(self._to_int(payload.get("score"), 0)),
             "accuracy": str(round(self._to_float(payload.get("accuracy"), 0.0), 2)),
@@ -219,6 +414,8 @@ class MinigameService:
             "source": str(payload.get("source", "app")),
         }
         self.storage.append_csv_row("minigame_records.csv", record, MINIGAME_RECORD_HEADERS)
+        xp_awarded = self._reward_for_record(game, mode, record["difficulty"], detail)
+        event_id = self._append_minigame_event(record, detail, xp_awarded=xp_awarded)
         return True, "", {
             "record_id": record["record_id"],
             "created_at": record["created_at"],
@@ -232,7 +429,9 @@ class MinigameService:
             "share_text": record["share_text"],
             "detail_json": detail,
             "source": record["source"],
-        }
+            "xp_awarded": xp_awarded,
+            "event_id": event_id,
+        }, xp_awarded, event_id
 
     def delete_record(self, record_id: str) -> tuple[bool, str]:
         rid = str(record_id or "").strip()
@@ -251,10 +450,45 @@ class MinigameService:
         if not removed:
             return False, "record not found"
         self.storage.write_csv("minigame_records.csv", kept, headers=MINIGAME_RECORD_HEADERS)
+        event_rows = self.storage.read_csv("events.csv")
+        event_headers = self.storage.read_csv_headers("events.csv")
+        kept_events: list[dict[str, Any]] = []
+        removed_event = False
+        for row in event_rows:
+            if str(row.get("event_type") or "").strip().upper() != "MINIGAME_PLAY":
+                kept_events.append(row)
+                continue
+            meta = self._parse_json_object(row.get("meta_json", ""))
+            minigame_meta = meta.get("minigame") if isinstance(meta.get("minigame"), dict) else {}
+            linked_record_id = str(minigame_meta.get("record_id") or meta.get("record_id") or "").strip()
+            if linked_record_id == rid:
+                removed_event = True
+                continue
+            kept_events.append(row)
+        if removed_event and event_headers:
+            self.storage.write_csv("events.csv", kept_events, headers=event_headers)
+            reconcile_auto_claims(self.storage, self._settings(), created_at=datetime.now().replace(microsecond=0))
         return True, ""
 
-    def stats(self, *, game: str = "", difficulty: str = "", period: str = "ALL") -> dict[str, Any]:
-        rows = self.list_records(game=game, difficulty=difficulty, limit=100000, period=period)
+    def stats(
+        self,
+        *,
+        game: str = "",
+        difficulty: str = "",
+        mode: str = "ALL",
+        period: str = "ALL",
+        start_key: str = "",
+        end_key: str = "",
+    ) -> dict[str, Any]:
+        rows = self.list_records(
+            game=game,
+            difficulty=difficulty,
+            mode=mode,
+            limit=100000,
+            period=period,
+            start_key=start_key,
+            end_key=end_key,
+        )
         plays = len(rows)
         if not rows:
             return {

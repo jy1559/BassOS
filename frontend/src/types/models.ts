@@ -846,9 +846,11 @@ export type MockDatasetExportResult = {
   dataset_id: string;
   dataset_path: string;
   data_path: string;
+  media_path: string;
   file_count: number;
   copied_csv_count: number;
   generated_sessions: number;
+  media_file_count: number;
 };
 
 export type AchievementPackExportResult = {

@@ -85,6 +85,71 @@ class RuntimeProfileManager:
                 continue
         return raw.decode("utf-8", errors="replace")
 
+    def _normalize_relative_media_path(self, raw: Any) -> str:
+        token = str(raw or "").strip().replace("\\", "/")
+        if not token:
+            return ""
+        path = Path(token)
+        if path.is_absolute() or ".." in path.parts:
+            return ""
+        return path.as_posix()
+
+    def _add_media_value(self, raw: Any, out: set[str]) -> None:
+        if isinstance(raw, list):
+            for item in raw:
+                self._add_media_value(item, out)
+            return
+        text = str(raw or "").strip()
+        if not text:
+            return
+        for chunk in text.replace("\n", ";").split(";"):
+            rel = self._normalize_relative_media_path(chunk)
+            if rel:
+                out.add(rel)
+
+    def _collect_meta_media_paths(self, raw: Any, out: set[str]) -> None:
+        if isinstance(raw, dict):
+            for key, value in raw.items():
+                lowered = str(key or "").strip().lower()
+                if lowered == "path" or lowered.endswith("_path") or lowered.endswith("_paths"):
+                    self._add_media_value(value, out)
+                self._collect_meta_media_paths(value, out)
+            return
+        if isinstance(raw, list):
+            for item in raw:
+                self._collect_meta_media_paths(item, out)
+
+    def _collect_export_media_paths(self, storage: Storage) -> list[str]:
+        out: set[str] = set()
+
+        for row in storage.read_csv("song_library.csv"):
+            self._add_media_value(row.get("cover_path"), out)
+            self._add_media_value(row.get("score_pdf_path"), out)
+            self._add_media_value(row.get("score_image_paths"), out)
+            self._add_media_value(row.get("best_take_path"), out)
+
+        for row in storage.read_csv("drill_library.csv"):
+            self._add_media_value(row.get("image_path"), out)
+            self._add_media_value(row.get("image_paths"), out)
+
+        for row in storage.read_csv("events.csv"):
+            self._add_media_value(row.get("evidence_path"), out)
+            raw_meta = str(row.get("meta_json") or "").strip()
+            if raw_meta:
+                try:
+                    parsed_meta = json.loads(raw_meta)
+                except json.JSONDecodeError:
+                    parsed_meta = {}
+                self._collect_meta_media_paths(parsed_meta, out)
+
+        for row in storage.read_csv("record_attachments.csv"):
+            self._add_media_value(row.get("path"), out)
+
+        for row in storage.read_csv("achievements_master.csv"):
+            self._add_media_value(row.get("icon_path"), out)
+
+        return sorted(out)
+
     def _to_int(self, value: str | int | float, default: int = 0) -> int:
         try:
             return int(float(value))
@@ -429,7 +494,9 @@ class RuntimeProfileManager:
         safe_dataset_id = self._sanitize_dataset_id(dataset_id)
         dataset_dir = self._dataset_dir(safe_dataset_id)
         data_dir = dataset_dir / "data"
+        media_dir = dataset_dir / "media"
         data_dir.mkdir(parents=True, exist_ok=True)
+        media_dir.mkdir(parents=True, exist_ok=True)
 
         copied = 0
         for src in sorted(source_storage.paths.runtime_data.glob("*.csv"), key=lambda item: item.name.lower()):
@@ -449,6 +516,16 @@ class RuntimeProfileManager:
             self._write_dataset_csv(data_dir / "events.csv", merged_rows, headers=EVENT_HEADERS)
             generated_count = len(generated_rows)
 
+        copied_media = 0
+        for rel in self._collect_export_media_paths(source_storage):
+            source = source_storage.paths.runtime_media / rel
+            if not source.exists() or not source.is_file():
+                continue
+            target = media_dir / rel
+            target.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(source, target)
+            copied_media += 1
+
         meta = {
             "name": name.strip() or safe_dataset_id,
             "description": description.strip() or "Exported from current BassOS runtime data",
@@ -456,6 +533,7 @@ class RuntimeProfileManager:
             "source_dataset_id": self.active_dataset_id or "",
             "generated_sessions": generated_count,
             "generated_session_days": max(14, min(90, int(session_days))),
+            "media_file_count": copied_media,
             "updated_at": now_local().isoformat(timespec="seconds"),
         }
         (dataset_dir / "dataset.json").write_text(
@@ -467,9 +545,11 @@ class RuntimeProfileManager:
             "dataset_id": safe_dataset_id,
             "dataset_path": str(dataset_dir),
             "data_path": str(data_dir),
+            "media_path": str(media_dir),
             "file_count": len(csv_files),
             "copied_csv_count": copied,
             "generated_sessions": generated_count,
+            "media_file_count": copied_media,
         }
 
     def export_achievement_pack(

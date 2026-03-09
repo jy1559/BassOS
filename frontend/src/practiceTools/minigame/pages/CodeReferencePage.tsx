@@ -640,7 +640,7 @@ export function CodeReferencePage({ userSettings, onOpenSettings }: Props) {
     [toneGrid.columns, toneGrid.rows]
   );
 
-  const boardHeight = Math.max(112, Math.min(190, Math.floor((viewportH - 390) * 0.34)));
+  const boardHeight = Math.max(156, Math.min(228, Math.floor((viewportH - 306) * 0.5)));
 
   const markers = useMemo(() => {
     if (mode === "NOTE") {
@@ -951,8 +951,7 @@ export function CodeReferencePage({ userSettings, onOpenSettings }: Props) {
                     <p>
                       <strong>줄/프렛 위치:</strong> {detailText.intervalLine}
                     </p>
-                    <p>{detailText.structureHint}</p>
-                    <p className="muted">{detailText.practiceTip}</p>
+                    <p className="muted">{detailText.structureHint} {detailText.practiceTip}</p>
                   </>
                 ) : (
                   <>
@@ -963,13 +962,9 @@ export function CodeReferencePage({ userSettings, onOpenSettings }: Props) {
                       <strong>반음 거리:</strong> {detailText.intervalLine}
                     </p>
                     <p>
-                      <strong>핵심 성격:</strong> {detailText.description}
+                      <strong>핵심 성격:</strong> {detailText.description} | <strong>느낌:</strong> {detailText.mood} | <strong>자주 쓰는 곳:</strong> {detailText.usage}
                     </p>
-                    <p>
-                      <strong>느낌:</strong> {detailText.mood} | <strong>자주 쓰는 곳:</strong> {detailText.usage}
-                    </p>
-                    <p>{detailText.structureHint}</p>
-                    <p className="muted">{detailText.practiceTip}</p>
+                    <p className="muted">{detailText.structureHint} {detailText.practiceTip}</p>
                   </>
                 )}
               </div>
@@ -992,4 +987,3 @@ export function CodeReferencePage({ userSettings, onOpenSettings }: Props) {
     </section>
   );
 }
-

@@ -42,6 +42,8 @@ def _event_source_key(event_type: str) -> str:
     normalized = event_type.upper()
     if normalized == "SESSION":
         return "practice"
+    if normalized == "MINIGAME_PLAY":
+        return "minigame"
     if normalized == "QUEST_CLAIM":
         return "quest"
     if normalized == "ACHIEVEMENT_CLAIM":

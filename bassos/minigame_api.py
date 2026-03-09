@@ -33,12 +33,23 @@ def minigame_seed_get() -> Response:
 def minigame_records_get() -> Response:
     game = (request.args.get("game") or "").strip().upper()
     diff = (request.args.get("difficulty") or "").strip().upper()
+    mode = (request.args.get("mode") or "ALL").strip().upper()
     period = (request.args.get("period") or "ALL").strip().upper()
-    limit = max(1, min(500, _to_int(request.args.get("limit"), 30)))
+    start_key = (request.args.get("start_key") or "").strip()
+    end_key = (request.args.get("end_key") or "").strip()
+    limit = max(1, min(5000, _to_int(request.args.get("limit"), 30)))
     return jsonify(
         {
             "ok": True,
-            "items": _game().list_records(game=game, difficulty=diff, limit=limit, period=period),
+            "items": _game().list_records(
+                game=game,
+                difficulty=diff,
+                mode=mode,
+                limit=limit,
+                period=period,
+                start_key=start_key,
+                end_key=end_key,
+            ),
         }
     )
 
@@ -46,10 +57,10 @@ def minigame_records_get() -> Response:
 @minigame_bp.post("/records")
 def minigame_records_post() -> Response:
     payload = request.get_json(silent=True) or {}
-    ok, message, item = _game().create_record(payload)
+    ok, message, item, xp_awarded, event_id = _game().create_record(payload)
     if not ok:
         return jsonify({"ok": False, "message": message}), 400
-    return jsonify({"ok": True, "item": item})
+    return jsonify({"ok": True, "item": item, "xp_awarded": xp_awarded, "event_id": event_id})
 
 
 @minigame_bp.delete("/records/<record_id>")
@@ -65,12 +76,23 @@ def minigame_records_delete(record_id: str) -> Response:
 def minigame_leaderboard_get() -> Response:
     game = (request.args.get("game") or "").strip().upper()
     diff = (request.args.get("difficulty") or "").strip().upper()
+    mode = (request.args.get("mode") or "ALL").strip().upper()
     period = (request.args.get("period") or "ALL").strip().upper()
-    limit = max(1, min(500, _to_int(request.args.get("limit"), 10)))
+    start_key = (request.args.get("start_key") or "").strip()
+    end_key = (request.args.get("end_key") or "").strip()
+    limit = max(1, min(5000, _to_int(request.args.get("limit"), 10)))
     return jsonify(
         {
             "ok": True,
-            "items": _game().leaderboard(game=game, difficulty=diff, limit=limit, period=period),
+            "items": _game().leaderboard(
+                game=game,
+                difficulty=diff,
+                mode=mode,
+                limit=limit,
+                period=period,
+                start_key=start_key,
+                end_key=end_key,
+            ),
         }
     )
 
@@ -79,8 +101,23 @@ def minigame_leaderboard_get() -> Response:
 def minigame_stats_get() -> Response:
     game = (request.args.get("game") or "").strip().upper()
     diff = (request.args.get("difficulty") or "").strip().upper()
+    mode = (request.args.get("mode") or "ALL").strip().upper()
     period = (request.args.get("period") or "ALL").strip().upper()
-    return jsonify({"ok": True, **_game().stats(game=game, difficulty=diff, period=period)})
+    start_key = (request.args.get("start_key") or "").strip()
+    end_key = (request.args.get("end_key") or "").strip()
+    return jsonify(
+        {
+            "ok": True,
+            **_game().stats(
+                game=game,
+                difficulty=diff,
+                mode=mode,
+                period=period,
+                start_key=start_key,
+                end_key=end_key,
+            ),
+        }
+    )
 
 
 @minigame_bp.get("/game-image/<game>")

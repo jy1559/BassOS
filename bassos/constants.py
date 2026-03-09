@@ -251,7 +251,7 @@ JOURNAL_TEMPLATE_CATALOG_DEFAULTS = [
 
 
 SETTINGS_DEFAULTS = {
-    "policy_version": 18,
+    "policy_version": 19,
     "ui": {
         "default_theme": "midnight",
         "enable_confetti": True,
@@ -352,6 +352,7 @@ SETTINGS_DEFAULTS = {
         "achievement_xp_multiplier": 0.15,
         "quest_xp_multiplier": 0.15,
         "session_xp_multiplier": 1.0,
+        "minigame_xp_multiplier": 1.0,
         "daily_session_xp_cap": 0,
     },
     "admin": {
