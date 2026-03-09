@@ -265,16 +265,28 @@ textarea {
 .mg-game-hub-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 14px;
+  gap: 16px;
+  align-items: stretch;
 }
 
 .mg-hub-card {
   display: grid;
-  gap: 10px;
-  align-content: start;
+  grid-template-rows: auto minmax(56px, auto) auto auto;
+  gap: 12px;
+  align-content: stretch;
   text-align: center;
   cursor: pointer;
   transition: transform 120ms ease, box-shadow 120ms ease;
+  height: 100%;
+}
+
+.mg-hub-title {
+  margin: 0;
+}
+
+.mg-hub-desc {
+  margin: 0;
+  line-height: 1.45;
 }
 
 .mg-hub-card:hover,
@@ -1038,32 +1050,32 @@ textarea {
 }
 
 .mg-theory-page {
-  min-height: calc(100vh - 92px);
-  min-width: 740px;
-  gap: 5px;
+  min-height: 0;
+  min-width: 0;
+  gap: 6px;
 }
 
 .mg-theory-main-card {
   display: grid;
-  gap: 5px;
+  gap: 4px;
   align-content: start;
-  min-height: calc(100vh - 190px);
-  grid-template-rows: auto auto 1fr;
+  min-height: 0;
+  grid-template-rows: auto auto minmax(0, 1fr);
 }
 
 .mg-theory-head-compact {
-  padding: 7px 10px;
+  padding: 6px 10px;
 }
 
 .mg-theory-head-compact h2 {
   margin: 0;
-  font-size: 20px;
+  font-size: 18px;
   line-height: 1.15;
 }
 
 .mg-theory-head-compact p {
-  margin: 3px 0 0;
-  font-size: 12px;
+  margin: 2px 0 0;
+  font-size: 11px;
 }
 
 .mg-theory-head-row {
@@ -1096,27 +1108,27 @@ textarea {
 .mg-theory-title-wrap {
   text-align: center;
   display: grid;
-  gap: 2px;
+  gap: 1px;
 }
 
 .mg-theory-title-main {
   margin: 0;
-  font-size: clamp(24px, 3vw, 34px);
-  line-height: 1.03;
+  font-size: clamp(21px, 2.6vw, 29px);
+  line-height: 1.04;
   font-weight: 900;
 }
 
 .mg-theory-title-sub {
   margin: 0;
-  font-size: 11px;
+  font-size: 10.5px;
   color: var(--muted);
 }
 
 .mg-theory-control-line {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr) auto auto;
-  gap: 6px;
-  align-items: end;
+  gap: 8px;
+  align-items: center;
 }
 
 .mg-theory-mode-inline {
@@ -1128,15 +1140,15 @@ textarea {
 .mg-theory-picker-inline {
   display: grid;
   grid-template-columns: minmax(92px, 128px) minmax(0, 1fr);
-  gap: 8px;
+  gap: 6px;
   align-items: end;
   min-width: 0;
 }
 
 .mg-theory-picker-inline label {
   display: grid;
-  gap: 4px;
-  font-size: 12px;
+  gap: 3px;
+  font-size: 11.5px;
 }
 
 .mg-theory-picker-inline label.is-wide select {
@@ -1159,7 +1171,7 @@ textarea {
   right: 0;
   z-index: 16;
   min-width: 220px;
-  max-height: 260px;
+  max-height: 220px;
   overflow: auto;
   border: 1px solid var(--border);
   border-radius: 10px;
@@ -1185,7 +1197,7 @@ textarea {
 .mg-theory-layout {
   margin-top: 2px;
   display: grid;
-  gap: 5px;
+  gap: 4px;
   align-items: start;
 }
 
@@ -1195,33 +1207,33 @@ textarea {
 
 .mg-theory-layout-dense {
   margin-top: 2px;
-  gap: 6px;
+  gap: 5px;
 }
 
 .mg-theory-top,
 .mg-theory-bottom {
   display: grid;
-  gap: 6px;
+  gap: 5px;
 }
 
 .mg-theory-top {
   grid-template-columns: minmax(0, 1.72fr) minmax(0, 0.95fr);
   align-items: stretch;
-  min-height: clamp(148px, 21vh, 196px);
+  min-height: clamp(112px, 15vh, 160px);
   overflow: visible;
 }
 
 .mg-theory-bottom-meta {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
-  gap: 8px;
-  align-items: end;
+  gap: 6px;
+  align-items: start;
 }
 
 .mg-theory-note-side {
   border: 1px solid var(--border);
   border-radius: 10px;
-  padding: 5px;
+  padding: 4px;
   background: linear-gradient(160deg, color-mix(in srgb, var(--panel) 92%, var(--accent-soft)), var(--panel));
   height: 100%;
   display: grid;
@@ -1233,7 +1245,7 @@ textarea {
 .mg-theory-note-grid-side {
   height: 100%;
   grid-auto-flow: row;
-  grid-auto-rows: minmax(42px, 1fr);
+  grid-auto-rows: minmax(38px, 1fr);
   align-content: stretch;
   justify-content: stretch;
   min-height: 0;
@@ -1243,7 +1255,7 @@ textarea {
 .mg-theory-staff-wrap {
   border: 1px solid color-mix(in srgb, var(--accent) 30%, var(--border));
   border-radius: 10px;
-  padding: 6px;
+  padding: 5px;
   background: linear-gradient(160deg, color-mix(in srgb, var(--panel) 90%, var(--accent-soft)), var(--panel));
   height: 100%;
   display: grid;
@@ -1253,7 +1265,7 @@ textarea {
 .mg-theory-staff-title {
   font-size: 10px;
   color: var(--muted);
-  margin-bottom: 3px;
+  margin-bottom: 2px;
 }
 
 .mg-theory-staff {
@@ -1287,7 +1299,7 @@ textarea {
 
 .mg-theory-note-grid {
   display: grid;
-  gap: 6px;
+  gap: 5px;
 }
 
 .mg-theory-note-grid-one-row {
@@ -1302,8 +1314,8 @@ textarea {
 
 .mg-theory-note-card {
   border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 5px 10px;
+  border-radius: 9px;
+  padding: 4px 8px;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -1317,12 +1329,12 @@ textarea {
 }
 
 .mg-theory-note-card strong {
-  font-size: clamp(14px, 1.5vw, 20px);
+  font-size: clamp(13px, 1.35vw, 18px);
   line-height: 1.05;
 }
 
 .mg-theory-note-card span {
-  font-size: clamp(11px, 1.2vw, 14px);
+  font-size: clamp(10px, 1.05vw, 13px);
   font-weight: 700;
   color: color-mix(in srgb, var(--text) 78%, var(--accent));
 }
@@ -1358,20 +1370,94 @@ textarea {
 .mg-theory-explain {
   border: 1px solid var(--border);
   border-radius: 9px;
-  padding: 6px;
+  padding: 5px 6px;
   background: color-mix(in srgb, var(--panel) 92%, var(--accent-soft));
   display: grid;
-  gap: 3px;
+  gap: 2px;
 }
 
 .mg-theory-explain p {
   margin: 0;
-  font-size: 10.5px;
+  font-size: 10px;
+  line-height: 1.32;
+}
+
+@media (max-height: 820px) {
+  .mg-theory-head-compact {
+    padding: 5px 9px;
+  }
+
+  .mg-theory-head-compact p,
+  .mg-theory-title-sub {
+    display: none;
+  }
+
+  .mg-theory-head-compact h2 {
+    font-size: 17px;
+  }
+
+  .mg-theory-title-main {
+    font-size: clamp(18px, 2.2vw, 24px);
+  }
+
+  .mg-theory-control-line {
+    gap: 6px;
+  }
+
+  .mg-theory-picker-inline {
+    gap: 5px;
+  }
+
+  .mg-theory-layout-dense {
+    gap: 4px;
+  }
+
+  .mg-theory-top,
+  .mg-theory-bottom {
+    gap: 4px;
+  }
+
+  .mg-theory-note-grid-side {
+    grid-auto-rows: minmax(32px, 1fr);
+  }
+
+  .mg-theory-note-slot {
+    min-height: 34px;
+  }
+
+  .mg-theory-note-card {
+    padding: 3px 6px;
+  }
+
+  .mg-theory-note-card strong {
+    font-size: clamp(12px, 1.1vw, 16px);
+  }
+
+  .mg-theory-note-card span {
+    font-size: clamp(9px, 0.92vw, 12px);
+  }
+
+  .mg-theory-bottom-meta {
+    gap: 4px;
+  }
+
+  .mg-theory-explain {
+    padding: 4px 6px;
+  }
+
+  .mg-theory-explain p {
+    font-size: 9.4px;
+    line-height: 1.24;
+  }
+
+  .mg-theory-right-controls {
+    gap: 4px;
+  }
 }
 
 .mg-theory-right-controls {
   display: flex;
-  gap: 6px;
+  gap: 5px;
   justify-content: flex-start;
   flex-wrap: wrap;
   margin-top: 0;
@@ -2316,12 +2402,12 @@ button.mg-lm-step-chip:disabled {
   }
 
   .mg-theory-page {
-    min-height: calc(100vh - 96px);
-    min-width: 740px;
+    min-height: 0;
+    min-width: 0;
   }
 
   .mg-theory-title-main {
-    font-size: clamp(22px, 5.6vw, 30px);
+    font-size: clamp(20px, 5.2vw, 28px);
   }
 }
 

@@ -358,13 +358,13 @@ function makeDetailText(currentRule: RuleItem | null, tones: ToneRow[], mode: "C
 
   const structureHint =
     mode === "CHORD"
-      ? `${rootName} 기준으로 1-3(또는 b3)-5 골격에 7, 9 확장을 더하면 코드 성격이 정해집니다.`
-      : `${rootName} 기준 도수 간격(반음 구조)을 익히면 어떤 키에서도 같은 손모양으로 이동할 수 있습니다.`;
+      ? `${rootName} 기준 1-3(또는 b3)-5 뼈대에 7, 9를 더하면 코드 성격이 분명해집니다.`
+      : `${rootName} 기준 반음 구조를 익히면 어떤 키에서도 같은 패턴으로 바로 옮길 수 있습니다.`;
 
   const practiceTip =
     mode === "CHORD"
-      ? "루트와 3도/7도를 먼저 잡고, 그 다음 5도와 텐션을 추가하면 코드 인지 속도가 빨라집니다."
-      : "1도에서 8도까지 올라가며 도수와 음이름을 같이 말하면 패턴 암기와 청음이 같이 좋아집니다.";
+      ? "루트와 3도/7도를 먼저 잡고, 마지막에 5도와 텐션을 더하면 훨씬 빠르게 외워집니다."
+      : "1도부터 8도까지 도수와 음이름을 함께 말하며 올라가면 패턴 암기가 빨라집니다.";
 
   return {
     degreeLine: degreeLine || "-",
@@ -640,7 +640,7 @@ export function CodeReferencePage({ userSettings, onOpenSettings }: Props) {
     [toneGrid.columns, toneGrid.rows]
   );
 
-  const boardHeight = Math.max(160, Math.min(280, Math.floor((viewportH - 340) * 0.56)));
+  const boardHeight = Math.max(112, Math.min(190, Math.floor((viewportH - 390) * 0.34)));
 
   const markers = useMemo(() => {
     if (mode === "NOTE") {
@@ -736,8 +736,8 @@ export function CodeReferencePage({ userSettings, onOpenSettings }: Props) {
         description: `${noteName} ${octaveLabel} 기준 4현 베이스 지판 위치`,
         mood: "-",
         usage: "지판 암기",
-        structureHint: "같은 음은 같은 줄에서 12프렛 간격으로 반복되고, 줄을 하나 올리면 보통 5프렛 낮은 위치에서 같은 음이 나옵니다.",
-        practiceTip: "4번줄에서 1번줄까지 같은 음 위치를 소리 내어 읽고, 12프렛 반복과 줄 이동(±5프렛)을 함께 묶어 외우면 훨씬 빠릅니다.",
+        structureHint: "같은 음은 같은 줄에서 12프렛 간격으로 반복되고, 줄을 하나 올리면 보통 5프렛 차이로 이어집니다.",
+        practiceTip: "4번줄부터 1번줄까지 같은 음 위치를 소리 내어 읽으며 12프렛 반복을 함께 묶어 외우세요.",
       } as DetailText;
     }
     return makeDetailText(currentRule, tones, mode, rootPc);

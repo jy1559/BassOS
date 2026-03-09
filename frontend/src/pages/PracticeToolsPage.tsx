@@ -29,6 +29,8 @@ type ModalDragState = {
   height: number;
 };
 
+const MODAL_TOP_OFFSET = 24;
+
 export type PracticeToolsTabId = "tab_builder" | "minigame" | "theory";
 
 const TAB_LABELS: Record<PracticeToolsTabId, { ko: string; en: string }> = {
@@ -51,6 +53,17 @@ function clampModalPosition(position: ModalPosition, width: number, height: numb
     left: Math.round(Math.max(margin, Math.min(position.left, maxLeft))),
     top: Math.round(Math.max(margin, Math.min(position.top, maxTop))),
   };
+}
+
+function defaultModalPosition(width: number, height: number): ModalPosition {
+  return clampModalPosition(
+    {
+      left: Math.round((window.innerWidth - width) / 2),
+      top: MODAL_TOP_OFFSET,
+    },
+    width,
+    height
+  );
 }
 
 export function PracticeToolsPage({ lang, activeTab, onActiveTabChange }: Props) {
@@ -105,15 +118,8 @@ export function PracticeToolsPage({ lang, activeTab, onActiveTabChange }: Props)
       const node = modalCardRef.current;
       if (!node) return;
       const rect = node.getBoundingClientRect();
-      const centered = clampModalPosition(
-        {
-          left: Math.round((window.innerWidth - rect.width) / 2),
-          top: Math.round(Math.max(16, (window.innerHeight - rect.height) / 2)),
-        },
-        rect.width,
-        rect.height
-      );
-      setModalPosition((prev) => (prev ? clampModalPosition(prev, rect.width, rect.height) : centered));
+      const anchored = defaultModalPosition(rect.width, rect.height);
+      setModalPosition((prev) => (prev ? clampModalPosition(prev, rect.width, rect.height) : anchored));
     };
 
     const frameId = window.requestAnimationFrame(updatePosition);
@@ -236,7 +242,7 @@ export function PracticeToolsPage({ lang, activeTab, onActiveTabChange }: Props)
         ) : null}
 
         {resolvedActiveTab === "theory" ? (
-          <MinigameShadowSurface className="practice-tools-shadow-host">
+          <MinigameShadowSurface className="practice-tools-shadow-host practice-tools-shadow-host-theory">
             <CodeReferencePage userSettings={userSettings} onOpenSettings={() => setShowSettingsModal(true)} />
           </MinigameShadowSurface>
         ) : null}
@@ -269,9 +275,11 @@ export function PracticeToolsPage({ lang, activeTab, onActiveTabChange }: Props)
                 {lang === "ko" ? "닫기" : "Close"}
               </button>
             </div>
-            <MinigameShadowSurface className="practice-tools-shadow-host practice-tools-modal-shadow">
-              <MiniGameSettingsPage settings={userSettings} onApply={applyUserSettings} />
-            </MinigameShadowSurface>
+            <div className="practice-tools-modal-body" data-testid="practice-tools-modal-body">
+              <MinigameShadowSurface className="practice-tools-shadow-host practice-tools-modal-shadow">
+                <MiniGameSettingsPage settings={userSettings} onApply={applyUserSettings} />
+              </MinigameShadowSurface>
+            </div>
           </div>
         </div>
       ) : null}

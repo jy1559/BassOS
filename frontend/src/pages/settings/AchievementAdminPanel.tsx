@@ -12,6 +12,7 @@ import {
 } from "../../api";
 import type { Lang } from "../../i18n";
 import type { AchievementRuleOptions, AdminAchievementMasterItem, Settings } from "../../types/models";
+import { resolveAchievementIconVisual } from "../../utils/achievementPresentation";
 
 type Props = {
   lang: Lang;
@@ -79,6 +80,7 @@ type FormState = RuleBuilderState & {
   ui_badge_style: string;
   icon_path: string;
   icon_url: string;
+  icon_emoji: string;
 };
 
 type BulkState = RuleBuilderState & {
@@ -90,6 +92,7 @@ type BulkState = RuleBuilderState & {
   auto_grant: boolean;
   icon_path: string;
   icon_url: string;
+  icon_emoji: string;
   tiers: Array<{
     achievement_id: string;
     tier: string;
@@ -99,6 +102,7 @@ type BulkState = RuleBuilderState & {
     xp_reward: string;
     icon_path: string;
     icon_url: string;
+    icon_emoji: string;
   }>;
 };
 
@@ -478,6 +482,7 @@ const EMPTY_FORM: FormState = {
   ui_badge_style: "custom",
   icon_path: "",
   icon_url: "",
+  icon_emoji: "",
   rule_event_type: "",
   rule_tags_any: "",
   rule_tags_all: "",
@@ -844,6 +849,7 @@ function formFromItem(item: AdminAchievementMasterItem): FormState {
       ui_badge_style: String(item.ui_badge_style || "custom"),
       icon_path: String(item.icon_path || ""),
       icon_url: String(item.icon_url || ""),
+      icon_emoji: String(item.icon_emoji || ""),
       rule_event_type: "",
       rule_tags_any: "",
       rule_tags_all: "",
@@ -1396,6 +1402,7 @@ export function AchievementAdminPanel({ lang, settings, onSettingsChange, setMes
       auto_grant: asBool(String(head?.auto_grant || "false")),
       icon_path: String(head?.icon_path || ""),
       icon_url: String(head?.icon_url || ""),
+      icon_emoji: String(head?.icon_emoji || ""),
       rule_event_type: "",
       rule_tags_any: "",
       rule_tags_all: "",
@@ -1415,6 +1422,7 @@ export function AchievementAdminPanel({ lang, settings, onSettingsChange, setMes
         xp_reward: String(row.xp_reward || "0"),
         icon_path: String(row.icon_path || ""),
         icon_url: String(row.icon_url || ""),
+        icon_emoji: String(row.icon_emoji || ""),
       })),
     };
     const nextBulk = applyRuleFilterToBulk(base, parseRuleFilter(String(head?.rule_filter || "{}")));
@@ -1479,6 +1487,7 @@ export function AchievementAdminPanel({ lang, settings, onSettingsChange, setMes
       hint: form.hint,
       icon_path: form.icon_path.trim(),
       icon_url: form.icon_url.trim(),
+      icon_emoji: form.icon_emoji.trim(),
     };
     if (!isTierLiteEdit) {
       payload.group_id = form.group_id.trim() || achId;
@@ -1513,11 +1522,13 @@ export function AchievementAdminPanel({ lang, settings, onSettingsChange, setMes
     const parsedRule = composeBulkRuleFilter(bulk);
     const commonIconPath = bulk.icon_path.trim();
     const commonIconUrl = bulk.icon_url.trim();
+    const commonIconEmoji = bulk.icon_emoji.trim();
     setBulkBusy(true);
     try {
       for (const row of bulk.tiers) {
         const resolvedIconPath = row.icon_path.trim() || commonIconPath;
         const resolvedIconUrl = row.icon_url.trim() || commonIconUrl;
+        const resolvedIconEmoji = row.icon_emoji.trim() || commonIconEmoji;
         await updateAdminAchievementMaster(row.achievement_id, {
           group_id: bulk.groupId,
           category: bulk.category,
@@ -1534,6 +1545,7 @@ export function AchievementAdminPanel({ lang, settings, onSettingsChange, setMes
           ui_badge_style: tierStyleKey(Number(row.tier || 1)).replace("tier_", ""),
           icon_path: resolvedIconPath,
           icon_url: resolvedIconUrl,
+          icon_emoji: resolvedIconEmoji,
         });
       }
       await load();
@@ -1682,7 +1694,14 @@ export function AchievementAdminPanel({ lang, settings, onSettingsChange, setMes
     }
   };
 
-  const iconPreview = form.icon_url || (form.icon_path ? `/media/${form.icon_path}` : "");
+  const iconPreview = resolveAchievementIconVisual({
+    achievement_id: form.achievement_id,
+    group_id: form.group_id,
+    category: form.category,
+    icon_url: form.icon_url,
+    icon_path: form.icon_path,
+    icon_emoji: form.icon_emoji,
+  });
 
   const closeEditor = () => {
     setEditorMode("none");
@@ -2269,7 +2288,10 @@ export function AchievementAdminPanel({ lang, settings, onSettingsChange, setMes
               ) : null}
 
               <div className="achievement-editor-media">
-                {iconPreview ? <img src={iconPreview} alt="icon preview" className="achievement-admin-preview-lg" /> : null}
+                {iconPreview.imageSrc ? <img src={iconPreview.imageSrc} alt="icon preview" className="achievement-admin-preview-lg" /> : null}
+                {!iconPreview.imageSrc && iconPreview.emoji ? (
+                  <div className="achievement-admin-preview-lg achievement-admin-preview-emoji">{iconPreview.emoji}</div>
+                ) : null}
                 <label>
                   icon_url
                   <input value={form.icon_url} onChange={(event) => setForm((prev) => ({ ...prev, icon_url: event.target.value }))} />
@@ -2277,6 +2299,10 @@ export function AchievementAdminPanel({ lang, settings, onSettingsChange, setMes
                 <label>
                   icon_path
                   <input value={form.icon_path} onChange={(event) => setForm((prev) => ({ ...prev, icon_path: event.target.value }))} />
+                </label>
+                <label>
+                  icon_emoji
+                  <input value={form.icon_emoji} onChange={(event) => setForm((prev) => ({ ...prev, icon_emoji: event.target.value }))} />
                 </label>
                 <div className="row">
                   <label className="ghost-btn compact-add-btn">
@@ -2735,6 +2761,10 @@ export function AchievementAdminPanel({ lang, settings, onSettingsChange, setMes
                 <label>
                   icon_path
                   <input value={bulk.icon_path} onChange={(event) => setBulk((prev) => (prev ? { ...prev, icon_path: event.target.value } : prev))} />
+                </label>
+                <label>
+                  icon_emoji
+                  <input value={bulk.icon_emoji} onChange={(event) => setBulk((prev) => (prev ? { ...prev, icon_emoji: event.target.value } : prev))} />
                 </label>
               </div>
               <small className="muted">

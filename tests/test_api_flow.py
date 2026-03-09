@@ -99,6 +99,25 @@ def test_core_api_smoke(tmp_path):
     )
 
 
+def test_achievements_endpoint_humanizes_legacy_description(tmp_path):
+    root = _prepare_temp_root(tmp_path)
+    app = create_app(root)
+    client = app.test_client()
+    storage = app.config["storage"]
+
+    rows = storage.read_csv("achievements_master.csv")
+    headers = storage.read_csv_headers("achievements_master.csv")
+    target = next(row for row in rows if row.get("achievement_id") == "ACH_TIER_SESSION_ROUTINE_T1")
+    target["description"] = "조건을 만족한 이벤트를 8회 달성하세요. (이벤트: SESSION / 세션 10분 이상)"
+    storage.write_csv("achievements_master.csv", rows, headers=headers)
+
+    res = client.get("/api/achievements")
+    assert res.status_code == 200
+    items = res.get_json()["achievements"]
+    item = next(row for row in items if row.get("achievement_id") == "ACH_TIER_SESSION_ROUTINE_T1")
+    assert item["description"] == "세션 10분 이상을 8회 기록하세요."
+
+
 def test_api_unhandled_error_returns_json(tmp_path):
     root = _prepare_temp_root(tmp_path)
     app = create_app(root)

@@ -4,6 +4,7 @@ import { FilterBar, PageHeader } from "../components/ui";
 import type { Lang } from "../i18n";
 import type { Achievement, Settings } from "../types/models";
 import type { CSSProperties } from "react";
+import { achievementEmojiFallback, resolveAchievementIconVisual } from "../utils/achievementPresentation";
 
 type Props = {
   lang: Lang;
@@ -11,7 +12,7 @@ type Props = {
   items: Achievement[];
   onRefresh: () => Promise<void>;
   setMessage: (message: string) => void;
-  onAchievementClaimed?: (payload: { name: string; description?: string; icon?: string }) => void;
+  onAchievementClaimed?: (payload: { name: string; description?: string; icon?: string; emoji?: string }) => void;
 };
 
 type StateFilter = "all" | "claimed" | "ready" | "in_progress";
@@ -210,18 +211,6 @@ function fallbackName(item: Achievement): string {
 
 function fallbackDescription(item: Achievement, lang: Lang): string {
   return lang === "ko" ? `목표 ${item.target} 달성` : `Reach target ${item.target}`;
-}
-
-function iconFallback(item: Achievement): string {
-  const base = String(item.category || "A").trim();
-  if (!base) return "A";
-  return base.slice(0, 1).toUpperCase();
-}
-
-function iconSource(item: Achievement): string {
-  if (item.icon_url) return item.icon_url;
-  if (item.icon_path) return `/media/${item.icon_path}`;
-  return "";
 }
 
 function titleScaleClass(text: string): string {
@@ -467,7 +456,7 @@ export function AchievementsPage({ lang, settings, items, onRefresh, setMessage,
             {recentClaims.slice(0, recentVisibleCount).map((item) => {
               const groupSize = grouped.get(item.group_id || item.achievement_id)?.length ?? 1;
               const kind = cardKind(item, groupSize);
-              const source = iconSource(item);
+              const iconVisual = resolveAchievementIconVisual(item);
               const topLabel =
                 kind === "tiered" ? canonicalTierName(Number(item.tier || 1)) : kind === "hidden" ? copy.hidden : copy.event;
               const claimedAt = formatClaimedAt(item.claimed_at, lang);
@@ -488,10 +477,12 @@ export function AchievementsPage({ lang, settings, items, onRefresh, setMessage,
                   <div className="achievement-medal achievement-medal-recent">
                     <div className="achievement-medal-ring" />
                     <div className="achievement-medal-core">
-                      {source ? (
-                        <img className="achievement-tile-icon" src={source} alt={item.name || item.achievement_id} />
+                      {iconVisual.imageSrc ? (
+                        <img className="achievement-tile-icon" src={iconVisual.imageSrc} alt={item.name || item.achievement_id} />
                       ) : (
-                        <div className="achievement-tile-icon fallback">{iconFallback(item)}</div>
+                        <div className={`achievement-tile-icon fallback ${iconVisual.emoji ? "emoji" : ""}`}>
+                          {iconVisual.emoji || achievementEmojiFallback(item)}
+                        </div>
                       )}
                     </div>
                     <span className="achievement-medal-check">✓</span>
@@ -535,7 +526,6 @@ export function AchievementsPage({ lang, settings, items, onRefresh, setMessage,
                 const targetSafe = Math.max(Number(item.target) || 1, 1);
                 const progressSafe = Math.max(0, Number(item.progress) || 0);
                 const claimable = item.unlocked && !item.claimed;
-                const source = iconSource(item);
                 const opened = helpId === item.achievement_id;
                 const hiddenLocked = item.hidden && !item.claimed;
                 const progressRatio = hiddenLocked ? 0 : Math.min(1, progressSafe / targetSafe);
@@ -544,6 +534,7 @@ export function AchievementsPage({ lang, settings, items, onRefresh, setMessage,
                 const displayName = hiddenLocked ? "???" : (item.name || fallbackName(item));
                 const subtitle = hiddenLocked ? "???" : (item.description || fallbackDescription(item, lang));
                 const claimedAt = formatClaimedAt(item.claimed_at, lang);
+                const iconVisual = resolveAchievementIconVisual(item);
                 const topLabel =
                   kind === "tiered" ? canonicalTierName(Number(item.tier || 1)) : kind === "hidden" ? copy.hidden : copy.event;
                 const palette = paletteFor(item, kind, settings);
@@ -581,10 +572,12 @@ export function AchievementsPage({ lang, settings, items, onRefresh, setMessage,
                     <div className="achievement-medal">
                       <div className="achievement-medal-ring" />
                       <div className="achievement-medal-core">
-                        {source ? (
-                          <img className="achievement-tile-icon" src={source} alt={displayName} />
+                        {iconVisual.imageSrc ? (
+                          <img className="achievement-tile-icon" src={iconVisual.imageSrc} alt={displayName} />
                         ) : (
-                          <div className="achievement-tile-icon fallback">{iconFallback(item)}</div>
+                          <div className={`achievement-tile-icon fallback ${iconVisual.emoji ? "emoji" : ""}`}>
+                            {iconVisual.emoji || achievementEmojiFallback(item)}
+                          </div>
                         )}
                       </div>
                       {item.claimed ? <span className="achievement-medal-check">✓</span> : null}
@@ -626,7 +619,8 @@ export function AchievementsPage({ lang, settings, items, onRefresh, setMessage,
                                 onAchievementClaimed?.({
                                   name: displayName,
                                   description: subtitle,
-                                  icon: item.icon_url || (item.icon_path ? `/media/${item.icon_path}` : ""),
+                                  icon: iconVisual.imageSrc,
+                                  emoji: iconVisual.emoji,
                                 });
                                 await onRefresh();
                               } catch (error) {

@@ -48,6 +48,7 @@ ACHIEVEMENT_HEADERS = [
     "ui_badge_style",
     "icon_path",
     "icon_url",
+    "icon_emoji",
 ]
 
 QUEST_HEADERS = [

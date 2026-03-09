@@ -541,8 +541,8 @@ export function PracticeToolsMiniGamePage({ selectedGame, onSelectGame, onBackTo
                 moveViewFor(game, "HOME");
               }}
             >
-              <h3>{gameMeta[game].title}</h3>
-              <p className="muted">{gameMeta[game].desc}</p>
+              <h3 className="mg-hub-title">{gameMeta[game].title}</h3>
+              <p className="muted mg-hub-desc">{gameMeta[game].desc}</p>
               <div className="mg-hub-thumb-wrap">
                 <img className="mg-hub-thumb" src={getGameImageUrl(game)} alt={`${gameMeta[game].title} preview`} loading="lazy" />
               </div>

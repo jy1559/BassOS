@@ -430,6 +430,14 @@ nav {
   display: block;
 }
 
+.content.content-tools {
+  padding: 10px 12px 12px;
+}
+
+.content.content-tools .topbar {
+  margin-bottom: 8px;
+}
+
 .content.content-dashboard .dashboard-shell {
   min-height: 0;
   height: auto;
@@ -1692,8 +1700,13 @@ button:disabled {
   object-fit: cover;
 }
 
+.toast-achievement-emoji {
+  font-size: 26px;
+  line-height: 1;
+}
+
 .toast-achievement-fallback {
-  font-size: 18px;
+  font-size: 22px;
   color: #4b64d8;
 }
 
@@ -5361,7 +5374,7 @@ textarea {
 
 .achievement-medal-core {
   position: absolute;
-  inset: 11px;
+  inset: 8px;
   border-radius: 50%;
   border: 1px solid color-mix(in srgb, var(--tile-accent) 26%, var(--border));
   display: flex;
@@ -5391,8 +5404,8 @@ textarea {
 }
 
 .achievement-tile-icon {
-  width: 62%;
-  height: 62%;
+  width: 76%;
+  height: 76%;
   object-fit: contain;
   display: block;
 }
@@ -5403,9 +5416,14 @@ textarea {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 28px;
+  font-size: 32px;
   font-weight: 700;
   color: color-mix(in srgb, var(--tile-accent) 72%, #fff);
+}
+
+.achievement-tile-icon.fallback.emoji {
+  font-size: 40px;
+  line-height: 1;
 }
 
 .achievement-title {
@@ -5984,6 +6002,13 @@ textarea {
   object-fit: contain;
   justify-self: start;
   background: color-mix(in srgb, var(--panel) 88%, var(--accent-soft));
+}
+
+.achievement-admin-preview-emoji {
+  display: grid;
+  place-items: center;
+  font-size: 44px;
+  line-height: 1;
 }
 
 .achievement-admin-tier-table {
@@ -11988,9 +12013,13 @@ textarea {
 .practice-tools-shadow-host {
   display: block;
   width: 100%;
-  min-height: 680px;
+  min-height: clamp(440px, calc(100vh - 250px), 680px);
   border-radius: 14px;
   overflow: hidden;
+}
+
+.practice-tools-shadow-host-theory {
+  min-height: clamp(420px, calc(100vh - 280px), 620px);
 }
 
 .practice-tools-modal-backdrop {
@@ -12003,7 +12032,7 @@ textarea {
 
 .practice-tools-modal-card {
   width: min(1180px, 96vw);
-  max-height: 94vh;
+  max-height: calc(100vh - 32px);
   overflow: hidden;
   border: 1px solid var(--border);
   border-radius: 18px;
@@ -12011,8 +12040,8 @@ textarea {
   box-shadow: var(--shadow);
   position: fixed;
   left: 50%;
-  top: 50%;
-  transform: translate(-50%, -50%);
+  top: 24px;
+  transform: translateX(-50%);
   display: grid;
   grid-template-rows: auto minmax(0, 1fr);
   gap: 0;
@@ -12048,9 +12077,16 @@ textarea {
   min-width: 0;
 }
 
+.practice-tools-modal-body {
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+
 .practice-tools-modal-shadow {
   min-height: 0;
-  max-height: calc(94vh - 78px);
+  height: 100%;
+  max-height: none;
 }
 
 @media (max-width: 920px) {

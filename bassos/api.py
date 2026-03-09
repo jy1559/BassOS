@@ -984,6 +984,10 @@ def _sanitize_icon_path(value: Any) -> str:
     return text.replace("\\", "/")
 
 
+def _sanitize_icon_emoji(value: Any) -> str:
+    return str(value or "").strip()
+
+
 @api_bp.get("/health")
 def health() -> Response:
     return jsonify({"ok": True})
@@ -1360,6 +1364,7 @@ def admin_achievements_create() -> Response:
             "ui_badge_style": str(payload.get("ui_badge_style") or "custom"),
             "icon_path": _sanitize_icon_path(payload.get("icon_path")),
             "icon_url": str(payload.get("icon_url") or "").strip(),
+            "icon_emoji": _sanitize_icon_emoji(payload.get("icon_emoji")),
         }
     )
     rows.append(row)
@@ -1400,6 +1405,8 @@ def admin_achievements_update(achievement_id: str) -> Response:
             target[key] = str(max(0, to_int(value, to_int(target.get(key), 0))))
         elif key == "icon_path":
             target[key] = _sanitize_icon_path(value)
+        elif key == "icon_emoji":
+            target[key] = _sanitize_icon_emoji(value)
         else:
             target[key] = str(value)
     if str(target.get("rule_type") or "").lower() == "manual":
@@ -1436,6 +1443,7 @@ def admin_achievements_reset_curated() -> Response:
     for row in rows:
         row.setdefault("icon_path", "")
         row.setdefault("icon_url", "")
+        row.setdefault("icon_emoji", "")
     storage.write_csv("achievements_master.csv", rows, headers=headers)
     return jsonify({"ok": True, "count": len(rows)})
 

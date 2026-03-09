@@ -13,11 +13,13 @@ function buildScopedCss(): string {
 
 :host {
   display: block;
-  min-height: 100%;
+  min-height: 0;
+  height: 100%;
 }
 
 .mg-shadow-root {
-  min-height: 100%;
+  min-height: 0;
+  height: 100%;
 }
 `;
 }

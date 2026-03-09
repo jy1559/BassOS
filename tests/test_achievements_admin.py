@@ -36,6 +36,7 @@ def test_admin_achievements_crud_and_group_delete(tmp_path: Path):
             "rule_type": "manual",
             "target": 1,
             "xp_reward": 50,
+            "icon_emoji": "🎸",
         },
     )
     assert create_one.status_code == 200
@@ -47,12 +48,14 @@ def test_admin_achievements_crud_and_group_delete(tmp_path: Path):
             "rule_type": "count_events",
             "rule_filter": {"event_type": "SESSION", "min_duration": 10},
             "auto_grant": True,
+            "icon_emoji": "🧭",
         },
     )
     assert update_one.status_code == 200
     updated = update_one.get_json()["item"]
     assert updated["name"] == "테스트 수정"
     assert updated["auto_grant"] == "true"
+    assert updated["icon_emoji"] == "🧭"
 
     create_two = client.post(
         "/api/admin/achievements/master",
@@ -127,6 +130,7 @@ def test_admin_achievement_icon_upload_export_pack_and_mock_activate_media(tmp_p
             "target": 1,
             "xp_reward": 20,
             "icon_path": uploaded["path"],
+            "icon_emoji": "🎥",
         },
     )
     assert create.status_code == 200
@@ -148,7 +152,8 @@ def test_admin_achievement_icon_upload_export_pack_and_mock_activate_media(tmp_p
 
     with csv_path.open("r", newline="", encoding="utf-8-sig") as fh:
         rows = list(csv.DictReader(fh))
-    assert any(row.get("achievement_id") == "ACH_ICON_TEST" for row in rows)
+    exported = next(row for row in rows if row.get("achievement_id") == "ACH_ICON_TEST")
+    assert exported["icon_emoji"] == "🎥"
 
     activate = client.post("/api/admin/mock-data/activate", json={"dataset_id": "ach_export_media_test", "reset": True})
     assert activate.status_code == 200
@@ -160,6 +165,7 @@ def test_admin_achievement_icon_upload_export_pack_and_mock_activate_media(tmp_p
     ach_rows = achievements.get_json()["achievements"]
     row = next(item for item in ach_rows if item.get("achievement_id") == "ACH_ICON_TEST")
     assert "icon_path" in row and "icon_url" in row
+    assert row["icon_emoji"] == "🎥"
 
 
 def test_admin_achievements_reset_curated(tmp_path: Path):
@@ -186,6 +192,7 @@ def test_admin_achievements_reset_curated(tmp_path: Path):
 
     rows = client.get("/api/admin/achievements/master").get_json()["items"]
     assert all(item.get("achievement_id") != "ACH_RESET_TEST" for item in rows)
+    assert any(str(item.get("icon_emoji") or "").strip() for item in rows)
 
 
 def test_admin_achievement_rule_options(tmp_path: Path):

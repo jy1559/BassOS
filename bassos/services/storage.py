@@ -631,6 +631,7 @@ class Storage:
             row.setdefault("ui_badge_style", "default")
             row.setdefault("icon_path", "")
             row.setdefault("icon_url", "")
+            row.setdefault("icon_emoji", "")
 
             raw_filter = row.get("rule_filter", "")
             if raw_filter:

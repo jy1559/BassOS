@@ -195,6 +195,7 @@ export type Achievement = {
   evidence_hint: string;
   icon_path: string;
   icon_url: string;
+  icon_emoji: string;
 };
 
 export type AdminAchievementMasterItem = {
@@ -218,6 +219,7 @@ export type AdminAchievementMasterItem = {
   ui_badge_style: string;
   icon_path: string;
   icon_url: string;
+  icon_emoji: string;
   _progress: number;
   _target: number;
   _unlocked: boolean;

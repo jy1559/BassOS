@@ -39,6 +39,7 @@ test("E2E-29 practice tools merges tab builder, minigame, theory, and popup sett
   await expect(page.locator("[data-testid='mg-page']")).toBeVisible();
   await expect(page.locator("[data-testid='mg-lb-item-1']")).toContainText("321");
 
+  await page.setViewportSize({ width: 1366, height: 480 });
   await page.getByRole("button", { name: /연습 도구 설정|Practice Tool Settings/i }).click();
   const modal = page.locator(".practice-tools-modal-card");
   await expect(modal).toBeVisible();
@@ -57,13 +58,31 @@ test("E2E-29 practice tools merges tab builder, minigame, theory, and popup sett
   expect(Math.abs((modalAfterDrag?.x ?? modalBefore.x) - modalBefore.x)).toBeGreaterThan(40);
 
   await expect(page.locator("[data-testid='mg-settings-page']")).toBeVisible();
+  const modalBody = page.locator("[data-testid='practice-tools-modal-body']");
+  const modalScrollState = await modalBody.evaluate((node) => {
+    const style = window.getComputedStyle(node);
+    return {
+      overflowY: style.overflowY,
+      clientHeight: node.clientHeight,
+      scrollHeight: node.scrollHeight,
+    };
+  });
+  expect(["auto", "scroll"]).toContain(modalScrollState.overflowY);
+  expect(modalScrollState.scrollHeight).toBeGreaterThanOrEqual(modalScrollState.clientHeight);
+  const modalViewport = page.viewportSize();
+  const modalAfterOpen = await modal.boundingBox();
+  expect(modalAfterOpen).not.toBeNull();
+  expect((modalAfterOpen?.y ?? 0) + (modalAfterOpen?.height ?? 0)).toBeLessThanOrEqual((modalViewport?.height ?? 0) - 8);
   const scaleSpreadInput = page.locator("[data-testid='mg-theory-scale-spread-number']").first();
   await scaleSpreadInput.fill("180");
   await page.getByRole("button", { name: "설정 저장" }).click();
   await page.locator(".practice-tools-modal-head .ghost-btn").click();
 
+  await page.setViewportSize({ width: 1366, height: 768 });
   await openToolsView(page, /이론·코드·스케일|Theory/i);
   await expect(page.locator("[data-testid='mg-theory-page']")).toBeVisible();
+  const contentOverflow = await page.locator(".content").evaluate((node) => node.scrollHeight - node.clientHeight);
+  expect(contentOverflow).toBeLessThanOrEqual(10);
   await page.getByRole("button", { name: "연습 도구 설정" }).first().click();
   await expect(page.locator("[data-testid='mg-settings-page']")).toBeVisible();
   await expect(page.locator("[data-testid='mg-theory-scale-spread-number']").first()).toHaveValue("180");

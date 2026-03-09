@@ -44,6 +44,7 @@ import type { ShortcutActionId } from "./keyboardShortcuts";
 import { CORE_CAMPAIGN_ID, getTutorialCampaign } from "./tutorial/campaigns";
 import type { TutorialCampaign } from "./tutorial/types";
 import { configureGenreCatalog } from "./genreCatalog";
+import { resolveAchievementIconVisual } from "./utils/achievementPresentation";
 import { formatDisplayXp, getXpDisplayScale } from "./utils/xpDisplay";
 
 type TabId =
@@ -70,6 +71,7 @@ type Toast = {
   title: string;
   subtitle?: string;
   icon?: string;
+  emoji?: string;
   type: "success" | "error" | "info";
   style?: "default" | "achievement" | "quest";
 };
@@ -381,6 +383,7 @@ function AppBody() {
     type = "info",
     style = "default",
     icon,
+    emoji,
     timeout = 2800,
   }: {
     title: string;
@@ -389,10 +392,11 @@ function AppBody() {
     type?: "success" | "error" | "info";
     style?: "default" | "achievement" | "quest";
     icon?: string;
+    emoji?: string;
     timeout?: number;
   }) => {
     const id = Date.now() + Math.floor(Math.random() * 10000);
-    setToasts((prev) => [...prev, { id, lane, title, subtitle, type, style, icon }]);
+    setToasts((prev) => [...prev, { id, lane, title, subtitle, type, style, icon, emoji }]);
     window.setTimeout(() => {
       setToasts((prev) => prev.filter((item) => item.id !== id));
     }, timeout);
@@ -494,7 +498,7 @@ function AppBody() {
       seenAchievementKeysRef.current.add(key);
       const detail = achievementMap.get(item.achievement_id);
       if (String(detail?.rule_type || "").toLowerCase() === "manual") continue;
-      const icon = detail?.icon_url || (detail?.icon_path ? `/media/${detail.icon_path}` : "");
+      const iconVisual = resolveAchievementIconVisual(detail || item);
       const title = uiLang === "ko" ? "업적 달성!" : "Achievement Unlocked!";
       const subtitle = detail?.description || item.name || (uiLang === "ko" ? "새 업적" : "New achievement");
       if (achievementNotifyOn) {
@@ -504,7 +508,8 @@ function AppBody() {
           style: "achievement",
           title: `${title} ${item.name ? `· ${item.name}` : ""}`.trim(),
           subtitle,
-          icon,
+          icon: iconVisual.imageSrc,
+          emoji: iconVisual.emoji,
           timeout: 6200,
         });
       }
@@ -988,7 +993,7 @@ function AppBody() {
     // Intentionally silent: claim notifications are disabled by design.
   };
 
-  const onAchievementClaimed = (_payload: { name: string; description?: string; icon?: string }) => {
+  const onAchievementClaimed = (_payload: { name: string; description?: string; icon?: string; emoji?: string }) => {
     // Intentionally silent: claim notifications are disabled by design.
   };
 
@@ -1314,7 +1319,7 @@ function AppBody() {
           ref={contentRef}
           className={`content ${tab === "dashboard" ? "content-dashboard" : ""} ${tab === "quests" ? "content-quests" : ""} ${tab === "xp" ? "content-xp" : ""} ${
             tab === "review" || tab === "xp" || tab === "sessions" ? "content-records" : ""
-          } ${tab === "review" ? "content-record-review" : ""} ${tab === "xp" ? "content-record-xp" : ""} ${
+          } ${tab === "review" ? "content-record-review" : ""} ${tab === "xp" ? "content-record-xp" : ""} ${tab === "tools" ? "content-tools" : ""} ${
             tab === "sessions" ? "content-record-sessions" : ""
           }`}
         >
@@ -1670,8 +1675,10 @@ function AppBody() {
                       <div className="toast-achievement-icon-wrap">
                         {toast.icon ? (
                           <img src={toast.icon} alt="achievement icon" className="toast-achievement-icon" />
+                        ) : toast.emoji ? (
+                          <span className="toast-achievement-emoji">{toast.emoji}</span>
                         ) : (
-                          <span className="toast-achievement-fallback">★</span>
+                          <span className="toast-achievement-fallback">🏆</span>
                         )}
                       </div>
                       <div className="toast-achievement-copy">
