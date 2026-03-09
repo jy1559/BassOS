@@ -232,7 +232,7 @@ type LoadAllOptions = {
 
 function AppBody() {
   const [tab, setTab] = useState<TabId>("dashboard");
-  const [practiceToolsTab, setPracticeToolsTab] = useState<PracticeToolsTabId>("tab_builder");
+  const [practiceToolsTab, setPracticeToolsTab] = useState<PracticeToolsTabId>("minigame");
   const [navOpen, setNavOpen] = useState<Record<NavGroupId, boolean>>({
     tools: true,
     library: true,
@@ -1021,12 +1021,6 @@ function AppBody() {
         title: lang === "ko" ? "연습 도구" : "Practice Tools",
         tabs: [
           {
-            key: "tools_tab_builder",
-            label: lang === "ko" ? "TAB 생성기" : "TAB Builder",
-            isActive: tab === "tools" && practiceToolsTab === "tab_builder",
-            onSelect: () => openPracticeToolsTab("tab_builder"),
-          },
-          {
             key: "tools_minigame",
             label: lang === "ko" ? "미니게임" : "Mini Game",
             isActive: tab === "tools" && practiceToolsTab === "minigame",
@@ -1289,29 +1283,35 @@ function AppBody() {
             ))}
           </nav>
           <div className="sidebar-bottom">
-            <button
-              className={`nav-btn ${tab === "settings" ? "active" : ""}`}
-              data-testid="sidebar-settings-btn"
-              onClick={() => switchTab("settings")}
-            >
-              {lang === "ko" ? "⚙ 설정" : "⚙ Settings"}
-            </button>
-            <button
-              className="ghost-btn sidebar-guide-btn"
-              data-testid="tutorial-help-btn"
-              onClick={() =>
-                void openTutorial(
-                  CORE_CAMPAIGN_ID,
-                  Boolean(
-                    tutorialState &&
-                      !tutorialState.completed &&
-                      Number(tutorialState.resume_step_index ?? 0) > 0
+            <div className="sidebar-bottom-actions">
+              <button
+                className={`sidebar-icon-btn ${tab === "settings" ? "active" : ""}`}
+                data-testid="sidebar-settings-btn"
+                title={lang === "ko" ? "설정" : "Settings"}
+                aria-label={lang === "ko" ? "설정" : "Settings"}
+                onClick={() => switchTab("settings")}
+              >
+                <span aria-hidden="true">⚙</span>
+              </button>
+              <button
+                className="sidebar-icon-btn"
+                data-testid="tutorial-help-btn"
+                title={lang === "ko" ? "가이드" : "Guide"}
+                aria-label={lang === "ko" ? "가이드" : "Guide"}
+                onClick={() =>
+                  void openTutorial(
+                    CORE_CAMPAIGN_ID,
+                    Boolean(
+                      tutorialState &&
+                        !tutorialState.completed &&
+                        Number(tutorialState.resume_step_index ?? 0) > 0
+                    )
                   )
-                )
-              }
-            >
-              {lang === "ko" ? "가이드" : "Guide"}
-            </button>
+                }
+              >
+                <span aria-hidden="true">❔</span>
+              </button>
+            </div>
           </div>
         </aside>
 

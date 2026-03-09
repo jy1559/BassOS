@@ -11,7 +11,7 @@ async function openToolsView(page: Page, label: RegExp): Promise<void> {
   await toolsGroup.getByRole("button", { name: label }).click();
 }
 
-test("E2E-29 practice tools merges tab builder, minigame, theory, and popup settings", async ({ page, request }) => {
+test("E2E-29 practice tools keeps minigame, theory, and popup settings aligned", async ({ page, request }) => {
   await resetRuntime(request);
   await request.post("/api/minigame/records", {
     data: {
@@ -28,10 +28,6 @@ test("E2E-29 practice tools merges tab builder, minigame, theory, and popup sett
   });
 
   await openApp(page, 1366, 768);
-  await openToolsView(page, /TAB 생성기|TAB Builder/i);
-
-  await expect(page.locator("[data-testid='tutorial-tools-metronome']")).toBeVisible();
-
   await openToolsView(page, /미니게임|Mini Game/i);
   await expect(page.locator("[data-testid='mg-game-hub']")).toBeVisible();
 

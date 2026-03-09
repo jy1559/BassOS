@@ -128,8 +128,8 @@ function fileLabel(path: string): string {
 }
 
 function coverSrc(item: { cover_url?: string; cover_path?: string }): string {
-  if (item.cover_url) return item.cover_url;
   if (item.cover_path) return mediaPathSrc(item.cover_path);
+  if (item.cover_url) return item.cover_url;
   return "";
 }
 

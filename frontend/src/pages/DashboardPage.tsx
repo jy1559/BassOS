@@ -185,8 +185,8 @@ function imageUrl(item: DashboardPhotoItem | null): string {
 
 function songCoverUrl(song: Record<string, string> | null): string {
   if (!song) return "";
-  if (song.cover_url) return song.cover_url;
-  return song.cover_path ? `/media/${song.cover_path}` : "";
+  if (song.cover_path) return `/media/${song.cover_path}`;
+  return song.cover_url || "";
 }
 
 async function readClipboardImage(): Promise<File | null> {

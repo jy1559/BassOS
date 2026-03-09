@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import type { CSSProperties, PointerEvent as ReactPointerEvent } from "react";
 import type { Lang } from "../i18n";
-import { PracticeToolsTabBuilder } from "./PracticeToolsTabBuilder";
 import { MinigameShadowSurface } from "../practiceTools/minigame/MinigameShadowSurface";
 import { getUserSettings, putUserSettings } from "../practiceTools/minigame/api";
 import { CodeReferencePage } from "../practiceTools/minigame/pages/CodeReferencePage";
@@ -31,10 +30,9 @@ type ModalDragState = {
 
 const MODAL_TOP_OFFSET = 24;
 
-export type PracticeToolsTabId = "tab_builder" | "minigame" | "theory";
+export type PracticeToolsTabId = "minigame" | "theory";
 
 const TAB_LABELS: Record<PracticeToolsTabId, { ko: string; en: string }> = {
-  tab_builder: { ko: "TAB 생성기", en: "TAB Builder" },
   minigame: { ko: "미니게임", en: "Mini Game" },
   theory: { ko: "이론·코드·스케일", en: "Theory / Chord / Scale" },
 };
@@ -67,7 +65,7 @@ function defaultModalPosition(width: number, height: number): ModalPosition {
 }
 
 export function PracticeToolsPage({ lang, activeTab, onActiveTabChange }: Props) {
-  const [fallbackActiveTab, setFallbackActiveTab] = useState<PracticeToolsTabId>("tab_builder");
+  const [fallbackActiveTab, setFallbackActiveTab] = useState<PracticeToolsTabId>("minigame");
   const [selectedGame, setSelectedGame] = useState<GameId | null>(null);
   const [userSettings, setUserSettings] = useState<MinigameUserSettings>(defaultUserSettings);
   const [settingsBusy, setSettingsBusy] = useState(true);
@@ -214,11 +212,9 @@ export function PracticeToolsPage({ lang, activeTab, onActiveTabChange }: Props)
           </div>
           <div className="ui-page-header-actions">
             {settingsBusy ? <small className="muted">{lang === "ko" ? "설정 불러오는 중..." : "Loading settings..."}</small> : null}
-            {resolvedActiveTab !== "tab_builder" ? (
-              <button className="ghost-btn" onClick={() => setShowSettingsModal(true)}>
-                {lang === "ko" ? "연습 도구 설정" : "Practice Tool Settings"}
-              </button>
-            ) : null}
+            <button className="ghost-btn" onClick={() => setShowSettingsModal(true)}>
+              {lang === "ko" ? "연습 도구 설정" : "Practice Tool Settings"}
+            </button>
           </div>
         </div>
 
@@ -226,8 +222,6 @@ export function PracticeToolsPage({ lang, activeTab, onActiveTabChange }: Props)
       </section>
 
       <section className="practice-tools-stage">
-        {resolvedActiveTab === "tab_builder" ? <PracticeToolsTabBuilder lang={lang} /> : null}
-
         {resolvedActiveTab === "minigame" ? (
           <MinigameShadowSurface className="practice-tools-shadow-host">
             <PracticeToolsMiniGamePage

@@ -233,8 +233,8 @@ function mediaSource(path: string): string {
 
 function coverSource(song: Record<string, string> | null): string {
   if (!song) return "";
-  if (song.cover_url) return song.cover_url;
   if (song.cover_path) return mediaSource(song.cover_path);
+  if (song.cover_url) return song.cover_url;
   return "";
 }
 
