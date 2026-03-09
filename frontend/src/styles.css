@@ -5607,7 +5607,7 @@ textarea {
 }
 
 .achievement-manager-modal {
-  width: min(1540px, 96vw);
+  width: min(1420px, 96vw);
   height: min(94vh, 980px);
   max-height: 94vh;
   padding: 14px 16px;
@@ -5693,12 +5693,16 @@ textarea {
 .achievement-admin-layout {
   min-height: 0;
   display: grid;
-  grid-template-columns: minmax(520px, 1.2fr) minmax(420px, 1fr);
+  grid-template-columns: 1fr;
   gap: 10px;
 }
 
 .achievement-admin-layout.editor-open {
   grid-template-columns: 1fr;
+}
+
+.achievement-admin-layout > * {
+  min-width: 0;
 }
 
 .achievement-admin-grid-wrap {
@@ -5783,8 +5787,9 @@ textarea {
 }
 
 .achievement-admin-editor.focus-mode {
-  max-height: calc(100vh - 220px);
-  min-height: 72vh;
+  max-height: none;
+  min-height: 0;
+  height: 100%;
   padding: 14px;
 }
 
@@ -6078,7 +6083,8 @@ textarea {
   }
   .achievement-admin-editor.focus-mode {
     max-height: none;
-    min-height: 64vh;
+    min-height: 0;
+    height: 100%;
   }
 }
 

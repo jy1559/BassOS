@@ -133,6 +133,22 @@ _PREVIOUS_PIN_SHORTCUT_DEFAULTS = {
 
 _PREVIOUS_PIN_JUMP_SHORTCUT_DEFAULT = {"code": "KeyY", "ctrl": False, "alt": False, "shift": False}
 
+_CURATED_MINIGAME_ACHIEVEMENT_IDS = {
+    "ACH_MG_FBH_FIRST_PLAY",
+    "ACH_MG_RC_FIRST_PLAY",
+    "ACH_MG_LM_FIRST_PLAY",
+    "ACH_MG_CHALLENGE_COUNT_T1",
+    "ACH_MG_CHALLENGE_COUNT_T2",
+    "ACH_MG_CHALLENGE_COUNT_T3",
+    "ACH_MG_FBH_SCORE_20",
+    "ACH_MG_RC_ACCURACY_90",
+    "ACH_MG_LM_SCORE_12",
+    "ACH_MG_PLAY_ALL_THREE",
+    "ACH_MG_HARD_PLUS_10",
+}
+_CURATED_MINIGAME_TEXT_FIELDS = ("name", "category", "description", "evidence_hint", "icon_emoji")
+_BROKEN_TEXT_MARKERS = ("???", "??", "�")
+
 
 def _drill_tag_key(raw: str | None) -> str:
     return str(raw or "").strip().lower().replace(" ", "").replace("_", "").replace("-", "").replace("&", "and")
@@ -470,6 +486,47 @@ class Storage:
                 continue
         return raw.decode("utf-8", errors="replace")
 
+    def _load_curated_achievement_rows(self) -> dict[str, dict[str, str]]:
+        seed_path = self.paths.root / "designPack" / "data" / "achievements_master.csv"
+        if not seed_path.exists():
+            return {}
+        text = self._read_csv_text(seed_path)
+        if not text.strip():
+            return {}
+        reader = csv.DictReader(io.StringIO(text))
+        rows: dict[str, dict[str, str]] = {}
+        for row in reader:
+            achievement_id = str(row.get("achievement_id") or "").strip()
+            if achievement_id:
+                rows[achievement_id] = dict(row)
+        return rows
+
+    def _looks_broken_localized_text(self, value: Any) -> bool:
+        text = str(value or "").strip()
+        if not text:
+            return True
+        return any(marker in text for marker in _BROKEN_TEXT_MARKERS)
+
+    def _repair_curated_minigame_achievement_copy(self, rows: list[dict[str, str]]) -> None:
+        curated_rows = self._load_curated_achievement_rows()
+        if not curated_rows:
+            return
+        for row in rows:
+            achievement_id = str(row.get("achievement_id") or "").strip()
+            if achievement_id not in _CURATED_MINIGAME_ACHIEVEMENT_IDS:
+                continue
+            curated = curated_rows.get(achievement_id)
+            if not curated:
+                continue
+            needs_repair = any(self._looks_broken_localized_text(row.get(field)) for field in _CURATED_MINIGAME_TEXT_FIELDS)
+            if not needs_repair:
+                continue
+            for field in _CURATED_MINIGAME_TEXT_FIELDS:
+                current = str(row.get(field) or "").strip()
+                fallback = str(curated.get(field) or "").strip()
+                if fallback and self._looks_broken_localized_text(current):
+                    row[field] = fallback
+
     def _read_json_file(
         self,
         path: Path,
@@ -642,6 +699,7 @@ class Storage:
                 if isinstance(parsed, dict) and str(parsed.get("event_type", "")).upper() == "LONG_GOAL_CLEAR":
                     parsed["event_type"] = "LONG_GOAL_CLEAR"
                     row["rule_filter"] = json.dumps(parsed, ensure_ascii=False)
+        self._repair_curated_minigame_achievement_copy(rows)
         self.write_csv("achievements_master.csv", rows, headers=headers)
 
     def _migrate_quests(self) -> None:

@@ -48,6 +48,15 @@ export const DEFAULT_ACHIEVEMENT_EMOJI_BY_GROUP: Record<string, string> = {
   ACH_TIER_QUEST_CLAIM: "🧭",
   ACH_ONE_QUEST_HIGH_FIRST: "🧭",
   ACH_HID_QUEST_GENRE_TRIO: "🧭",
+  ACH_MG_FBH_FIRST_PLAY: "🎯",
+  ACH_MG_RC_FIRST_PLAY: "🥁",
+  ACH_MG_LM_FIRST_PLAY: "🧭",
+  ACH_MG_CHALLENGE_COUNT: "🎮",
+  ACH_MG_FBH_SCORE_20: "🎯",
+  ACH_MG_RC_ACCURACY_90: "🥁",
+  ACH_MG_LM_SCORE_12: "🧭",
+  ACH_MG_PLAY_ALL_THREE: "🧩",
+  ACH_MG_HARD_PLUS_10: "🔥",
 };
 
 const DEFAULT_ACHIEVEMENT_EMOJI_BY_CATEGORY: Record<string, string> = {
@@ -60,6 +69,7 @@ const DEFAULT_ACHIEVEMENT_EMOJI_BY_CATEGORY: Record<string, string> = {
   "수동": "🎨",
   "일회성": "🚀",
   "집중": "🎯",
+  "미니게임": "🎮",
   "커뮤니티": "🤝",
   "퀘스트": "🧭",
   "테크닉": "🖐️",

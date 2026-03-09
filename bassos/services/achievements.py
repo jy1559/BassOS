@@ -36,6 +36,23 @@ _TAG_LABELS_KO = {
     "THEORY": "이론",
 }
 
+_MINIGAME_GAME_LABELS_KO = {
+    "FBH": "프렛보드 헌트",
+    "RC": "리듬 카피",
+    "LM": "라인 매퍼",
+}
+_MINIGAME_MODE_LABELS_KO = {
+    "PRACTICE": "연습",
+    "CHALLENGE": "점수 모드",
+}
+_MINIGAME_DIFFICULTY_LABELS_KO = {
+    "EASY": "쉬움",
+    "NORMAL": "보통",
+    "HARD": "어려움",
+    "VERY_HARD": "매우 어려움",
+    "MASTER": "마스터",
+}
+
 
 @dataclass
 class AchievementState:
@@ -111,6 +128,27 @@ def _join_tag_labels_ko(tags: list[str]) -> str:
     return ", ".join(labels[:3]) if len(labels) <= 3 else f"{', '.join(labels[:2])} 외 {len(labels) - 2}개"
 
 
+def _minigame_game_label_ko(token: str | None) -> str:
+    return _MINIGAME_GAME_LABELS_KO.get(str(token or "").strip().upper(), "")
+
+
+def _minigame_mode_label_ko(token: str | None) -> str:
+    return _MINIGAME_MODE_LABELS_KO.get(str(token or "").strip().upper(), "")
+
+
+def _minigame_difficulty_subject_ko(tokens: list[str]) -> str:
+    cleaned = [str(token or "").strip().upper() for token in tokens if str(token or "").strip()]
+    unique = list(dict.fromkeys(cleaned))
+    if not unique:
+        return ""
+    if set(unique) == {"HARD", "VERY_HARD", "MASTER"}:
+        return "HARD 이상 난이도 미니게임"
+    labels = [_MINIGAME_DIFFICULTY_LABELS_KO.get(token, token) for token in unique]
+    if len(labels) == 1:
+        return f"{labels[0]} 난이도 미니게임"
+    return f"{'/'.join(labels)} 난이도 미니게임"
+
+
 def _merge_condition_tree_hints(base: dict[str, Any], extra: dict[str, Any]) -> dict[str, Any]:
     for tag in extra.get("tags", []):
         if tag not in base["tags"]:
@@ -119,11 +157,34 @@ def _merge_condition_tree_hints(base: dict[str, Any], extra: dict[str, Any]) -> 
     base["min_hour"] = max(to_int(base.get("min_hour"), 0), to_int(extra.get("min_hour"), 0))
     if not base.get("quest_difficulty") and extra.get("quest_difficulty"):
         base["quest_difficulty"] = extra["quest_difficulty"]
+    if not base.get("minigame_game") and extra.get("minigame_game"):
+        base["minigame_game"] = extra["minigame_game"]
+    if not base.get("minigame_mode") and extra.get("minigame_mode"):
+        base["minigame_mode"] = extra["minigame_mode"]
+    for difficulty in extra.get("minigame_difficulties", []):
+        if difficulty not in base["minigame_difficulties"]:
+            base["minigame_difficulties"].append(difficulty)
+    base["minigame_score_min"] = max(to_int(base.get("minigame_score_min"), 0), to_int(extra.get("minigame_score_min"), 0))
+    base["minigame_accuracy_min"] = max(
+        to_int(base.get("minigame_accuracy_min"), 0), to_int(extra.get("minigame_accuracy_min"), 0)
+    )
+    base["minigame_correct_min"] = max(to_int(base.get("minigame_correct_min"), 0), to_int(extra.get("minigame_correct_min"), 0))
     return base
 
 
 def _condition_tree_hints(node: Any) -> dict[str, Any]:
-    hints: dict[str, Any] = {"tags": [], "min_duration": 0, "min_hour": 0, "quest_difficulty": ""}
+    hints: dict[str, Any] = {
+        "tags": [],
+        "min_duration": 0,
+        "min_hour": 0,
+        "quest_difficulty": "",
+        "minigame_game": "",
+        "minigame_mode": "",
+        "minigame_difficulties": [],
+        "minigame_score_min": 0,
+        "minigame_accuracy_min": 0,
+        "minigame_correct_min": 0,
+    }
     if not isinstance(node, dict):
         return hints
     node_type = str(node.get("type") or "").strip().lower()
@@ -141,6 +202,23 @@ def _condition_tree_hints(node: Any) -> dict[str, Any]:
             hints["min_hour"] = to_int(value, 0)
         elif field == "quest.difficulty" and op == "eq":
             hints["quest_difficulty"] = str(value or "").strip().lower()
+        elif field == "minigame.game" and op == "eq":
+            hints["minigame_game"] = str(value or "").strip().upper()
+        elif field == "minigame.mode" and op == "eq":
+            hints["minigame_mode"] = str(value or "").strip().upper()
+        elif field == "minigame.difficulty":
+            if op == "eq":
+                token = str(value or "").strip().upper()
+                if token:
+                    hints["minigame_difficulties"] = [token]
+            elif op == "in" and isinstance(value, list):
+                hints["minigame_difficulties"] = [str(item or "").strip().upper() for item in value if str(item or "").strip()]
+        elif field == "minigame.score" and op in {"gte", "gt", "eq"}:
+            hints["minigame_score_min"] = to_int(value, 0)
+        elif field == "minigame.accuracy" and op in {"gte", "gt", "eq"}:
+            hints["minigame_accuracy_min"] = to_int(value, 0)
+        elif field == "minigame.correct" and op in {"gte", "gt", "eq"}:
+            hints["minigame_correct_min"] = to_int(value, 0)
         return hints
     for child in node.get("children", []):
         _merge_condition_tree_hints(hints, _condition_tree_hints(child))
@@ -154,6 +232,19 @@ def _count_event_subject_ko(rule_filter: dict[str, Any]) -> str:
         if tree_hints.get("quest_difficulty") == "high":
             return "고난도 퀘스트 완료"
         return "퀘스트 완료"
+    if event_type == "MINIGAME_PLAY":
+        game_label = _minigame_game_label_ko(tree_hints.get("minigame_game"))
+        mode_label = _minigame_mode_label_ko(tree_hints.get("minigame_mode"))
+        difficulty_label = _minigame_difficulty_subject_ko(tree_hints.get("minigame_difficulties", []))
+        if game_label and mode_label:
+            return f"{game_label} {mode_label}"
+        if game_label:
+            return game_label
+        if mode_label:
+            return mode_label
+        if difficulty_label:
+            return difficulty_label
+        return "미니게임"
     tags_all = [str(tag or "").strip() for tag in rule_filter.get("tags_all", []) if str(tag or "").strip()]
     tags_any = [str(tag or "").strip() for tag in rule_filter.get("tags_any", []) if str(tag or "").strip()]
     if not tags_all and not tags_any and tree_hints["tags"]:
@@ -175,8 +266,18 @@ def _humanize_description_ko(row: dict[str, str], target: int, rule_filter: dict
     rule_type = str(row.get("rule_type") or "").strip().lower()
     if rule_type == "count_events":
         tree_hints = _condition_tree_hints(rule_filter.get("condition_tree"))
+        event_type = str(rule_filter.get("event_type") or "").strip().upper()
         min_duration = max(to_int(rule_filter.get("min_duration"), 0), to_int(tree_hints.get("min_duration"), 0))
         subject = _count_event_subject_ko(rule_filter)
+        if event_type == "MINIGAME_PLAY":
+            game_label = _minigame_game_label_ko(tree_hints.get("minigame_game"))
+            if game_label and to_int(tree_hints.get("minigame_score_min"), 0) > 0:
+                return f"{game_label}에서 {to_int(tree_hints.get('minigame_score_min'), 0)}점 이상을 {_format_target(target)}회 달성하세요."
+            if game_label and to_int(tree_hints.get("minigame_accuracy_min"), 0) > 0:
+                return f"{game_label}에서 정확도 {to_int(tree_hints.get('minigame_accuracy_min'), 0)}% 이상을 {_format_target(target)}회 달성하세요."
+            if game_label and to_int(tree_hints.get("minigame_correct_min"), 0) > 0:
+                return f"{game_label}에서 정답 {to_int(tree_hints.get('minigame_correct_min'), 0)}개 이상을 {_format_target(target)}회 기록하세요."
+            return f"{subject}를 {_format_target(target)}회 플레이하세요."
         if min_duration > 0 and subject == "세션":
             return f"세션 {min_duration}분 이상을 {_format_target(target)}회 기록하세요."
         if min_duration > 0 and subject == "퀘스트 완료":
@@ -200,6 +301,10 @@ def _humanize_description_ko(row: dict[str, str], target: int, rule_filter: dict
             return f"서로 다른 곡 {_format_target(target)}개를 기록하세요."
         if field == "drill_id":
             return f"서로 다른 드릴 {_format_target(target)}개를 기록하세요."
+        if field == "minigame.game":
+            if target == 3:
+                return "세 가지 미니게임을 모두 1회 이상 플레이하세요."
+            return f"서로 다른 미니게임 {_format_target(target)}개를 플레이하세요."
         if field == "quest.genre_primary":
             return f"서로 다른 장르 퀘스트 {_format_target(target)}개를 달성하세요."
         return f"서로 다른 항목 {_format_target(target)}개를 기록하세요."
@@ -450,4 +555,3 @@ def recent_claims(storage: Storage, limit: int = 5) -> list[dict[str, str]]:
             }
         )
     return out
-

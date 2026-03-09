@@ -148,6 +148,36 @@ const STYLE_LABEL: Record<StyleKey, string> = {
   single_hidden: "Hidden",
 };
 
+const MINIGAME_VALUE_LABELS = {
+  "minigame.game": {
+    FBH: { ko: "프렛보드 헌트", en: "Fretboard Hunt" },
+    RC: { ko: "리듬 카피", en: "Rhythm Copy" },
+    LM: { ko: "라인 매퍼", en: "Line Mapper" },
+  },
+  "minigame.mode": {
+    PRACTICE: { ko: "연습", en: "Practice" },
+    CHALLENGE: { ko: "점수 모드", en: "Challenge" },
+  },
+  "minigame.difficulty": {
+    EASY: { ko: "쉬움", en: "Easy" },
+    NORMAL: { ko: "보통", en: "Normal" },
+    HARD: { ko: "어려움", en: "Hard" },
+    VERY_HARD: { ko: "매우 어려움", en: "Very Hard" },
+    MASTER: { ko: "마스터", en: "Master" },
+  },
+} as const;
+
+function displayRuleValue(field: string, value: string, lang: Lang): string {
+  const fieldKey = String(field || "").trim() as keyof typeof MINIGAME_VALUE_LABELS;
+  const token = String(value || "").trim();
+  const mapping = MINIGAME_VALUE_LABELS[fieldKey] as Record<string, { ko: string; en: string }> | undefined;
+  const label = mapping?.[token.toUpperCase()];
+  if (!label) {
+    return token;
+  }
+  return label[lang];
+}
+
 const FALLBACK_RULE_OPTIONS: AchievementRuleOptions = {
   rule_types: [
     "count_events",
@@ -1797,7 +1827,7 @@ export function AchievementAdminPanel({ lang, settings, onSettingsChange, setMes
             <option value="">{lang === "ko" ? "(값 선택)" : "(value)"}</option>
             {valueCandidates.map((value) => (
               <option key={`${node.id}-v-${value}`} value={value}>
-                {value}
+                {displayRuleValue(node.field, value, lang)}
               </option>
             ))}
           </select>
@@ -1910,7 +1940,7 @@ export function AchievementAdminPanel({ lang, settings, onSettingsChange, setMes
             <option value="">{lang === "ko" ? "(값 선택)" : "(value)"}</option>
             {valueCandidates.map((value) => (
               <option key={`${node.id}-bv-${value}`} value={value}>
-                {value}
+                {displayRuleValue(node.field, value, lang)}
               </option>
             ))}
           </select>
@@ -3222,4 +3252,3 @@ export function AchievementAdminPanel({ lang, settings, onSettingsChange, setMes
     </div>
   );
 }
-

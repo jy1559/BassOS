@@ -266,6 +266,23 @@ OPERATOR_META: dict[str, dict[str, str]] = {
     "not_exists": {"label": "값 없음", "desc": "값이 비어 있음"},
 }
 
+_MINIGAME_GAME_LABELS_KO = {
+    "FBH": "프렛보드 헌트",
+    "RC": "리듬 카피",
+    "LM": "라인 매퍼",
+}
+_MINIGAME_MODE_LABELS_KO = {
+    "PRACTICE": "연습",
+    "CHALLENGE": "점수 모드",
+}
+_MINIGAME_DIFFICULTY_LABELS_KO = {
+    "EASY": "쉬움",
+    "NORMAL": "보통",
+    "HARD": "어려움",
+    "VERY_HARD": "매우 어려움",
+    "MASTER": "마스터",
+}
+
 
 def _storage() -> Storage:
     return current_app.config["storage"]
@@ -507,12 +524,25 @@ def _humanize_operator(op: str) -> str:
     return str(meta.get("label") or op)
 
 
-def _stringify_condition_value(value: Any) -> str:
-    if isinstance(value, list):
-        return ", ".join(str(item) for item in value)
+def _humanize_condition_value_ko(field: str, value: Any) -> str:
+    field_key = str(field or "").strip()
+    token = str(value)
+    token_upper = token.strip().upper()
+    if field_key == "minigame.game":
+        return _MINIGAME_GAME_LABELS_KO.get(token_upper, token)
+    if field_key == "minigame.mode":
+        return _MINIGAME_MODE_LABELS_KO.get(token_upper, token)
+    if field_key == "minigame.difficulty":
+        return _MINIGAME_DIFFICULTY_LABELS_KO.get(token_upper, token)
     if isinstance(value, bool):
         return "true" if value else "false"
-    return str(value)
+    return token
+
+
+def _stringify_condition_value(value: Any, *, field: str = "") -> str:
+    if isinstance(value, list):
+        return ", ".join(_humanize_condition_value_ko(field, item) for item in value)
+    return _humanize_condition_value_ko(field, value)
 
 
 def _validate_condition_value(field: str, op: str, value: Any) -> str | None:
@@ -665,7 +695,7 @@ def _describe_condition_node_ko(node: Any) -> str:
     if node_type == "condition":
         field = str(node.get("field") or "").strip()
         op = str(node.get("op") or "eq").strip().lower()
-        value = _stringify_condition_value(node.get("value"))
+        value = _stringify_condition_value(node.get("value"), field=field)
         if op in {"exists", "not_exists"}:
             return f"{_humanize_field_key(field)} {_humanize_operator(op)}"
         return f"{_humanize_field_key(field)} {_humanize_operator(op)} {value}"
