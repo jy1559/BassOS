@@ -70,7 +70,8 @@ test("E2E-28 journal template apply, manual search, and threaded comments", asyn
   await composer.locator(".journal-slash-item", { hasText: /next-action/i }).click();
   await expect(textarea).toHaveValue(/## 다음 액션/);
   await composer.getByLabel(/제목|Title/i).fill(firstTitle);
-  await composer.locator(".journal-link-input-row input").fill("https://www.youtube.com/watch?v=dQw4w9WgXcQ");
+  await composer.locator(".journal-link-input-row input").fill("www.youtube.com/watch?v=dQw4w9WgXcQ");
+  await expect(composer.locator(".journal-link-input-row").getByRole("button", { name: /추가|Add/i })).toBeEnabled();
   await composer.locator(".journal-link-input-row").getByRole("button", { name: /추가|Add/i }).click();
   await composer.locator('input[type="file"]').setInputFiles({
     name: "inline.png",

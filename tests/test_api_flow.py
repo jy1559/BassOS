@@ -1159,6 +1159,31 @@ def test_daily_session_xp_cap(tmp_path):
     assert same_day_xp == 100
 
 
+def test_single_session_xp_duration_cap(tmp_path):
+    root = _prepare_temp_root(tmp_path)
+    app = create_app(root)
+    client = app.test_client()
+
+    cap_res = client.put("/api/settings/critical", json={"critical": {"session_xp_duration_cap_min": 60}})
+    assert cap_res.status_code == 200
+
+    res = client.post(
+        "/api/session/quick-log",
+        json={
+            "activity": "Song",
+            "tags": ["SONG", "SONG_PRACTICE"],
+            "start_at": "2026-02-20T10:00:00",
+            "end_at": "2026-02-20T13:00:00",
+            "duration_min": 180,
+        },
+    )
+    assert res.status_code == 200
+    payload = res.get_json()
+    assert payload["xp_breakdown"]["effective_duration_min"] == 60
+    assert payload["xp_breakdown"]["duration_cap_applied"] == 120
+    assert payload["xp_breakdown"]["total_xp"] == 180
+
+
 def test_records_crud_and_attachment_limit(tmp_path):
     root = _prepare_temp_root(tmp_path)
     app = create_app(root)
@@ -1278,6 +1303,65 @@ def test_records_crud_and_attachment_limit(tmp_path):
         content_type="multipart/form-data",
     )
     assert limit_res.status_code == 400
+
+
+def test_record_uploads_auto_grant_media_achievements(tmp_path):
+    root = _prepare_temp_root(tmp_path)
+    app = create_app(root)
+    client = app.test_client()
+    storage = app.config["storage"]
+
+    create_res = client.post(
+        "/api/records",
+        data={
+            "title": "오디오+영상 기록",
+            "body": "한 글에 두 파일을 올립니다.",
+            "post_type": "일일연습",
+            "files": [
+                (io.BytesIO(b"fake-audio-bytes"), "take.mp3"),
+                (io.BytesIO(b"fake-video-bytes"), "take.mp4"),
+            ],
+        },
+        content_type="multipart/form-data",
+    )
+    assert create_res.status_code == 200
+
+    claim_rows = [
+        row
+        for row in storage.read_csv("events.csv")
+        if (row.get("event_type") or "").upper() == "ACHIEVEMENT_CLAIM"
+    ]
+    claimed_ids = {row.get("achievement_id") for row in claim_rows}
+    assert "ACH_ONE_FIRST_AUDIO_LOG" in claimed_ids
+    assert "ACH_ONE_FIRST_VIDEO_REVIEW" in claimed_ids
+    assert "ACH_HID_DOUBLE_ARCHIVE" in claimed_ids
+
+    achievements_res = client.get("/api/achievements")
+    assert achievements_res.status_code == 200
+    achievements = achievements_res.get_json()["achievements"]
+    audio_item = next(item for item in achievements if item.get("achievement_id") == "ACH_ONE_FIRST_AUDIO_LOG")
+    hidden_item = next(item for item in achievements if item.get("achievement_id") == "ACH_HID_DOUBLE_ARCHIVE")
+    assert audio_item["claimed"] is True
+    assert hidden_item["claimed"] is True
+
+
+def test_achievements_endpoint_humanizes_record_attachment_description(tmp_path):
+    root = _prepare_temp_root(tmp_path)
+    app = create_app(root)
+    client = app.test_client()
+    storage = app.config["storage"]
+
+    rows = storage.read_csv("achievements_master.csv")
+    headers = storage.read_csv_headers("achievements_master.csv")
+    target = next(row for row in rows if row.get("achievement_id") == "ACH_ONE_FIRST_AUDIO_LOG")
+    target["description"] = "조건을 만족한 이벤트를 1회 달성하세요. (이벤트: RECORD_ATTACHMENT / 고유 필드: record.media_type)"
+    storage.write_csv("achievements_master.csv", rows, headers=headers)
+
+    res = client.get("/api/achievements")
+    assert res.status_code == 200
+    items = res.get_json()["achievements"]
+    item = next(row for row in items if row.get("achievement_id") == "ACH_ONE_FIRST_AUDIO_LOG")
+    assert item["description"] == "기록장에 올린 오디오 1개를 올리세요."
 
 
 def test_records_detail_filters_comments_and_meta(tmp_path):

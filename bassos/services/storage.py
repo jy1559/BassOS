@@ -945,6 +945,9 @@ class Storage:
             "daily_session_xp_cap", SETTINGS_DEFAULTS["critical"]["daily_session_xp_cap"]
         )
         merged.setdefault("critical", {}).setdefault(
+            "session_xp_duration_cap_min", SETTINGS_DEFAULTS["critical"]["session_xp_duration_cap_min"]
+        )
+        merged.setdefault("critical", {}).setdefault(
             "minigame_xp_multiplier", SETTINGS_DEFAULTS["critical"]["minigame_xp_multiplier"]
         )
         level_curve = merged.setdefault("level_curve", {})

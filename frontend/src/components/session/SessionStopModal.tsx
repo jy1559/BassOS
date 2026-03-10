@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { discardSession, finalizeSession, stopSession, uploadEvidenceFile } from "../../api";
+import { discardSession, finalizeSession, stopSession } from "../../api";
 import type { Lang } from "../../i18n";
 import { formatShortcutBinding } from "../../keyboardShortcuts";
 import { useShortcutLayer, useShortcutRouter } from "../../shortcutRouter";
@@ -8,7 +8,6 @@ import { formatDisplayXp } from "../../utils/xpDisplay";
 
 type MainActivity = "None" | "Song" | "Drill" | "Etc";
 type Mode = "single" | "range";
-type EvidenceMode = "file" | "url" | "none";
 
 const subMap: Record<MainActivity, Array<{ value: string; labelKo: string; labelEn: string; tag: string }>> = {
   None: [{ value: "Etc", labelKo: "선택 없음", labelEn: "None", tag: "ETC" }],
@@ -25,6 +24,8 @@ const subMap: Record<MainActivity, Array<{ value: string; labelKo: string; label
   ],
   Etc: [
     { value: "SongDiscovery", labelKo: "곡 찾기", labelEn: "Discovery", tag: "SONG_DISCOVERY" },
+    { value: "Band", labelKo: "합주", labelEn: "Band", tag: "BAND" },
+    { value: "Performance", labelKo: "무대", labelEn: "Performance", tag: "PERFORMANCE" },
     { value: "Community", labelKo: "커뮤니티", labelEn: "Community", tag: "COMMUNITY" },
     { value: "Gear", labelKo: "장비", labelEn: "Gear", tag: "GEAR" },
     { value: "Etc", labelKo: "기타", labelEn: "Etc", tag: "ETC" },
@@ -112,9 +113,6 @@ export function SessionStopModal({
   const [songId, setSongId] = useState("");
   const [drillId, setDrillId] = useState("");
   const [notes, setNotes] = useState("");
-  const [evidenceMode, setEvidenceMode] = useState<EvidenceMode>("file");
-  const [evidenceUrl, setEvidenceUrl] = useState("");
-  const [file, setFile] = useState<File | null>(null);
   const [speedMode, setSpeedMode] = useState<Mode>("single");
   const [songSpeedSingle, setSongSpeedSingle] = useState(100);
   const [songSpeedStart, setSongSpeedStart] = useState(80);
@@ -163,9 +161,6 @@ export function SessionStopModal({
     setSongId(String(activeSession?.song_library_id || ""));
     setDrillId(String(activeSession?.drill_id || ""));
     setNotes(String(activeSession?.notes || ""));
-    setEvidenceMode("file");
-    setEvidenceUrl("");
-    setFile(null);
     setIncludeCurrent(true);
     setIncludeSavedMap(() => {
       const next: Record<string, boolean> = {};
@@ -336,21 +331,6 @@ export function SessionStopModal({
           .filter((item) => includeSavedMap[item.event_id] !== false)
           .map((item) => item.event_id);
 
-        if (includeCurrentFinal) {
-          if (evidenceMode === "file" && file) {
-            const mediaType = file.type.startsWith("video") ? "video" : "audio";
-            const uploaded = await uploadEvidenceFile(file, mediaType);
-            payload.evidence_path = uploaded.path;
-            payload.evidence_type = "file";
-          } else if (evidenceMode === "url" && evidenceUrl.trim()) {
-            payload.evidence_type = "url";
-            payload.evidence_url = evidenceUrl.trim();
-          } else {
-            payload.evidence_type = undefined;
-            payload.evidence_url = "";
-          }
-        }
-
         const result = await finalizeSession({
           include_saved_event_ids: includeSavedEventIds,
           include_current: includeCurrentFinal,
@@ -364,19 +344,6 @@ export function SessionStopModal({
         await onSaved?.(result);
         onClose();
         return;
-      }
-
-      if (evidenceMode === "file" && file) {
-        const mediaType = file.type.startsWith("video") ? "video" : "audio";
-        const uploaded = await uploadEvidenceFile(file, mediaType);
-        payload.evidence_path = uploaded.path;
-        payload.evidence_type = "file";
-      } else if (evidenceMode === "url" && evidenceUrl.trim()) {
-        payload.evidence_type = "url";
-        payload.evidence_url = evidenceUrl.trim();
-      } else {
-        payload.evidence_type = undefined;
-        payload.evidence_url = "";
       }
 
       const result = await stopSession(payload);
@@ -751,28 +718,11 @@ export function SessionStopModal({
             </div>
           ) : null}
 
-          <label>
-            {lang === "ko" ? "증빙" : "Evidence"}
-            <select value={evidenceMode} onChange={(event) => setEvidenceMode(event.target.value as EvidenceMode)}>
-              <option value="file">{lang === "ko" ? "첨부파일" : "Attachment"}</option>
-              <option value="url">URL</option>
-              <option value="none">{lang === "ko" ? "없음" : "None"}</option>
-            </select>
-          </label>
-
-          {evidenceMode === "file" ? (
-            <label>
-              {lang === "ko" ? "첨부 파일" : "Attachment"}
-              <input type="file" accept="audio/*,video/*" onChange={(event) => setFile(event.target.files?.[0] ?? null)} />
-            </label>
-          ) : null}
-
-          {evidenceMode === "url" ? (
-            <label>
-              Evidence URL
-              <input value={evidenceUrl} onChange={(event) => setEvidenceUrl(event.target.value)} />
-            </label>
-          ) : null}
+          <small className="muted">
+            {lang === "ko"
+              ? "오디오/영상은 세션 첨부 대신 기록장에 남겨주세요."
+              : "Use Journal posts for audio/video instead of attaching them to a session."}
+          </small>
 
           <label>
             Note

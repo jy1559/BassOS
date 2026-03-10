@@ -1258,6 +1258,8 @@ export function PracticeStudioPage({
       Slap: "SLAP",
       Theory: "THEORY",
       SongDiscovery: "SONG_DISCOVERY",
+      Band: "BAND",
+      Performance: "PERFORMANCE",
       Community: "COMMUNITY",
       Gear: "GEAR",
       Etc: "ETC",

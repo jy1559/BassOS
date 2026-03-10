@@ -10,6 +10,7 @@ from typing import Any
 from bassos.services.calculations import evaluate_rule, to_int
 from bassos.services.events import create_event_row, filter_finalized_events
 from bassos.services.storage import Storage
+from bassos.utils.time_utils import parse_dt
 
 _LEGACY_DESCRIPTION_MARKERS = (
     "(이벤트:",
@@ -52,6 +53,15 @@ _MINIGAME_DIFFICULTY_LABELS_KO = {
     "VERY_HARD": "매우 어려움",
     "MASTER": "마스터",
 }
+_RECORD_MEDIA_LABELS_KO = {
+    "audio": "오디오",
+    "video": "영상",
+    "image": "이미지",
+}
+_RECORD_ATTACHMENT_KIND_LABELS_KO = {
+    "upload": "업로드 파일",
+    "external_link": "외부 링크",
+}
 
 
 @dataclass
@@ -90,6 +100,154 @@ def _safe_json(raw: str | None) -> dict[str, Any]:
         return value if isinstance(value, dict) else {}
     except json.JSONDecodeError:
         return {}
+
+
+def _split_semicolon_list(raw: str | None) -> list[str]:
+    return [token.strip() for token in str(raw or "").split(";") if token.strip()]
+
+
+def _record_attachment_kind(row: dict[str, str]) -> str:
+    if str(row.get("path") or "").strip():
+        return "upload"
+    if str(row.get("url") or "").strip():
+        return "external_link"
+    return ""
+
+
+def _build_record_meta(post: dict[str, str], attachments: list[dict[str, str]]) -> dict[str, Any]:
+    upload_count = 0
+    external_count = 0
+    audio_upload_count = 0
+    video_upload_count = 0
+    image_upload_count = 0
+    audio_total_count = 0
+    video_total_count = 0
+    image_total_count = 0
+
+    for attachment in attachments:
+        media_type = str(attachment.get("media_type") or "").strip().lower()
+        attachment_kind = _record_attachment_kind(attachment)
+        if attachment_kind == "upload":
+            upload_count += 1
+        elif attachment_kind == "external_link":
+            external_count += 1
+
+        if media_type == "audio":
+            audio_total_count += 1
+            if attachment_kind == "upload":
+                audio_upload_count += 1
+        elif media_type == "video":
+            video_total_count += 1
+            if attachment_kind == "upload":
+                video_upload_count += 1
+        elif media_type == "image":
+            image_total_count += 1
+            if attachment_kind == "upload":
+                image_upload_count += 1
+
+    header_label = str(post.get("post_type") or "").strip()
+    return {
+        "post_id": str(post.get("post_id") or "").strip(),
+        "post_type": header_label,
+        "header_id": str(post.get("header_id") or "").strip(),
+        "header_label": header_label,
+        "template_id": str(post.get("template_id") or "").strip(),
+        "tags": _split_semicolon_list(post.get("tags")),
+        "linked_song_ids": _split_semicolon_list(post.get("linked_song_ids")),
+        "linked_drill_ids": _split_semicolon_list(post.get("linked_drill_ids")),
+        "attachment_count": len(attachments),
+        "upload_count": upload_count,
+        "external_count": external_count,
+        "audio_upload_count": audio_upload_count,
+        "video_upload_count": video_upload_count,
+        "image_upload_count": image_upload_count,
+        "audio_total_count": audio_total_count,
+        "video_total_count": video_total_count,
+        "image_total_count": image_total_count,
+        "has_audio_upload": audio_upload_count > 0,
+        "has_video_upload": video_upload_count > 0,
+        "has_image_upload": image_upload_count > 0,
+    }
+
+
+def _build_record_source_events(storage: Storage) -> list[dict[str, str]]:
+    posts = storage.read_csv("record_posts.csv")
+    attachments = storage.read_csv("record_attachments.csv")
+    attachments_by_post: dict[str, list[dict[str, str]]] = {}
+    for attachment in attachments:
+        post_id = str(attachment.get("post_id") or "").strip()
+        if not post_id:
+            continue
+        attachments_by_post.setdefault(post_id, []).append(attachment)
+
+    derived: list[dict[str, str]] = []
+    for post in posts:
+        post_id = str(post.get("post_id") or "").strip()
+        if not post_id:
+            continue
+        post_attachments = attachments_by_post.get(post_id, [])
+        post_meta = _build_record_meta(post, post_attachments)
+        created_at = (
+            parse_dt(post.get("created_at"))
+            or parse_dt(post.get("updated_at"))
+            or datetime.now()
+        )
+        post_event = create_event_row(
+            created_at=created_at,
+            event_type="RECORD_POST",
+            activity="Journal",
+            xp=0,
+            title=str(post.get("title") or post.get("post_type") or "Journal Post"),
+            notes="",
+            tags=["JOURNAL", *[str(tag).upper() for tag in post_meta.get("tags", [])]],
+            meta={"record": post_meta},
+            source=str(post.get("source") or "app"),
+        )
+        post_event["event_id"] = f"RECPOST_{post_id}"
+        derived.append(post_event)
+
+        for attachment in post_attachments:
+            attachment_id = str(attachment.get("attachment_id") or "").strip()
+            if not attachment_id:
+                continue
+            media_type = str(attachment.get("media_type") or "").strip().lower()
+            attachment_kind = _record_attachment_kind(attachment)
+            attachment_meta = {
+                **post_meta,
+                "attachment_id": attachment_id,
+                "media_type": media_type,
+                "attachment_kind": attachment_kind,
+            }
+            attachment_created_at = parse_dt(attachment.get("created_at")) or created_at
+            attachment_event = create_event_row(
+                created_at=attachment_created_at,
+                event_type="RECORD_ATTACHMENT",
+                activity="Journal",
+                xp=0,
+                title=str(attachment.get("title") or post.get("title") or f"Journal {media_type.title()}"),
+                notes="",
+                tags=[
+                    "JOURNAL",
+                    "ATTACHMENT",
+                    media_type.upper(),
+                    attachment_kind.upper() if attachment_kind else "",
+                    *[str(tag).upper() for tag in post_meta.get("tags", [])],
+                ],
+                evidence_type=media_type if attachment_kind == "upload" else "",
+                evidence_path=str(attachment.get("path") or ""),
+                evidence_url=str(attachment.get("url") or ""),
+                meta={"record": attachment_meta},
+                source=str(post.get("source") or "app"),
+            )
+            attachment_event["event_id"] = f"RECATT_{attachment_id}"
+            derived.append(attachment_event)
+
+    return derived
+
+
+def achievement_source_events(storage: Storage) -> list[dict[str, str]]:
+    events = filter_finalized_events(storage.read_csv("events.csv"))
+    return [*events, *_build_record_source_events(storage)]
 
 
 def _needs_user_facing_description(raw: str | None) -> bool:
@@ -149,6 +307,14 @@ def _minigame_difficulty_subject_ko(tokens: list[str]) -> str:
     return f"{'/'.join(labels)} 난이도 미니게임"
 
 
+def _record_media_label_ko(token: str | None) -> str:
+    return _RECORD_MEDIA_LABELS_KO.get(str(token or "").strip().lower(), str(token or "").strip())
+
+
+def _record_attachment_kind_label_ko(token: str | None) -> str:
+    return _RECORD_ATTACHMENT_KIND_LABELS_KO.get(str(token or "").strip().lower(), str(token or "").strip())
+
+
 def _merge_condition_tree_hints(base: dict[str, Any], extra: dict[str, Any]) -> dict[str, Any]:
     for tag in extra.get("tags", []):
         if tag not in base["tags"]:
@@ -169,6 +335,17 @@ def _merge_condition_tree_hints(base: dict[str, Any], extra: dict[str, Any]) -> 
         to_int(base.get("minigame_accuracy_min"), 0), to_int(extra.get("minigame_accuracy_min"), 0)
     )
     base["minigame_correct_min"] = max(to_int(base.get("minigame_correct_min"), 0), to_int(extra.get("minigame_correct_min"), 0))
+    for media_type in extra.get("record_media_types", []):
+        if media_type not in base["record_media_types"]:
+            base["record_media_types"].append(media_type)
+    if not base.get("record_attachment_kind") and extra.get("record_attachment_kind"):
+        base["record_attachment_kind"] = extra["record_attachment_kind"]
+    base["record_audio_upload_min"] = max(
+        to_int(base.get("record_audio_upload_min"), 0), to_int(extra.get("record_audio_upload_min"), 0)
+    )
+    base["record_video_upload_min"] = max(
+        to_int(base.get("record_video_upload_min"), 0), to_int(extra.get("record_video_upload_min"), 0)
+    )
     return base
 
 
@@ -184,6 +361,10 @@ def _condition_tree_hints(node: Any) -> dict[str, Any]:
         "minigame_score_min": 0,
         "minigame_accuracy_min": 0,
         "minigame_correct_min": 0,
+        "record_media_types": [],
+        "record_attachment_kind": "",
+        "record_audio_upload_min": 0,
+        "record_video_upload_min": 0,
     }
     if not isinstance(node, dict):
         return hints
@@ -219,6 +400,19 @@ def _condition_tree_hints(node: Any) -> dict[str, Any]:
             hints["minigame_accuracy_min"] = to_int(value, 0)
         elif field == "minigame.correct" and op in {"gte", "gt", "eq"}:
             hints["minigame_correct_min"] = to_int(value, 0)
+        elif field == "record.media_type":
+            if op == "eq":
+                token = str(value or "").strip().lower()
+                if token:
+                    hints["record_media_types"] = [token]
+            elif op == "in" and isinstance(value, list):
+                hints["record_media_types"] = [str(item or "").strip().lower() for item in value if str(item or "").strip()]
+        elif field == "record.attachment_kind" and op == "eq":
+            hints["record_attachment_kind"] = str(value or "").strip().lower()
+        elif field == "record.audio_upload_count" and op in {"gte", "gt", "eq"}:
+            hints["record_audio_upload_min"] = to_int(value, 0)
+        elif field == "record.video_upload_count" and op in {"gte", "gt", "eq"}:
+            hints["record_video_upload_min"] = to_int(value, 0)
         return hints
     for child in node.get("children", []):
         _merge_condition_tree_hints(hints, _condition_tree_hints(child))
@@ -228,6 +422,29 @@ def _condition_tree_hints(node: Any) -> dict[str, Any]:
 def _count_event_subject_ko(rule_filter: dict[str, Any]) -> str:
     event_type = str(rule_filter.get("event_type") or "").strip().upper()
     tree_hints = _condition_tree_hints(rule_filter.get("condition_tree"))
+    if event_type == "RECORD_ATTACHMENT":
+        media_types = [str(token or "").strip().lower() for token in tree_hints.get("record_media_types", []) if str(token or "").strip()]
+        unique_media_types = list(dict.fromkeys(media_types))
+        kind = str(tree_hints.get("record_attachment_kind") or "").strip().lower()
+        if kind == "upload":
+            if set(unique_media_types) == {"audio", "video"}:
+                return "기록장에 올린 오디오/영상"
+            if len(unique_media_types) == 1:
+                return f"기록장에 올린 {_record_media_label_ko(unique_media_types[0])}"
+            return "기록장에 올린 첨부"
+        if kind == "external_link" and unique_media_types == ["video"]:
+            return "기록장에 추가한 영상 링크"
+        if len(unique_media_types) == 1:
+            return f"기록장 {_record_media_label_ko(unique_media_types[0])} 첨부"
+        return "기록장 첨부"
+    if event_type == "RECORD_POST":
+        if to_int(tree_hints.get("record_audio_upload_min"), 0) > 0 and to_int(tree_hints.get("record_video_upload_min"), 0) > 0:
+            return "오디오와 영상을 함께 올린 기록장 글"
+        if to_int(tree_hints.get("record_video_upload_min"), 0) > 0:
+            return "영상 업로드가 있는 기록장 글"
+        if to_int(tree_hints.get("record_audio_upload_min"), 0) > 0:
+            return "오디오 업로드가 있는 기록장 글"
+        return "기록장 글"
     if event_type == "QUEST_CLAIM":
         if tree_hints.get("quest_difficulty") == "high":
             return "고난도 퀘스트 완료"
@@ -269,6 +486,12 @@ def _humanize_description_ko(row: dict[str, str], target: int, rule_filter: dict
         event_type = str(rule_filter.get("event_type") or "").strip().upper()
         min_duration = max(to_int(rule_filter.get("min_duration"), 0), to_int(tree_hints.get("min_duration"), 0))
         subject = _count_event_subject_ko(rule_filter)
+        if event_type == "RECORD_ATTACHMENT":
+            if "링크" in subject:
+                return f"{subject} {_format_target(target)}개를 추가하세요."
+            return f"{subject} {_format_target(target)}개를 올리세요."
+        if event_type == "RECORD_POST":
+            return f"{subject} {_format_target(target)}개를 작성하세요."
         if event_type == "MINIGAME_PLAY":
             game_label = _minigame_game_label_ko(tree_hints.get("minigame_game"))
             if game_label and to_int(tree_hints.get("minigame_score_min"), 0) > 0:
@@ -305,6 +528,10 @@ def _humanize_description_ko(row: dict[str, str], target: int, rule_filter: dict
             if target == 3:
                 return "세 가지 미니게임을 모두 1회 이상 플레이하세요."
             return f"서로 다른 미니게임 {_format_target(target)}개를 플레이하세요."
+        if field == "record.post_id":
+            return f"서로 다른 기록장 글 {_format_target(target)}개를 작성하세요."
+        if field == "record.attachment_id":
+            return f"기록장 첨부 {_format_target(target)}개를 남기세요."
         if field == "quest.genre_primary":
             return f"서로 다른 장르 퀘스트 {_format_target(target)}개를 달성하세요."
         return f"서로 다른 항목 {_format_target(target)}개를 기록하세요."
@@ -369,7 +596,7 @@ def _feature_context(storage: Storage) -> dict[str, dict[str, dict[str, str]]]:
 
 def evaluate_achievements(storage: Storage, settings: dict[str, Any]) -> list[AchievementState]:
     achievements = storage.read_csv("achievements_master.csv")
-    events = filter_finalized_events(storage.read_csv("events.csv"))
+    events = achievement_source_events(storage)
     feature_context = _feature_context(storage)
     claimed_map = _claimed_map(events)
     states: list[AchievementState] = []
@@ -426,7 +653,7 @@ def evaluate_achievements(storage: Storage, settings: dict[str, Any]) -> list[Ac
 
 def auto_grant_claims(storage: Storage, settings: dict[str, Any], created_at: datetime) -> list[str]:
     achievements = storage.read_csv("achievements_master.csv")
-    events = filter_finalized_events(storage.read_csv("events.csv"))
+    events = achievement_source_events(storage)
     feature_context = _feature_context(storage)
     claimed = _claimed_ids(events)
     granted_ids: list[str] = []
@@ -501,7 +728,7 @@ def manual_claim(
     row = achievements.get(achievement_id)
     if not row:
         return False, "업적을 찾을 수 없습니다."
-    events = filter_finalized_events(storage.read_csv("events.csv"))
+    events = achievement_source_events(storage)
     feature_context = _feature_context(storage)
     if achievement_id in _claimed_ids(events):
         return False, "이미 수령한 업적입니다."

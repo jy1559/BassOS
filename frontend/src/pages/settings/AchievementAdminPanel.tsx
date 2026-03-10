@@ -165,13 +165,22 @@ const MINIGAME_VALUE_LABELS = {
     VERY_HARD: { ko: "매우 어려움", en: "Very Hard" },
     MASTER: { ko: "마스터", en: "Master" },
   },
+  "record.media_type": {
+    audio: { ko: "오디오", en: "Audio" },
+    video: { ko: "영상", en: "Video" },
+    image: { ko: "이미지", en: "Image" },
+  },
+  "record.attachment_kind": {
+    upload: { ko: "업로드 파일", en: "Uploaded File" },
+    external_link: { ko: "외부 링크", en: "External Link" },
+  },
 } as const;
 
 function displayRuleValue(field: string, value: string, lang: Lang): string {
   const fieldKey = String(field || "").trim() as keyof typeof MINIGAME_VALUE_LABELS;
   const token = String(value || "").trim();
   const mapping = MINIGAME_VALUE_LABELS[fieldKey] as Record<string, { ko: string; en: string }> | undefined;
-  const label = mapping?.[token.toUpperCase()];
+  const label = mapping?.[token.toUpperCase()] || mapping?.[token.toLowerCase()] || mapping?.[token];
   if (!label) {
     return token;
   }
@@ -189,7 +198,7 @@ const FALLBACK_RULE_OPTIONS: AchievementRuleOptions = {
     "streak_monthly",
     "manual",
   ],
-  event_types: ["SESSION", "LONG_GOAL_CLEAR", "ACHIEVEMENT_CLAIM", "GALLERY_UPLOAD", "ADMIN_ADJUST"],
+  event_types: ["SESSION", "LONG_GOAL_CLEAR", "ACHIEVEMENT_CLAIM", "GALLERY_UPLOAD", "ADMIN_ADJUST", "RECORD_POST", "RECORD_ATTACHMENT"],
   tags: [
     "CORE",
     "FUNK",
@@ -230,7 +239,7 @@ const FALLBACK_RULE_OPTIONS: AchievementRuleOptions = {
     "워킹",
     "컴핑",
   ],
-  fields: ["song_library_id", "drill_id", "quest_id", "achievement_id", "event_type", "activity", "source"],
+  fields: ["song_library_id", "drill_id", "quest_id", "achievement_id", "event_type", "activity", "source", "record.post_id", "record.attachment_id"],
   condition_fields: [
     "event_type",
     "activity",
@@ -243,6 +252,12 @@ const FALLBACK_RULE_OPTIONS: AchievementRuleOptions = {
     "song.artist",
     "drill.area",
     "drill.tags",
+    "record.post_type",
+    "record.header_label",
+    "record.media_type",
+    "record.attachment_kind",
+    "record.audio_upload_count",
+    "record.video_upload_count",
   ],
   condition_ops: ["eq", "ne", "gt", "gte", "lt", "lte", "contains", "in", "not_in", "exists", "not_exists"],
   feature_values: {},
@@ -1979,6 +1994,10 @@ export function AchievementAdminPanel({ lang, settings, onSettingsChange, setMes
         {sectionRows.map((group) => {
           const firstTier = Number(group.rows[0]?.tier || 1);
           const palette = cardPalette(group.kind, firstTier, styleForm);
+          const unlockedCount = group.rows.filter((row) => Boolean(row._unlocked)).length;
+          const claimedCount = group.rows.filter((row) => Boolean(row._claimed)).length;
+          const autoGrantCount = group.rows.filter((row) => String(row.auto_grant || "").toLowerCase() === "true").length;
+          const ruleSummary = String(group.rows[0]?._rule_summary_ko || "");
           return (
             <article
               key={group.groupId}
@@ -1997,6 +2016,15 @@ export function AchievementAdminPanel({ lang, settings, onSettingsChange, setMes
                   </small>
                 </div>
                 <small className="muted">#{group.displayOrder || 0}</small>
+              </div>
+
+              <div className="achievement-admin-group-meta">
+                {ruleSummary ? <small className="muted">{ruleSummary}</small> : null}
+                <div className="achievement-admin-group-stats">
+                  <span>{lang === "ko" ? `자동 ${autoGrantCount}/${group.rows.length}` : `Auto ${autoGrantCount}/${group.rows.length}`}</span>
+                  <span>{lang === "ko" ? `달성 ${unlockedCount}/${group.rows.length}` : `Unlocked ${unlockedCount}/${group.rows.length}`}</span>
+                  <span>{lang === "ko" ? `수령 ${claimedCount}/${group.rows.length}` : `Claimed ${claimedCount}/${group.rows.length}`}</span>
+                </div>
               </div>
 
               <div className="achievement-admin-rows-mini">

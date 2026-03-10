@@ -16,6 +16,7 @@ import {
   formatJournalDate,
   getYouTubeThumbnailUrl,
   isYouTubeUrl,
+  normalizeYouTubeUrl,
   resolveRecordAttachmentUrl,
   type SlashCommandSpec,
 } from "./journalUtils";
@@ -581,9 +582,14 @@ export function JournalComposerModal({
 
   const addVideoLink = () => {
     const trimmed = pendingVideoLink.trim();
-    if (!trimmed || !isYouTubeUrl(trimmed)) return;
+    const normalizedUrl = normalizeYouTubeUrl(trimmed);
+    if (!normalizedUrl) return;
     if (newAttachmentCount >= maxNewAttachmentCount) {
       window.alert(attachmentLimitMessage);
+      return;
+    }
+    if (videoAttachments.some((attachment) => normalizeYouTubeUrl(attachment.url) === normalizedUrl)) {
+      setPendingVideoLink("");
       return;
     }
     setVideoAttachments((prev) =>
@@ -592,7 +598,7 @@ export function JournalComposerModal({
         {
           local_id: nextAttachmentDraftId("youtube"),
           media_type: "video" as const,
-          url: trimmed,
+          url: normalizedUrl,
         },
       ].slice(0, maxNewAttachmentCount)
     );
@@ -945,7 +951,12 @@ export function JournalComposerModal({
                     }}
                     placeholder={lang === "ko" ? "유튜브 링크 추가" : "Add YouTube link"}
                   />
-                  <button type="button" className="ghost-btn compact-add-btn" onClick={addVideoLink} disabled={!isYouTubeUrl(pendingVideoLink) || remainingAttachmentSlots <= 0}>
+                  <button
+                    type="button"
+                    className="ghost-btn compact-add-btn"
+                    onClick={addVideoLink}
+                    disabled={!isYouTubeUrl(pendingVideoLink.trim()) || remainingAttachmentSlots <= 0}
+                  >
                     {lang === "ko" ? "링크 추가" : "Add Link"}
                   </button>
                 </div>

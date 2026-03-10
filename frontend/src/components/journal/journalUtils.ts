@@ -210,17 +210,26 @@ export function filterSlashCommands(query: string): SlashCommandSpec[] {
 export function extractYouTubeVideoId(url: string): string {
   const raw = String(url || "").trim();
   if (!raw) return "";
+  if (/^[A-Za-z0-9_-]{11}$/.test(raw)) {
+    return raw;
+  }
+  const candidate =
+    /^https?:\/\//i.test(raw) ? raw : raw.startsWith("//") ? `https:${raw}` : `https://${raw.replace(/^\/+/, "")}`;
   try {
-    const parsed = new URL(raw);
+    const parsed = new URL(candidate);
     const host = parsed.hostname.replace(/^www\./, "").toLowerCase();
     if (host === "youtu.be") {
       return parsed.pathname.replace(/^\/+/, "").split("/")[0] || "";
     }
-    if (host === "youtube.com" || host === "m.youtube.com") {
+    if (host === "youtube.com" || host === "m.youtube.com" || host === "music.youtube.com" || host === "youtube-nocookie.com") {
       if (parsed.pathname === "/watch") {
         return parsed.searchParams.get("v") || "";
       }
-      if (parsed.pathname.startsWith("/shorts/") || parsed.pathname.startsWith("/embed/")) {
+      if (
+        parsed.pathname.startsWith("/shorts/") ||
+        parsed.pathname.startsWith("/embed/") ||
+        parsed.pathname.startsWith("/live/")
+      ) {
         return parsed.pathname.split("/")[2] || "";
       }
     }
@@ -232,6 +241,11 @@ export function extractYouTubeVideoId(url: string): string {
 
 export function isYouTubeUrl(url: string): boolean {
   return Boolean(extractYouTubeVideoId(url));
+}
+
+export function normalizeYouTubeUrl(url: string): string {
+  const videoId = extractYouTubeVideoId(url);
+  return videoId ? `https://www.youtube.com/watch?v=${videoId}` : "";
 }
 
 export function getYouTubeEmbedUrl(url: string): string {

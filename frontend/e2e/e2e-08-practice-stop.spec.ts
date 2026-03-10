@@ -25,6 +25,8 @@ test("E2E-08 Practice Studio session stop/save works in-place", async ({ page, r
   );
   await page.locator("[data-testid='studio-stop-session']").click();
   await ensureStopEditorVisible(page, "studio");
+  await expect(page.getByText(/오디오\/영상은 세션 첨부 대신 기록장에 남겨주세요.|Use Journal posts for audio\/video/i)).toBeVisible();
+  await expect(page.locator(".modal input[type='file']")).toHaveCount(0);
   const startRaw = await page.locator("[data-testid='studio-stop-start-at']").inputValue();
   const startDate = new Date(startRaw);
   if (!Number.isNaN(startDate.getTime())) {

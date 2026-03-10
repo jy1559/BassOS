@@ -60,7 +60,11 @@ def session_xp_breakdown(payload: dict[str, Any], settings: dict[str, Any]) -> d
     duration = to_int(payload.get("duration_min"), 0)
     session_cfg = settings.get("xp", {}).get("session", {})
     per_min = to_int(session_cfg.get("per_min"), 3)
-    base_xp = max(0, duration) * max(0, per_min)
+    cap_duration = to_int(settings.get("critical", {}).get("session_xp_duration_cap_min"), 120)
+    effective_duration = max(0, duration)
+    if cap_duration > 0:
+        effective_duration = min(effective_duration, cap_duration)
+    base_xp = effective_duration * max(0, per_min)
     bonus_breakdown: dict[str, int] = {}
     bonus_xp = 0
     total = base_xp
@@ -72,6 +76,9 @@ def session_xp_breakdown(payload: dict[str, Any], settings: dict[str, Any]) -> d
 
     return {
         "duration_min": duration,
+        "effective_duration_min": effective_duration,
+        "duration_cap_min": max(0, cap_duration),
+        "duration_cap_applied": max(0, duration - effective_duration),
         "base_xp": int(base_xp),
         "bonus_xp": int(bonus_xp),
         "bonus_breakdown": bonus_breakdown,
@@ -212,6 +219,8 @@ def _resolve_feature(
     if not key:
         return ""
     if "." not in key:
+        if key == "sub_activity":
+            return parse_json(event.get("meta_json")).get("sub_activity", "")
         if key == "tags":
             return sorted(event_tags(event))
         return event.get(key, "")
@@ -258,6 +267,12 @@ def _resolve_feature(
         if isinstance(minigame_meta, dict):
             return minigame_meta.get(tail, meta.get(tail, ""))
         return meta.get(tail, "")
+    if head == "record":
+        meta = parse_json(event.get("meta_json"))
+        record_meta = meta.get("record")
+        if isinstance(record_meta, dict):
+            return record_meta.get(tail, "")
+        return ""
     return ""
 
 

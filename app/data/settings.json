@@ -457,6 +457,8 @@
     "achievement_xp_multiplier": 1.0,
     "quest_xp_multiplier": 0.15,
     "session_xp_multiplier": 1.0,
+    "session_xp_duration_cap_min": 120,
+    "minigame_xp_multiplier": 1.0,
     "daily_session_xp_cap": 0
   },
   "admin": {

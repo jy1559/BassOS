@@ -23,7 +23,7 @@ from bassos.constants import (
     SUB_ACTIVITY_TO_TAG,
     TUTORIAL_CAMPAIGN_ID,
 )
-from bassos.services.achievements import auto_grant_claims, evaluate_achievements, manual_claim, recent_claims
+from bassos.services.achievements import achievement_source_events, auto_grant_claims, evaluate_achievements, manual_claim, recent_claims
 from bassos.services.backups import create_export_bundle, maybe_create_backup, restore_from_backup
 from bassos.services.calculations import to_int
 from bassos.services.data_bootstrap import ensure_bootstrap_data, initialize_quest_templates
@@ -63,6 +63,8 @@ DEFAULT_EVENT_TYPES = [
     "GALLERY_UPLOAD",
     "ADMIN_ADJUST",
     "MINIGAME_PLAY",
+    "RECORD_POST",
+    "RECORD_ATTACHMENT",
 ]
 
 DEFAULT_DISTINCT_FIELDS = [
@@ -78,6 +80,8 @@ DEFAULT_DISTINCT_FIELDS = [
     "minigame.game",
     "minigame.mode",
     "minigame.difficulty",
+    "record.post_id",
+    "record.attachment_id",
 ]
 
 CONDITION_OPS = ["eq", "ne", "gt", "gte", "lt", "lte", "contains", "in", "not_in", "exists", "not_exists"]
@@ -119,6 +123,23 @@ DEFAULT_CONDITION_FIELDS = [
     "minigame.wrong",
     "minigame.accuracy",
     "minigame.problems",
+    "record.post_id",
+    "record.attachment_id",
+    "record.post_type",
+    "record.header_id",
+    "record.header_label",
+    "record.template_id",
+    "record.media_type",
+    "record.attachment_kind",
+    "record.tags",
+    "record.linked_song_ids",
+    "record.linked_drill_ids",
+    "record.attachment_count",
+    "record.upload_count",
+    "record.external_count",
+    "record.audio_upload_count",
+    "record.video_upload_count",
+    "record.image_upload_count",
 ]
 
 DRILL_TAXONOMY_TAGS = [
@@ -199,6 +220,23 @@ FIELD_TYPE_META: dict[str, str] = {
     "minigame.wrong": "number",
     "minigame.accuracy": "number",
     "minigame.problems": "number",
+    "record.post_id": "text",
+    "record.attachment_id": "text",
+    "record.post_type": "enum",
+    "record.header_id": "enum",
+    "record.header_label": "enum",
+    "record.template_id": "enum",
+    "record.media_type": "enum",
+    "record.attachment_kind": "enum",
+    "record.tags": "list",
+    "record.linked_song_ids": "list",
+    "record.linked_drill_ids": "list",
+    "record.attachment_count": "number",
+    "record.upload_count": "number",
+    "record.external_count": "number",
+    "record.audio_upload_count": "number",
+    "record.video_upload_count": "number",
+    "record.image_upload_count": "number",
 }
 
 FIELD_LABEL_META: dict[str, dict[str, Any]] = {
@@ -239,6 +277,23 @@ FIELD_LABEL_META: dict[str, dict[str, Any]] = {
     "minigame.wrong": {"label": "미니게임 오답 수", "desc": "MINIGAME_PLAY meta.minigame.wrong"},
     "minigame.accuracy": {"label": "미니게임 정확도", "desc": "MINIGAME_PLAY meta.minigame.accuracy"},
     "minigame.problems": {"label": "미니게임 문제 수", "desc": "MINIGAME_PLAY meta.minigame.problems"},
+    "record.post_id": {"label": "기록장 글 ID", "desc": "RECORD_POST/RECORD_ATTACHMENT meta.record.post_id"},
+    "record.attachment_id": {"label": "기록장 첨부 ID", "desc": "RECORD_ATTACHMENT meta.record.attachment_id"},
+    "record.post_type": {"label": "기록장 글 종류", "desc": "기록장 post_type"},
+    "record.header_id": {"label": "기록장 말머리 ID", "desc": "기록장 header_id"},
+    "record.header_label": {"label": "기록장 말머리", "desc": "기록장 말머리/글 종류"},
+    "record.template_id": {"label": "기록장 템플릿", "desc": "기록장 template_id"},
+    "record.media_type": {"label": "기록장 첨부 타입", "desc": "audio/video/image"},
+    "record.attachment_kind": {"label": "기록장 첨부 출처", "desc": "upload/external_link"},
+    "record.tags": {"label": "기록장 태그", "desc": "기록장 태그 목록"},
+    "record.linked_song_ids": {"label": "연결 곡 IDs", "desc": "기록장에 연결된 곡 IDs"},
+    "record.linked_drill_ids": {"label": "연결 드릴 IDs", "desc": "기록장에 연결된 드릴 IDs"},
+    "record.attachment_count": {"label": "기록장 첨부 수", "desc": "글 단위 전체 첨부 개수"},
+    "record.upload_count": {"label": "업로드 첨부 수", "desc": "글 단위 업로드 첨부 개수"},
+    "record.external_count": {"label": "외부 링크 수", "desc": "글 단위 외부 링크 개수"},
+    "record.audio_upload_count": {"label": "오디오 업로드 수", "desc": "글 단위 업로드 오디오 개수"},
+    "record.video_upload_count": {"label": "영상 업로드 수", "desc": "글 단위 업로드 영상 개수"},
+    "record.image_upload_count": {"label": "이미지 업로드 수", "desc": "글 단위 업로드 이미지 개수"},
 }
 
 RULE_TYPE_META: dict[str, dict[str, str]] = {
@@ -281,6 +336,15 @@ _MINIGAME_DIFFICULTY_LABELS_KO = {
     "HARD": "어려움",
     "VERY_HARD": "매우 어려움",
     "MASTER": "마스터",
+}
+_RECORD_MEDIA_LABELS_KO = {
+    "audio": "오디오",
+    "video": "영상",
+    "image": "이미지",
+}
+_RECORD_ATTACHMENT_KIND_LABELS_KO = {
+    "upload": "업로드 파일",
+    "external_link": "외부 링크",
 }
 
 
@@ -534,6 +598,10 @@ def _humanize_condition_value_ko(field: str, value: Any) -> str:
         return _MINIGAME_MODE_LABELS_KO.get(token_upper, token)
     if field_key == "minigame.difficulty":
         return _MINIGAME_DIFFICULTY_LABELS_KO.get(token_upper, token)
+    if field_key == "record.media_type":
+        return _RECORD_MEDIA_LABELS_KO.get(token.strip().lower(), token)
+    if field_key == "record.attachment_kind":
+        return _RECORD_ATTACHMENT_KIND_LABELS_KO.get(token.strip().lower(), token)
     if isinstance(value, bool):
         return "true" if value else "false"
     return token
@@ -745,7 +813,7 @@ def _collect_achievement_rule_options(storage: Storage) -> dict[str, Any]:
     achievements = storage.read_csv("achievements_master.csv")
     songs = storage.read_csv("song_library.csv")
     drills = storage.read_csv("drill_library.csv")
-    events = storage.read_csv("events.csv")
+    events = achievement_source_events(storage)
 
     rule_types = set(RULE_TYPE_OPTIONS)
     event_types = {token.upper() for token in DEFAULT_EVENT_TYPES}
@@ -788,6 +856,23 @@ def _collect_achievement_rule_options(storage: Storage) -> dict[str, Any]:
         "minigame.wrong": set(),
         "minigame.accuracy": set(),
         "minigame.problems": set(),
+        "record.post_id": set(),
+        "record.attachment_id": set(),
+        "record.post_type": set(),
+        "record.header_id": set(),
+        "record.header_label": set(),
+        "record.template_id": set(),
+        "record.media_type": {"audio", "video", "image"},
+        "record.attachment_kind": {"upload", "external_link"},
+        "record.tags": set(),
+        "record.linked_song_ids": set(),
+        "record.linked_drill_ids": set(),
+        "record.attachment_count": set(),
+        "record.upload_count": set(),
+        "record.external_count": set(),
+        "record.audio_upload_count": set(),
+        "record.video_upload_count": set(),
+        "record.image_upload_count": set(),
     }
 
     def _collect_fields_from_tree(node: Any) -> None:
@@ -843,6 +928,9 @@ def _collect_achievement_rule_options(storage: Storage) -> dict[str, Any]:
         if event_type:
             event_types.add(event_type)
             feature_values["event_type"].add(event_type)
+        activity = str(row.get("activity") or "").strip()
+        if activity:
+            feature_values["activity"].add(activity)
         source = str(row.get("source") or "").strip().lower()
         if source:
             feature_values["source"].add(source)
@@ -854,6 +942,9 @@ def _collect_achievement_rule_options(storage: Storage) -> dict[str, Any]:
                 feature_values["tags"].add(token)
                 tags.add(token)
         meta = _parse_json_dict(row.get("meta_json"))
+        sub_activity = str(meta.get("sub_activity") or "").strip()
+        if sub_activity:
+            feature_values["sub_activity"].add(sub_activity)
         minigame_meta = meta.get("minigame")
         if isinstance(minigame_meta, dict):
             for key in ("game", "mode", "difficulty"):
@@ -865,6 +956,35 @@ def _collect_achievement_rule_options(storage: Storage) -> dict[str, Any]:
                 if value is None:
                     continue
                 feature_values[f"minigame.{key}"].add(str(value))
+        record_meta = meta.get("record")
+        if isinstance(record_meta, dict):
+            for key in ("post_id", "attachment_id", "post_type", "header_id", "header_label", "template_id"):
+                token = str(record_meta.get(key) or "").strip()
+                if token:
+                    feature_values[f"record.{key}"].add(token)
+            for key in ("media_type", "attachment_kind"):
+                token = str(record_meta.get(key) or "").strip().lower()
+                if token:
+                    feature_values[f"record.{key}"].add(token)
+            for key in ("tags", "linked_song_ids", "linked_drill_ids"):
+                raw_list = record_meta.get(key)
+                if isinstance(raw_list, list):
+                    for token in raw_list:
+                        text = str(token or "").strip()
+                        if text:
+                            feature_values[f"record.{key}"].add(text)
+            for key in (
+                "attachment_count",
+                "upload_count",
+                "external_count",
+                "audio_upload_count",
+                "video_upload_count",
+                "image_upload_count",
+            ):
+                value = record_meta.get(key)
+                if value is None:
+                    continue
+                feature_values[f"record.{key}"].add(str(value))
 
     for row in songs:
         for key, field in (
@@ -943,6 +1063,28 @@ def _collect_achievement_rule_options(storage: Storage) -> dict[str, Any]:
             ],
         },
         {
+            "group": "기록장 meta",
+            "fields": [
+                "record.post_id",
+                "record.attachment_id",
+                "record.post_type",
+                "record.header_id",
+                "record.header_label",
+                "record.template_id",
+                "record.media_type",
+                "record.attachment_kind",
+                "record.tags",
+                "record.linked_song_ids",
+                "record.linked_drill_ids",
+                "record.attachment_count",
+                "record.upload_count",
+                "record.external_count",
+                "record.audio_upload_count",
+                "record.video_upload_count",
+                "record.image_upload_count",
+            ],
+        },
+        {
             "group": "퀘스트 meta",
             "fields": [
                 "quest.period_class",
@@ -996,6 +1138,23 @@ def _collect_achievement_rule_options(storage: Storage) -> dict[str, Any]:
                 },
             },
             "description": "시간 파생 필드(event.hour_local) 사용 예시",
+        },
+        {
+            "title": "기록장 영상 업로드 누적",
+            "rule_type": "count_events",
+            "target": 3,
+            "rule_filter": {
+                "event_type": "RECORD_ATTACHMENT",
+                "condition_tree": {
+                    "type": "group",
+                    "logic": "all",
+                    "children": [
+                        {"type": "condition", "field": "record.attachment_kind", "op": "eq", "value": "upload"},
+                        {"type": "condition", "field": "record.media_type", "op": "eq", "value": "video"},
+                    ],
+                },
+            },
+            "description": "기록장에 올린 영상 파일 개수를 업적으로 세는 예시",
         },
     ]
 
@@ -1097,6 +1256,15 @@ def _sanitize_icon_emoji(value: Any) -> str:
     return str(value or "").strip()
 
 
+def _strip_session_evidence_fields(payload: Any) -> dict[str, Any]:
+    if not isinstance(payload, dict):
+        return {}
+    normalized = dict(payload)
+    for key in ("evidence_type", "evidence_path", "evidence_url"):
+        normalized.pop(key, None)
+    return normalized
+
+
 @api_bp.get("/health")
 def health() -> Response:
     return jsonify({"ok": True})
@@ -1136,7 +1304,7 @@ def session_retarget() -> Response:
 
 @api_bp.post("/session/stop")
 def session_stop() -> Response:
-    payload = request.get_json(silent=True) or {}
+    payload = _strip_session_evidence_fields(request.get_json(silent=True) or {})
     settings = _settings()
     before = _game().hud_summary(settings)
     result = _game().stop_session(payload, settings)
@@ -1152,6 +1320,8 @@ def session_stop() -> Response:
 @api_bp.post("/session/finalize")
 def session_finalize() -> Response:
     payload = request.get_json(silent=True) or {}
+    if isinstance(payload.get("current_stop_payload"), dict):
+        payload["current_stop_payload"] = _strip_session_evidence_fields(payload.get("current_stop_payload"))
     settings = _settings()
     before = _game().hud_summary(settings)
     result = _game().finalize_session_chain(payload, settings)
@@ -1166,7 +1336,7 @@ def session_finalize() -> Response:
 
 @api_bp.post("/session/quick-log")
 def session_quick_log() -> Response:
-    payload = request.get_json(silent=True) or {}
+    payload = _strip_session_evidence_fields(request.get_json(silent=True) or {})
     settings = _settings()
     before = _game().hud_summary(settings)
     result = _game().quick_log(payload, settings)
@@ -1207,7 +1377,7 @@ def sessions_delete(event_id: str) -> Response:
 
 @api_bp.put("/sessions/<event_id>")
 def sessions_update(event_id: str) -> Response:
-    payload = request.get_json(silent=True) or {}
+    payload = _strip_session_evidence_fields(request.get_json(silent=True) or {})
     success, message, item = _game().update_session(event_id, payload, _settings())
     if not success:
         return jsonify({"ok": False, "message": message}), 400
@@ -1688,6 +1858,7 @@ def records_detail(post_id: str) -> Response:
 @api_bp.post("/records")
 def records_create() -> Response:
     storage = _storage()
+    settings = _settings()
 
     files = request.files.getlist("files") if request.files else []
     if not files and request.files and "file" in request.files:
@@ -1746,12 +1917,14 @@ def records_create() -> Response:
         "source": "app",
     }
     item = _game().create_record(payload, attachments_payload)
+    auto_grant_claims(storage, settings, now_local())
     return jsonify({"ok": True, "item": item})
 
 
 @api_bp.put("/records/<post_id>")
 def records_update(post_id: str) -> Response:
     storage = _storage()
+    settings = _settings()
     payload = dict(request.get_json(silent=True) or {})
     payload.pop("external_attachments", None)
     if request.form:
@@ -1809,6 +1982,7 @@ def records_update(post_id: str) -> Response:
     ok, message, item = _game().update_record(post_id, payload, attachments_payload)
     if not ok:
         return jsonify({"ok": False, "message": message}), 404
+    auto_grant_claims(storage, settings, now_local())
     return jsonify({"ok": True, "message": message, "item": item})
 
 
@@ -1817,6 +1991,7 @@ def records_delete(post_id: str) -> Response:
     ok, message = _game().delete_record(post_id)
     if not ok:
         return jsonify({"ok": False, "message": message}), 404
+    auto_grant_claims(_storage(), _settings(), now_local())
     return jsonify({"ok": True, "message": message})
 
 
@@ -1825,6 +2000,7 @@ def records_attachment_delete(post_id: str, attachment_id: str) -> Response:
     ok, message = _game().delete_record_attachment(post_id, attachment_id)
     if not ok:
         return jsonify({"ok": False, "message": message}), 404
+    auto_grant_claims(_storage(), _settings(), now_local())
     return jsonify({"ok": True, "message": message})
 
 
@@ -1834,6 +2010,7 @@ def records_attachment_update(post_id: str, attachment_id: str) -> Response:
     ok, message, attachment = _game().update_record_attachment(post_id, attachment_id, payload)
     if not ok:
         return jsonify({"ok": False, "message": message}), 404
+    auto_grant_claims(_storage(), _settings(), now_local())
     return jsonify({"ok": True, "message": message, "attachment": attachment})
 
 

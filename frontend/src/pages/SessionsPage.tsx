@@ -33,6 +33,8 @@ const subOptions = [
   "Slap",
   "Theory",
   "SongDiscovery",
+  "Band",
+  "Performance",
   "Community",
   "Gear",
   "Etc",
@@ -50,6 +52,8 @@ const activityLabelKo: Record<string, string> = {
   Slap: "슬랩",
   Theory: "이론",
   SongDiscovery: "곡찾기",
+  Band: "합주",
+  Performance: "무대",
   Community: "커뮤니티",
   Gear: "장비",
 };
@@ -80,6 +84,12 @@ function normalizeSubActivity(activity: string, subActivity: string): string {
   if (sub === "funk") return "Funk";
   if (sub === "slap") return "Slap";
   if (sub === "theory") return "Theory";
+  if (sub === "songdiscovery") return "SongDiscovery";
+  if (sub === "band") return "Band";
+  if (sub === "performance") return "Performance";
+  if (sub === "community") return "Community";
+  if (sub === "gear") return "Gear";
+  if (sub === "etc") return "Etc";
   const normalizedActivity = normalizeActivity(activity);
   if (normalizedActivity === "Song") return "SongPractice";
   if (normalizedActivity === "Drill") return "Core";

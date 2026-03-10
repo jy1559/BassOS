@@ -9,7 +9,7 @@ def test_achievement_catalog_v2_shape():
     path = Path('app/data/achievements_master.csv')
     assert path.exists()
     rows = list(csv.DictReader(path.open(encoding='utf-8-sig')))
-    assert len(rows) == 136
+    assert len(rows) == 134
 
     groups: dict[str, list[dict[str, str]]] = defaultdict(list)
     for row in rows:
@@ -18,18 +18,18 @@ def test_achievement_catalog_v2_shape():
     size_dist = Counter(len(items) for items in groups.values())
     assert size_dist[6] == 18
     assert size_dist[3] == 1
-    assert size_dist[1] == 25
+    assert size_dist[1] == 23
 
     tier_rows = [row for row in rows if str(row.get('achievement_id', '')).startswith('ACH_TIER_')]
     one_rows = [row for row in rows if str(row.get('achievement_id', '')).startswith('ACH_ONE_')]
     hidden_rows = [row for row in rows if str(row.get('achievement_id', '')).startswith('ACH_HID_')]
 
     assert len(tier_rows) == 108
-    assert len(one_rows) == 11
+    assert len(one_rows) == 9
     assert len(hidden_rows) == 6
 
     assert sum(1 for row in rows if str(row.get('is_hidden', '')).lower() == 'true') == 6
-    assert sum(1 for row in rows if str(row.get('rule_type', '')).lower() == 'manual') == 2
+    assert sum(1 for row in rows if str(row.get('rule_type', '')).lower() == 'manual') == 0
 
     # Tier rows should be grouped by six tiers.
     tier_groups = defaultdict(list)

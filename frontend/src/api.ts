@@ -384,16 +384,6 @@ export async function uploadByPath(sourcePath: string, mediaType: "audio" | "vid
   });
 }
 
-export async function uploadEvidenceFile(file: File, mediaType: "audio" | "video"): Promise<{ path: string }> {
-  const formData = new FormData();
-  formData.append("file", file);
-  formData.append("media_type", mediaType);
-  return call<{ path: string; ok: true }>("/api/media/upload", {
-    method: "POST",
-    body: formData
-  });
-}
-
 export async function uploadAnyMediaFile(file: File, mediaType: "audio" | "video" | "image"): Promise<{ path: string }> {
   const formData = new FormData();
   formData.append("file", file);

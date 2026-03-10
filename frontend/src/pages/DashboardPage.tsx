@@ -49,7 +49,7 @@ type StartMode = "simple" | "song" | "drill";
 type QuickLogDurationPreset = "10" | "30" | "60" | "custom";
 type QuickLogTarget = "none" | "song" | "drill" | "etc";
 type DrillSubActivity = "Core" | "Funk" | "Slap" | "Theory";
-type EtcSubActivity = "SongDiscovery" | "Community" | "Gear" | "Etc";
+type EtcSubActivity = "SongDiscovery" | "Band" | "Performance" | "Community" | "Gear" | "Etc";
 type BadgeTier = "bronze" | "silver" | "gold" | "platinum" | "diamond" | "challenger";
 type DashboardVersion = "legacy" | "focus";
 type DashboardWidgetKey =
@@ -619,6 +619,8 @@ export function DashboardPage({
     }
     return [
       { value: "SongDiscovery", label: lang === "ko" ? "곡 탐색" : "Song discovery" },
+      { value: "Band", label: lang === "ko" ? "합주" : "Band" },
+      { value: "Performance", label: lang === "ko" ? "무대" : "Performance" },
       { value: "Community", label: lang === "ko" ? "커뮤니티" : "Community" },
       { value: "Gear", label: lang === "ko" ? "장비" : "Gear" },
       { value: "Etc", label: lang === "ko" ? "기타" : "Etc" },
@@ -669,6 +671,14 @@ export function DashboardPage({
     let subActivity = "Etc";
     let songLibraryId = "";
     let drillId = "";
+    const quickEtcTagMap: Record<EtcSubActivity, string> = {
+      SongDiscovery: "SONG_DISCOVERY",
+      Band: "BAND",
+      Performance: "PERFORMANCE",
+      Community: "COMMUNITY",
+      Gear: "GEAR",
+      Etc: "ETC",
+    };
     let tags = ["QUICK", "ETC"];
 
     if (quickTarget === "song") {
@@ -683,7 +693,7 @@ export function DashboardPage({
     } else if (quickTarget === "etc") {
       activity = "Etc";
       subActivity = quickEtcSubActivity;
-      tags = ["QUICK", "ETC", quickEtcSubActivity.toUpperCase()];
+      tags = ["QUICK", "ETC", quickEtcTagMap[quickEtcSubActivity]];
     }
 
     try {

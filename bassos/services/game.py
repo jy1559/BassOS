@@ -96,6 +96,16 @@ def _canonical_session_activity(activity: str, sub_activity: str = "") -> tuple[
     if s in {"core", "funk", "slap", "theory"}:
         sub = {"core": "Core", "funk": "Funk", "slap": "Slap", "theory": "Theory"}[s]
         return "Drill", sub
+    if s in {"songdiscovery", "community", "gear", "band", "performance", "etc"}:
+        sub = {
+            "songdiscovery": "SongDiscovery",
+            "community": "Community",
+            "gear": "Gear",
+            "band": "Band",
+            "performance": "Performance",
+            "etc": "Etc",
+        }[s]
+        return "Etc", sub
 
     if a in {"song", "노래", "곡", "songpractice", "songlearn", "songcopy"}:
         mapped = {"songpractice": "SongPractice", "songlearn": "SongLearn", "songcopy": "SongCopy"}
@@ -103,8 +113,15 @@ def _canonical_session_activity(activity: str, sub_activity: str = "") -> tuple[
     if a in {"drill", "드릴", "drillpractice", "core", "funk", "slap", "theory"}:
         mapped = {"drillpractice": "Core", "core": "Core", "funk": "Funk", "slap": "Slap", "theory": "Theory"}
         return "Drill", mapped.get(a, "Core")
-    if a in {"etc", "freepractice", "tutorial", "quest", ""}:
-        return "Etc", "Etc"
+    if a in {"etc", "freepractice", "tutorial", "quest", "songdiscovery", "community", "gear", "band", "performance", ""}:
+        mapped = {
+            "songdiscovery": "SongDiscovery",
+            "community": "Community",
+            "gear": "Gear",
+            "band": "Band",
+            "performance": "Performance",
+        }
+        return "Etc", mapped.get(a, "Etc")
     return "Etc", "Etc"
 
 
