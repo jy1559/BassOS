@@ -16,4 +16,13 @@ test("E2E-30 achievements show friendly copy and emoji fallback icons", async ({
   const emojiFallbacks = page.locator(".achievement-tile-icon.fallback.emoji");
   expect(await emojiFallbacks.count()).toBeGreaterThan(0);
   await expect(emojiFallbacks.first()).toBeVisible();
+
+  const hiddenInfo = page.locator(".achievement-tile.locked .tiny-info").first();
+  await hiddenInfo.hover();
+  const hiddenTooltip = page.locator(".achievement-tooltip").last();
+  await expect(hiddenTooltip).toBeVisible();
+  const hiddenTooltipText = await hiddenTooltip.textContent();
+  expect(hiddenTooltipText || "").toContain("힌트");
+  expect(hiddenTooltipText || "").not.toContain("목표");
+  expect(hiddenTooltipText || "").not.toContain("0/");
 });

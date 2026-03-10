@@ -253,6 +253,11 @@ function ruleText(ruleType: string, lang: Lang): string {
 }
 
 function infoText(item: Achievement, copy: CopyPack, lang: Lang): string {
+  if (item.hidden) {
+    return item.hint
+      ? `${copy.hiddenHint}: ${item.hint}`
+      : (lang === "ko" ? "조건을 찾으면 카드가 열립니다." : "Find the condition to reveal this card.");
+  }
   const rows = [
     `${ruleText(item.rule_type, lang)} · ${copy.goal} ${item.target}`,
     `${item.progress}/${item.target}`,

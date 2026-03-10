@@ -144,7 +144,7 @@ def test_storage_migration_repairs_broken_minigame_achievement_copy(tmp_path):
 
     rows = storage.read_csv("achievements_master.csv")
     headers = storage.read_csv_headers("achievements_master.csv")
-    target = next(row for row in rows if row.get("achievement_id") == "ACH_MG_RC_FIRST_PLAY")
+    target = next(row for row in rows if row.get("achievement_id") == "ACH_MG_RC_ACCURACY_90")
     target["name"] = "???"
     target["category"] = "????"
     target["description"] = "????"
@@ -154,11 +154,11 @@ def test_storage_migration_repairs_broken_minigame_achievement_copy(tmp_path):
 
     storage.migrate_files()
 
-    repaired = next(row for row in storage.read_csv("achievements_master.csv") if row.get("achievement_id") == "ACH_MG_RC_FIRST_PLAY")
-    assert repaired["name"] == "리듬 카피 첫 플레이"
+    repaired = next(row for row in storage.read_csv("achievements_master.csv") if row.get("achievement_id") == "ACH_MG_RC_ACCURACY_90")
+    assert repaired["name"] == "메트로놈 미소"
     assert repaired["category"] == "미니게임"
-    assert repaired["description"] == "리듬 카피를 1회 플레이하세요."
-    assert repaired["evidence_hint"] == "미니게임 플레이 기록이 자동 저장됩니다."
+    assert repaired["description"] == "리듬 카피에서 정확도 90% 이상을 1회 달성하세요."
+    assert repaired["evidence_hint"] == "한 판의 최종 정확도가 90% 이상이면 달성됩니다."
     assert repaired["icon_emoji"] == "🥁"
 
 

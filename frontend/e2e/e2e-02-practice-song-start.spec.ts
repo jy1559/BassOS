@@ -50,7 +50,11 @@ test("E2E-02 Practice Studio 곡 연습 시작 + 시작 패널 자동 접힘", a
   await expect(page.locator("[data-testid='practice-start-collapsed']")).toBeVisible();
   await expect(page.locator(".studio-reference-main")).toBeVisible();
 
-  const hudRes = await request.get("/api/hud/summary");
-  const hud = await hudRes.json();
-  expect(hud.summary.active_session?.session_id).toBeTruthy();
+  await expect
+    .poll(async () => {
+      const hudRes = await request.get("/api/hud/summary");
+      const hud = await hudRes.json();
+      return hud.summary.active_session?.session_id || "";
+    })
+    .not.toBe("");
 });

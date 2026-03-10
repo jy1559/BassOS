@@ -130,7 +130,7 @@ def test_minigame_record_crud_leaderboard_and_stats(tmp_path: Path):
     )
 
 
-def test_minigame_practice_records_award_expected_xp_and_unlock_first_play(tmp_path: Path):
+def test_minigame_practice_records_award_expected_xp_and_unlock_combo_milestone(tmp_path: Path):
     root = _prepare_temp_root(tmp_path)
     app = create_app(root)
     client = app.test_client()
@@ -150,7 +150,7 @@ def test_minigame_practice_records_award_expected_xp_and_unlock_first_play(tmp_p
                 "detail_json": {"attempts": 10, "hits": 4, "wrong": 6, "judge": "PC_RANGE"},
             },
             2,
-            "ACH_MG_FBH_FIRST_PLAY",
+            False,
         ),
         (
             {
@@ -165,7 +165,7 @@ def test_minigame_practice_records_award_expected_xp_and_unlock_first_play(tmp_p
                 "detail_json": {"practiced_patterns": 5, "perfect": 3, "good": 1, "miss": 1, "timing_accuracy": 81},
             },
             2,
-            "ACH_MG_RC_FIRST_PLAY",
+            False,
         ),
         (
             {
@@ -180,12 +180,12 @@ def test_minigame_practice_records_award_expected_xp_and_unlock_first_play(tmp_p
                 "detail_json": {"attempts": 7, "correct": 5, "wrong": 2},
             },
             3,
-            "ACH_MG_LM_FIRST_PLAY",
+            True,
         ),
     ]
 
     created_ids: list[str] = []
-    for payload, expected_xp, achievement_id in cases:
+    for payload, expected_xp, should_unlock_combo in cases:
         response = client.post("/api/minigame/records", json=payload)
         assert response.status_code == 200
         body = response.get_json()
@@ -199,8 +199,10 @@ def test_minigame_practice_records_award_expected_xp_and_unlock_first_play(tmp_p
 
         achievements = client.get("/api/achievements")
         assert achievements.status_code == 200
-        target = next(item for item in achievements.get_json()["achievements"] if item.get("achievement_id") == achievement_id)
-        assert target["claimed"] is True
+        target = next(
+            item for item in achievements.get_json()["achievements"] if item.get("achievement_id") == "ACH_MG_PLAY_ALL_THREE"
+        )
+        assert target["claimed"] is should_unlock_combo
 
     practice_rows = client.get("/api/minigame/records?mode=PRACTICE&limit=20").get_json()["items"]
     assert {row["record_id"] for row in practice_rows} >= set(created_ids)

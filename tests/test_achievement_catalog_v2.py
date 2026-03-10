@@ -25,7 +25,7 @@ def test_achievement_catalog_v2_shape():
     hidden_rows = [row for row in rows if str(row.get('achievement_id', '')).startswith('ACH_HID_')]
 
     assert len(tier_rows) == 108
-    assert len(one_rows) == 9
+    assert len(one_rows) == 12
     assert len(hidden_rows) == 6
 
     assert sum(1 for row in rows if str(row.get('is_hidden', '')).lower() == 'true') == 6
@@ -40,6 +40,12 @@ def test_achievement_catalog_v2_shape():
     assert all('BOSS' not in str(row.get('achievement_id', '')).upper() for row in rows)
     ids = {str(row.get('achievement_id') or '') for row in rows}
     assert 'ACH_ONE_QUEST_HIGH_FIRST' in ids
+    assert 'ACH_ONE_BRIDGE_NOTE' in ids
+    assert 'ACH_ONE_TRIPLE_ROUTE' in ids
+    assert 'ACH_ONE_PAGE_STACK' in ids
     assert 'ACH_HID_QUEST_GENRE_TRIO' in ids
-    assert 'ACH_MG_FBH_FIRST_PLAY' in ids
+    assert 'ACH_MG_PLAY_ALL_THREE' in ids
     assert 'ACH_MG_HARD_PLUS_10' in ids
+    assert 'ACH_MG_FBH_FIRST_PLAY' not in ids
+    assert 'ACH_MG_RC_FIRST_PLAY' not in ids
+    assert 'ACH_MG_LM_FIRST_PLAY' not in ids
