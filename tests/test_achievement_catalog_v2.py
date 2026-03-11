@@ -9,7 +9,7 @@ def test_achievement_catalog_v2_shape():
     path = Path('app/data/achievements_master.csv')
     assert path.exists()
     rows = list(csv.DictReader(path.open(encoding='utf-8-sig')))
-    assert len(rows) == 134
+    assert len(rows) == 136
 
     groups: dict[str, list[dict[str, str]]] = defaultdict(list)
     for row in rows:
@@ -18,7 +18,7 @@ def test_achievement_catalog_v2_shape():
     size_dist = Counter(len(items) for items in groups.values())
     assert size_dist[6] == 18
     assert size_dist[3] == 1
-    assert size_dist[1] == 23
+    assert size_dist[1] == 25
 
     tier_rows = [row for row in rows if str(row.get('achievement_id', '')).startswith('ACH_TIER_')]
     one_rows = [row for row in rows if str(row.get('achievement_id', '')).startswith('ACH_ONE_')]
@@ -26,9 +26,9 @@ def test_achievement_catalog_v2_shape():
 
     assert len(tier_rows) == 108
     assert len(one_rows) == 12
-    assert len(hidden_rows) == 6
+    assert len(hidden_rows) == 8
 
-    assert sum(1 for row in rows if str(row.get('is_hidden', '')).lower() == 'true') == 6
+    assert sum(1 for row in rows if str(row.get('is_hidden', '')).lower() == 'true') == 8
     assert sum(1 for row in rows if str(row.get('rule_type', '')).lower() == 'manual') == 0
 
     # Tier rows should be grouped by six tiers.
@@ -44,6 +44,8 @@ def test_achievement_catalog_v2_shape():
     assert 'ACH_ONE_TRIPLE_ROUTE' in ids
     assert 'ACH_ONE_PAGE_STACK' in ids
     assert 'ACH_HID_QUEST_GENRE_TRIO' in ids
+    assert 'ACH_HID_CALL_RESPONSE' in ids
+    assert 'ACH_HID_HEAD_TO_HAND' in ids
     assert 'ACH_MG_PLAY_ALL_THREE' in ids
     assert 'ACH_MG_HARD_PLUS_10' in ids
     assert 'ACH_MG_FBH_FIRST_PLAY' not in ids
