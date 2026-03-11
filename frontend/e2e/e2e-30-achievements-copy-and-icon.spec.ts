@@ -22,7 +22,8 @@ test("E2E-30 achievements show friendly copy and emoji fallback icons", async ({
   const hiddenTooltip = page.locator(".achievement-tooltip").last();
   await expect(hiddenTooltip).toBeVisible();
   const hiddenTooltipText = await hiddenTooltip.textContent();
-  expect(hiddenTooltipText || "").toContain("힌트");
+  expect(hiddenTooltipText || "").not.toContain("힌트:");
+  expect(hiddenTooltipText || "").toContain("조건을 찾으면 카드가 열립니다.");
   expect(hiddenTooltipText || "").not.toContain("목표");
   expect(hiddenTooltipText || "").not.toContain("0/");
 });

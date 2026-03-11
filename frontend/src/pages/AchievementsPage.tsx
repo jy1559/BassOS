@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { claimAchievement } from "../api";
 import { FilterBar, PageHeader } from "../components/ui";
 import type { Lang } from "../i18n";
@@ -19,6 +20,14 @@ type StateFilter = "all" | "claimed" | "ready" | "in_progress";
 type KindFilter = "all" | "tiered" | "single";
 type CardKind = "tiered" | "single" | "hidden";
 type SectionKind = "tiered" | "single";
+type TooltipState = {
+  id: string;
+  hint: string;
+  detail: string;
+  left: number;
+  top: number;
+  width: number;
+};
 
 type CopyPack = {
   filters: string;
@@ -267,6 +276,24 @@ function infoText(item: Achievement, copy: CopyPack, lang: Lang): string {
   return rows.filter(Boolean).join("\n");
 }
 
+function tooltipCopy(item: Achievement, lang: Lang): { hint: string; detail: string } {
+  if (item.hidden) {
+    return {
+      hint: String(item.hint || "").trim(),
+      detail: lang === "ko" ? "조건을 찾으면 카드가 열립니다." : "Find the condition to reveal this card.",
+    };
+  }
+  const hint = String(item.hint || "").trim();
+  const detail = String(item.evidence_hint || item.description || "").trim();
+  if (hint || detail) {
+    return { hint, detail };
+  }
+  return {
+    hint: "",
+    detail: infoText(item, lang === "ko" ? ko : en, lang),
+  };
+}
+
 function formatClaimedAt(raw: string | undefined, lang: Lang): { date: string; time: string } | null {
   const token = String(raw || "").trim();
   if (!token) return null;
@@ -287,7 +314,7 @@ export function AchievementsPage({ lang, settings, items, onRefresh, setMessage,
   const [kindFilter, setKindFilter] = useState<KindFilter>("all");
   const [category, setCategory] = useState<string>("all");
   const [ruleFilter, setRuleFilter] = useState<string>("all");
-  const [helpId, setHelpId] = useState<string>("");
+  const [tooltip, setTooltip] = useState<TooltipState | null>(null);
   const recentStripRef = useRef<HTMLDivElement | null>(null);
   const [recentVisibleCount, setRecentVisibleCount] = useState(4);
 
@@ -392,6 +419,50 @@ export function AchievementsPage({ lang, settings, items, onRefresh, setMessage,
     observer.observe(host);
     return () => observer.disconnect();
   }, [recentClaims.length]);
+
+  useEffect(() => {
+    if (!tooltip) return undefined;
+    const close = () => setTooltip(null);
+    window.addEventListener("scroll", close, true);
+    window.addEventListener("resize", close);
+    return () => {
+      window.removeEventListener("scroll", close, true);
+      window.removeEventListener("resize", close);
+    };
+  }, [tooltip]);
+
+  const openTooltip = (item: Achievement, anchor: HTMLElement | null) => {
+    if (!anchor) return;
+    const content = tooltipCopy(item, lang);
+    if (!content.hint && !content.detail) {
+      setTooltip(null);
+      return;
+    }
+    const rect = anchor.getBoundingClientRect();
+    const viewportWidth = window.innerWidth || 1280;
+    const viewportHeight = window.innerHeight || 720;
+    const width = Math.min(460, Math.max(280, Math.round(viewportWidth * 0.33)));
+    const safeWidth = Math.min(width, Math.max(220, viewportWidth - 24));
+    const estimatedHeight = content.hint && content.detail ? 168 : 112;
+    const belowTop = rect.bottom + 8;
+    const aboveTop = rect.top - estimatedHeight - 8;
+    setTooltip({
+      id: item.achievement_id,
+      hint: content.hint,
+      detail: content.detail,
+      width: safeWidth,
+      left: Math.max(12, Math.min(rect.right - safeWidth, viewportWidth - safeWidth - 12)),
+      top: belowTop + estimatedHeight <= viewportHeight - 12 || aboveTop < 12 ? belowTop : aboveTop,
+    });
+  };
+
+  const closeTooltip = (achievementId?: string) => {
+    setTooltip((prev) => {
+      if (!prev) return null;
+      if (achievementId && prev.id !== achievementId) return prev;
+      return null;
+    });
+  };
 
   const sectionOrder: SectionKind[] = ["tiered", "single"];
   const sectionLabel = (kind: SectionKind): string => (kind === "tiered" ? copy.tiered : copy.single);
@@ -531,7 +602,6 @@ export function AchievementsPage({ lang, settings, items, onRefresh, setMessage,
                 const targetSafe = Math.max(Number(item.target) || 1, 1);
                 const progressSafe = Math.max(0, Number(item.progress) || 0);
                 const claimable = item.unlocked && !item.claimed;
-                const opened = helpId === item.achievement_id;
                 const hiddenLocked = item.hidden && !item.claimed;
                 const progressRatio = hiddenLocked ? 0 : Math.min(1, progressSafe / targetSafe);
                 const progressPct = Math.round(progressRatio * 100);
@@ -559,18 +629,17 @@ export function AchievementsPage({ lang, settings, items, onRefresh, setMessage,
                       <small className={`achievement-tier-pill ${item.claimed ? "done" : ""}`}>{topLabel}</small>
                       <div
                         className="achievement-info-wrap"
-                        onMouseEnter={() => setHelpId(item.achievement_id)}
-                        onMouseLeave={() => setHelpId((prev) => (prev === item.achievement_id ? "" : prev))}
+                        onMouseEnter={(event) => openTooltip(item, event.currentTarget)}
+                        onMouseLeave={() => closeTooltip(item.achievement_id)}
                       >
                         <button
                           className="tiny-info"
                           type="button"
-                          onFocus={() => setHelpId(item.achievement_id)}
-                          onBlur={() => setHelpId((prev) => (prev === item.achievement_id ? "" : prev))}
+                          onFocus={(event) => openTooltip(item, event.currentTarget.parentElement)}
+                          onBlur={() => closeTooltip(item.achievement_id)}
                         >
                           i
                         </button>
-                        {opened ? <div className="achievement-tooltip">{infoText(item, copy, lang)}</div> : null}
                       </div>
                     </div>
 
@@ -649,6 +718,26 @@ export function AchievementsPage({ lang, settings, items, onRefresh, setMessage,
           </section>
         );
       })}
+
+      {tooltip && typeof document !== "undefined"
+        ? createPortal(
+            <div
+              className="achievement-tooltip"
+              role="tooltip"
+              style={{
+                left: `${tooltip.left}px`,
+                top: `${tooltip.top}px`,
+                width: `${tooltip.width}px`,
+                maxWidth: `min(${tooltip.width}px, calc(100vw - 24px))`,
+              }}
+            >
+              {tooltip.hint ? <p className="achievement-tooltip-hint">{tooltip.hint}</p> : null}
+              {tooltip.hint && tooltip.detail ? <div className="achievement-tooltip-gap" /> : null}
+              {tooltip.detail ? <p className="achievement-tooltip-detail">{tooltip.detail}</p> : null}
+            </div>,
+            document.body
+          )
+        : null}
 
     </div>
   );

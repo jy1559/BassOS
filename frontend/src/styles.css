@@ -5005,18 +5005,15 @@ textarea {
 
 .achievement-info-wrap {
   position: relative;
-  z-index: 5;
+  z-index: 8;
 }
 
 .achievement-tooltip {
-  position: absolute;
-  right: 0;
-  top: calc(100% + 6px);
+  position: fixed;
   width: clamp(280px, 33vw, 460px);
   max-width: min(460px, 78vw);
   max-height: min(50vh, 420px);
   overflow: auto;
-  white-space: pre-wrap;
   line-height: 1.45;
   font-size: 12px;
   background: color-mix(in srgb, var(--panel) 96%, #ffffff);
@@ -5025,9 +5022,25 @@ textarea {
   box-shadow: 0 16px 34px rgba(12, 28, 44, 0.2);
   color: var(--text);
   padding: 10px 12px;
-  z-index: 220;
+  z-index: 10020;
   overflow-wrap: anywhere;
   word-break: break-word;
+  pointer-events: none;
+}
+
+.achievement-tooltip-hint,
+.achievement-tooltip-detail {
+  margin: 0;
+  white-space: pre-wrap;
+}
+
+.achievement-tooltip-hint {
+  font-weight: 700;
+  color: color-mix(in srgb, var(--text) 92%, var(--accent));
+}
+
+.achievement-tooltip-gap {
+  height: 12px;
 }
 
 .genre-group-list,
@@ -9747,7 +9760,6 @@ textarea {
   .achievement-tooltip {
     width: min(380px, 80vw);
     max-width: min(380px, 80vw);
-    top: calc(100% + 6px);
   }
 }
 
@@ -10001,10 +10013,8 @@ textarea {
     justify-content: space-between;
   }
   .achievement-tooltip {
-    position: static;
-    margin-top: 6px;
-    width: 100%;
-    max-width: 100%;
+    width: min(320px, calc(100vw - 24px));
+    max-width: calc(100vw - 24px);
     max-height: 44vh;
   }
   .journal-gallery-grid {
