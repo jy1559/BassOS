@@ -24,12 +24,16 @@ test("E2E-22 settings search + toc navigation", async ({ page, request }) => {
 
   const search = page.locator("[data-testid='settings-search-input']");
   await expect(search).toBeVisible();
+  await expect(page.locator("[data-testid='settings-home-profile-card']")).toBeVisible();
+  await expect(page.locator("[data-testid='settings-home-theme-card']")).toBeVisible();
+  await expect(page.locator("[data-testid='settings-section-basic']")).toBeVisible();
   await search.fill("backup");
 
   const tocItem = page.locator("[data-testid='settings-toc-dataBackup']");
   await tocItem.click();
   await expect(tocItem).toHaveClass(/active/);
   await expect(page.locator("[data-testid='settings-section-dataBackup']")).toBeVisible();
+  await expect(page.locator("[data-testid='settings-section-basic']")).toHaveCount(0);
   await expect(page.locator("[data-testid='settings-toc-developer']")).toHaveCount(0);
   await expect(page.locator("[data-testid='settings-toc-mock']")).toHaveCount(0);
   await expect(page.locator("[data-testid='settings-toc-misc']")).toHaveCount(0);
@@ -42,6 +46,7 @@ test("E2E-22 settings locked theme should be preview-only", async ({ page, reque
   await resetRuntime(request);
   await openApp(page);
   await gotoSettings(page);
+  await page.locator("[data-testid='settings-toc-appearance']").click();
 
   const lockedTheme = page.locator("[data-testid='theme-card-midnight']");
   await expect(lockedTheme).toBeVisible();
@@ -100,10 +105,8 @@ test("E2E-22 settings admin auth and backup restore flow", async ({ page, reques
   await page.keyboard.press("Escape");
   await expect(page.locator("[data-testid='admin-overlay']")).toBeHidden();
 
+  await page.locator("[data-testid='settings-toc-dataBackup']").click();
   const restoreButtons = page.locator("[data-testid='backup-restore-btn']");
-  if (!(await restoreButtons.first().isVisible())) {
-    await page.locator("[data-testid='settings-section-toggle-dataBackup']").click();
-  }
   await expect(restoreButtons.first()).toBeVisible();
 
   await queueDialogs(page, [

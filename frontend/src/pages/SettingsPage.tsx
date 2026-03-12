@@ -110,6 +110,113 @@ const RESET_ALL_CONFIRM_TEXT = "RESET ALL";
 
 const SHORTCUT_GROUP_ORDER: ShortcutGroupId[] = ["tabs", "video", "metronome", "pin", "pip", "popup"];
 
+const GOAL_PRESETS = [
+  {
+    id: "light",
+    title: { ko: "가볍게", en: "Light" },
+    summary: { ko: "주 3회 · 90분", en: "3 sessions · 90 min" },
+    profile: {
+      weekly_goal_sessions: 3,
+      weekly_goal_minutes: 90,
+      monthly_goal_minutes: 420,
+      xp_goal_weekly: 800,
+      xp_goal_monthly: 3200,
+    },
+  },
+  {
+    id: "steady",
+    title: { ko: "꾸준히", en: "Steady" },
+    summary: { ko: "주 5회 · 180분", en: "5 sessions · 180 min" },
+    profile: {
+      weekly_goal_sessions: 5,
+      weekly_goal_minutes: 180,
+      monthly_goal_minutes: 720,
+      xp_goal_weekly: 1500,
+      xp_goal_monthly: 6000,
+    },
+  },
+  {
+    id: "intense",
+    title: { ko: "집중", en: "Intense" },
+    summary: { ko: "주 7회 · 300분", en: "7 sessions · 300 min" },
+    profile: {
+      weekly_goal_sessions: 7,
+      weekly_goal_minutes: 300,
+      monthly_goal_minutes: 1200,
+      xp_goal_weekly: 2500,
+      xp_goal_monthly: 10000,
+    },
+  },
+] as const;
+
+const SOUND_PRESETS = [
+  {
+    id: "balanced",
+    title: { ko: "기본 추천", en: "Balanced" },
+    description: { ko: "알림과 이펙트를 적당히 유지합니다.", en: "Keep a balanced mix of alerts and effects." },
+    patch: {
+      audio: { enabled: true, master_volume: 0.6 },
+      ui: {
+        animation_intensity: "adaptive" as const,
+        practice_video_tab_switch_playback: "continue" as const,
+        practice_video_pip_mode: "mini" as const,
+        notify_level_up: true,
+        notify_achievement_unlock: true,
+        notify_quest_complete: true,
+        fx_level_up_overlay: true,
+        enable_confetti: true,
+        fx_session_complete_normal: true,
+        fx_session_complete_quick: false,
+        fx_claim_quest: true,
+        fx_claim_achievement: true,
+      },
+    },
+  },
+  {
+    id: "focus",
+    title: { ko: "집중 모드", en: "Focus" },
+    description: { ko: "방해가 적게 조용한 연습 환경으로 맞춥니다.", en: "Quiet mode with fewer interruptions." },
+    patch: {
+      audio: { enabled: true, master_volume: 0.35 },
+      ui: {
+        animation_intensity: "low" as const,
+        practice_video_tab_switch_playback: "pause" as const,
+        practice_video_pip_mode: "none" as const,
+        notify_level_up: true,
+        notify_achievement_unlock: false,
+        notify_quest_complete: false,
+        fx_level_up_overlay: false,
+        enable_confetti: false,
+        fx_session_complete_normal: false,
+        fx_session_complete_quick: false,
+        fx_claim_quest: false,
+        fx_claim_achievement: false,
+      },
+    },
+  },
+] as const;
+
+const DASHBOARD_VERSION_OPTIONS = [
+  {
+    id: "focus" as const,
+    title: { ko: "포커스", en: "Focus" },
+    description: { ko: "오늘 할 일과 진행 상황을 크게 보여줍니다.", en: "Emphasize today's work and progress." },
+  },
+  {
+    id: "legacy" as const,
+    title: { ko: "클래식", en: "Classic" },
+    description: { ko: "익숙한 카드형 대시보드 배치를 사용합니다.", en: "Use the familiar card dashboard layout." },
+  },
+] as const;
+
+const PHOTO_ANCHOR_OPTIONS = [
+  { id: "center" as const, label: { ko: "가운데", en: "Center" } },
+  { id: "top" as const, label: { ko: "위쪽", en: "Top" } },
+  { id: "bottom" as const, label: { ko: "아래쪽", en: "Bottom" } },
+  { id: "left" as const, label: { ko: "왼쪽", en: "Left" } },
+  { id: "right" as const, label: { ko: "오른쪽", en: "Right" } },
+] as const;
+
 const DEFAULT_SONG_GENRES = [
   "Rock",
   "Punk Rock",
@@ -423,14 +530,6 @@ export function SettingsPage({ lang, settings, hud, unlockables, onSettingsChang
   const [searchQuery, setSearchQuery] = useState("");
   const [tocOpen, setTocOpen] = useState(false);
   const [activeSection, setActiveSection] = useState<SectionId>("basic");
-  const [sectionCollapsed, setSectionCollapsed] = useState<Record<SectionId, boolean>>({
-    basic: false,
-    appearance: false,
-    soundMotion: false,
-    keyboard: false,
-    goals: false,
-    dataBackup: false,
-  });
   const normalizedShortcutSettings = useMemo(() => normalizeKeyboardShortcutSettings(ui.keyboard_shortcuts), [ui.keyboard_shortcuts]);
   const [capturingShortcutId, setCapturingShortcutId] = useState<ShortcutActionId | null>(null);
   const [keyboardConflictText, setKeyboardConflictText] = useState("");
@@ -497,8 +596,6 @@ export function SettingsPage({ lang, settings, hud, unlockables, onSettingsChang
   );
   const [layoutDirty, setLayoutDirty] = useState(false);
   const [layoutSaving, setLayoutSaving] = useState(false);
-
-  const sectionRefs = useRef<Record<SectionId, HTMLElement | null>>(makeSectionRefMap());
   const questHydratedRef = useRef(false);
   const layoutHydratedRef = useRef(false);
 
@@ -563,6 +660,12 @@ export function SettingsPage({ lang, settings, hud, unlockables, onSettingsChang
     }
     return out;
   }, [settings.ui?.achievement_card_styles]);
+  const activeThemePreset = useMemo(
+    () => THEME_PRESETS.find((item) => item.id === settings.ui.default_theme) ?? THEME_PRESETS[0],
+    [settings.ui.default_theme]
+  );
+  const dashboardPhotoAnchor =
+    (profile.dashboard_photo_anchor as "center" | "top" | "bottom" | "left" | "right" | undefined) ?? "center";
 
   const query = searchQuery.trim().toLowerCase();
   const sections = useMemo(
@@ -575,7 +678,7 @@ export function SettingsPage({ lang, settings, hud, unlockables, onSettingsChang
       {
         id: "appearance" as const,
         title: lang === "ko" ? "테마" : "Theme",
-        keywords: ["theme", "appearance", "preview"],
+        keywords: ["theme", "appearance", "preview", "dashboard", "glass", "photo"],
       },
       {
         id: "soundMotion" as const,
@@ -590,7 +693,7 @@ export function SettingsPage({ lang, settings, hud, unlockables, onSettingsChang
       {
         id: "goals" as const,
         title: lang === "ko" ? "목표" : "Goals",
-        keywords: ["goal", "xp", "weekly", "monthly", "growth"],
+        keywords: ["goal", "xp", "weekly", "monthly", "growth", "preset"],
       },
       {
         id: "dataBackup" as const,
@@ -615,6 +718,11 @@ export function SettingsPage({ lang, settings, hud, unlockables, onSettingsChang
   }, [sections, query]);
 
   const filteredCount = useMemo(() => sections.filter((item) => sectionMatch[item.id]).length, [sections, sectionMatch]);
+  const visibleSections = useMemo(() => sections.filter((item) => sectionMatch[item.id]), [sections, sectionMatch]);
+  const activeSectionMeta = useMemo(
+    () => sections.find((item) => item.id === activeSection) ?? sections[0],
+    [activeSection, sections]
+  );
 
   const getErrorMessage = (error: unknown, fallback: string) => (error instanceof Error ? error.message : fallback);
 
@@ -636,6 +744,40 @@ export function SettingsPage({ lang, settings, hud, unlockables, onSettingsChang
     } catch (error) {
       setMessage(getErrorMessage(error, lang === "ko" ? "관리자 설정 저장 실패" : "Failed to save admin settings"));
     }
+  };
+
+  const openSection = (id: SectionId) => {
+    setActiveSection(id);
+    setTocOpen(false);
+  };
+
+  const applyGoalPreset = async (presetId: (typeof GOAL_PRESETS)[number]["id"]) => {
+    const preset = GOAL_PRESETS.find((item) => item.id === presetId);
+    if (!preset) return;
+    await applyBasicPatch(
+      {
+        profile: {
+          weekly_goal_sessions: preset.profile.weekly_goal_sessions,
+          weekly_goal_minutes: preset.profile.weekly_goal_minutes,
+          monthly_goal_minutes: preset.profile.monthly_goal_minutes,
+          xp_goal_weekly: preset.profile.xp_goal_weekly,
+          xp_goal_monthly: preset.profile.xp_goal_monthly,
+        } as Partial<Settings["profile"]>,
+      },
+      lang === "ko" ? `${preset.title.ko} 목표 프리셋 적용` : `Applied ${preset.title.en} goal preset`
+    );
+  };
+
+  const applySoundPreset = async (presetId: (typeof SOUND_PRESETS)[number]["id"]) => {
+    const preset = SOUND_PRESETS.find((item) => item.id === presetId);
+    if (!preset) return;
+    await applyBasicPatch(
+      {
+        audio: preset.patch.audio,
+        ui: preset.patch.ui as Partial<Settings["ui"]>,
+      },
+      lang === "ko" ? `${preset.title.ko} 적용` : `Applied ${preset.title.en}`
+    );
   };
 
   const keyboardActionGroups = useMemo(
@@ -900,33 +1042,6 @@ export function SettingsPage({ lang, settings, hud, unlockables, onSettingsChang
       },
       lang === "ko" ? "업적 카드 색상 기본값 복원 완료" : "Achievement card styles restored"
     );
-  };
-
-  const setSectionRef = (id: SectionId) => (node: HTMLElement | null) => {
-    sectionRefs.current[id] = node;
-  };
-
-  const getScrollContainer = (): HTMLElement | null => document.querySelector(".content");
-
-  const isSectionCollapsed = (id: SectionId): boolean => {
-    if (query && !sectionMatch[id]) return true;
-    return Boolean(sectionCollapsed[id]);
-  };
-
-  const toggleSectionCollapsed = (id: SectionId) => {
-    setSectionCollapsed((prev) => ({ ...prev, [id]: !prev[id] }));
-  };
-
-  const scrollToSection = (id: SectionId) => {
-    const target = sectionRefs.current[id];
-    const container = getScrollContainer();
-    if (!target || !container) return;
-    const containerRect = container.getBoundingClientRect();
-    const targetRect = target.getBoundingClientRect();
-    const top = container.scrollTop + (targetRect.top - containerRect.top) - 12;
-    container.scrollTo({ top: Math.max(0, top), behavior: "smooth" });
-    setActiveSection(id);
-    setTocOpen(false);
   };
 
   const questPriorityLabel = (key: "low" | "normal" | "urgent") => {
@@ -1221,12 +1336,12 @@ export function SettingsPage({ lang, settings, hud, unlockables, onSettingsChang
     children: ReactNode,
     options?: { lowEmphasis?: boolean; extraClass?: string }
   ) => {
-    const collapsed = isSectionCollapsed(id);
+    if (activeSection !== id) return null;
     const filtered = Boolean(query) && !sectionMatch[id];
+    if (filtered) return null;
     return (
       <section
-        ref={setSectionRef(id)}
-        className={`card settings-section ${options?.lowEmphasis ? "settings-section-low" : ""} ${filtered ? "filtered-out" : ""} ${options?.extraClass ?? ""}`.trim()}
+        className={`card settings-section settings-section-active ${options?.lowEmphasis ? "settings-section-low" : ""} ${options?.extraClass ?? ""}`.trim()}
         data-testid={`settings-section-${id}`}
       >
         <div className="settings-section-head">
@@ -1234,28 +1349,9 @@ export function SettingsPage({ lang, settings, hud, unlockables, onSettingsChang
             <h2>{sectionsTitleMap[id]}</h2>
             <small className="muted">{subtitle}</small>
           </div>
-          <button
-            type="button"
-            className="ghost-btn compact-add-btn"
-            onClick={() => toggleSectionCollapsed(id)}
-            data-testid={`settings-section-toggle-${id}`}
-          >
-            {collapsed ? (lang === "ko" ? "펼치기" : "Expand") : lang === "ko" ? "접기" : "Collapse"}
-          </button>
+          <span className="settings-section-tag">{lang === "ko" ? "현재 탭" : "Current tab"}</span>
         </div>
-        {collapsed ? (
-          <small className="muted">
-            {filtered
-              ? lang === "ko"
-                ? "검색어와 일치하지 않아 접힌 상태입니다."
-                : "Collapsed because it does not match the current search."
-              : lang === "ko"
-                ? "섹션이 접혀 있습니다."
-                : "Section is collapsed."}
-          </small>
-        ) : (
-          <div className="settings-section-body">{children}</div>
-        )}
+        <div className="settings-section-body">{children}</div>
       </section>
     );
   };
@@ -1393,33 +1489,13 @@ export function SettingsPage({ lang, settings, hud, unlockables, onSettingsChang
   }, [adminOverlayOpen]);
 
   useEffect(() => {
-    const container = getScrollContainer();
-    if (!container) return undefined;
-    const recalc = () => {
-      const containerRect = container.getBoundingClientRect();
-      let bestId: SectionId = SECTION_ORDER[0];
-      let bestDistance = Number.POSITIVE_INFINITY;
-      for (const id of SECTION_ORDER) {
-        const section = sectionRefs.current[id];
-        if (!section) continue;
-        const rect = section.getBoundingClientRect();
-        if (rect.bottom < containerRect.top + 72) continue;
-        const distance = Math.abs(rect.top - containerRect.top - 92);
-        if (distance < bestDistance) {
-          bestDistance = distance;
-          bestId = id;
-        }
-      }
-      setActiveSection((prev) => (prev === bestId ? prev : bestId));
-    };
-    recalc();
-    container.addEventListener("scroll", recalc, { passive: true });
-    window.addEventListener("resize", recalc);
-    return () => {
-      container.removeEventListener("scroll", recalc);
-      window.removeEventListener("resize", recalc);
-    };
-  }, []);
+    if (!query) return;
+    if (sectionMatch[activeSection]) return;
+    const fallback = visibleSections[0]?.id ?? SECTION_ORDER[0];
+    if (fallback !== activeSection) {
+      setActiveSection(fallback);
+    }
+  }, [activeSection, query, sectionMatch, visibleSections]);
 
   useEffect(() => {
     if (!adminOverlayOpen && !adminAuthOpen && !resetOverlayOpen && !achievementManagerOpen) return undefined;
@@ -1507,18 +1583,28 @@ export function SettingsPage({ lang, settings, hud, unlockables, onSettingsChang
     <div className="settings-shell">
       <aside className={`settings-toc ${tocOpen ? "open" : ""}`}>
         <div className="settings-toc-head">
-          <strong>{lang === "ko" ? "설정 목차" : "Settings Index"}</strong>
+          <strong>{lang === "ko" ? "설정 탭" : "Settings Tabs"}</strong>
           <small className="muted">
-            {lang === "ko" ? `${filteredCount}/${sections.length} 섹션` : `${filteredCount}/${sections.length} sections`}
+            {lang === "ko" ? `${filteredCount}/${sections.length}개 표시` : `${filteredCount}/${sections.length} visible`}
           </small>
         </div>
+        <label className="settings-toc-search">
+          <span>{lang === "ko" ? "찾기" : "Search"}</span>
+          <input
+            type="search"
+            value={searchQuery}
+            onChange={(event) => setSearchQuery(event.target.value)}
+            placeholder={lang === "ko" ? "예: 테마, 백업, 목표" : "e.g. theme, backup, goals"}
+            data-testid="settings-search-input"
+          />
+        </label>
         <div className="settings-toc-list">
           {sections.map((item) => (
             <button
               key={item.id}
               type="button"
               className={`settings-toc-item ${activeSection === item.id ? "active" : ""} ${sectionMatch[item.id] ? "" : "dim"}`}
-              onClick={() => scrollToSection(item.id)}
+              onClick={() => openSection(item.id)}
               data-testid={`settings-toc-${item.id}`}
             >
               {item.title}
@@ -1533,53 +1619,147 @@ export function SettingsPage({ lang, settings, hud, unlockables, onSettingsChang
             <div>
               <h2>{lang === "ko" ? "설정" : "Settings"}</h2>
               <small className="muted">
-                {lang === "ko"
-                  ? "검색과 목차로 원하는 항목을 빠르게 찾을 수 있습니다."
-                  : "Use search and index to jump to the exact setting."}
+                {lang === "ko" ? "탭을 열듯 눌러서 바꾸고, 자주 쓰는 항목부터 먼저 보이게 정리했습니다." : "Open each group like a tab and keep the common controls first."}
               </small>
             </div>
             <button type="button" className="ghost-btn compact-add-btn settings-mobile-toc-btn" onClick={() => setTocOpen((prev) => !prev)}>
-              {tocOpen ? (lang === "ko" ? "목차 닫기" : "Hide Index") : lang === "ko" ? "목차 열기" : "Show Index"}
+              {tocOpen ? (lang === "ko" ? "탭 닫기" : "Hide Tabs") : lang === "ko" ? "탭 열기" : "Show Tabs"}
             </button>
           </div>
-          <label>
-            {lang === "ko" ? "설정 검색" : "Search Settings"}
-            <input
-              type="search"
-              value={searchQuery}
-              onChange={(event) => setSearchQuery(event.target.value)}
-              placeholder={lang === "ko" ? "예: backup, theme, xp..." : "e.g. backup, theme, xp..."}
-              data-testid="settings-search-input"
-            />
-          </label>
+          <div className="settings-tab-strip" role="tablist" aria-label={lang === "ko" ? "설정 탭" : "Settings tabs"}>
+            {visibleSections.map((item) => (
+              <button
+                key={`settings-strip-${item.id}`}
+                type="button"
+                className={`settings-tab-pill ${activeSection === item.id ? "active" : ""}`}
+                onClick={() => openSection(item.id)}
+              >
+                {item.title}
+              </button>
+            ))}
+          </div>
+          <div className="settings-tab-status">
+            <div>
+              <strong>{activeSectionMeta.title}</strong>
+              <small className="muted">
+                {lang === "ko"
+                  ? query
+                    ? `검색어 "${searchQuery.trim()}" 기준으로 맞는 탭만 표시 중입니다.`
+                    : "왼쪽 탭이나 위 탭을 누르면 바로 해당 설정이 열립니다."
+                  : query
+                    ? `Showing tabs that match "${searchQuery.trim()}".`
+                    : "Click a tab on the left or above to open that settings group."}
+              </small>
+            </div>
+            <small className="muted">{lang === "ko" ? `${filteredCount}개 탭` : `${filteredCount} tabs`}</small>
+          </div>
+          {!query ? (
+            <div className="settings-home-grid">
+              <article
+                className={`settings-home-card ${activeSection === "basic" ? "active" : ""}`}
+                data-testid="settings-home-profile-card"
+              >
+                <div className="settings-home-card-copy">
+                  <span className="settings-home-label">{lang === "ko" ? "프로필 빠른 설정" : "Profile Quick Settings"}</span>
+                  <strong>{profile.nickname || "Bassist"}</strong>
+                  <small className="muted">
+                    {lang === "ko"
+                      ? `현재 Lv.${hud.level} · 주간 목표 ${Number(profile.weekly_goal_sessions ?? 3)}회`
+                      : `Lv.${hud.level} · Weekly goal ${Number(profile.weekly_goal_sessions ?? 3)} sessions`}
+                  </small>
+                </div>
+                <button type="button" className="ghost-btn compact-add-btn" onClick={() => openSection("basic")}>
+                  {lang === "ko" ? "프로필 열기" : "Open Profile"}
+                </button>
+              </article>
+              <article
+                className={`settings-home-card ${activeSection === "appearance" ? "active" : ""}`}
+                data-testid="settings-home-theme-card"
+              >
+                <div className="settings-home-card-copy">
+                  <span className="settings-home-label">{lang === "ko" ? "테마 빠른 설정" : "Theme Quick Settings"}</span>
+                  <strong>{activeThemePreset.name}</strong>
+                  <small className="muted">
+                    {lang === "ko"
+                      ? `${dashboardVersion === "focus" ? "포커스" : "클래식"} 대시보드 · 사진 ${PHOTO_ANCHOR_OPTIONS.find((item) => item.id === dashboardPhotoAnchor)?.label.ko ?? "가운데"}`
+                      : `${dashboardVersion === "focus" ? "Focus" : "Classic"} dashboard · photo ${PHOTO_ANCHOR_OPTIONS.find((item) => item.id === dashboardPhotoAnchor)?.label.en ?? "Center"}`}
+                  </small>
+                </div>
+                <button type="button" className="ghost-btn compact-add-btn" onClick={() => openSection("appearance")}>
+                  {lang === "ko" ? "테마 열기" : "Open Theme"}
+                </button>
+              </article>
+            </div>
+          ) : null}
         </section>
+
+        {visibleSections.length === 0 ? (
+          <section className="card settings-empty-state">
+            <strong>{lang === "ko" ? "검색 결과가 없습니다." : "No matching settings found."}</strong>
+            <small className="muted">
+              {lang === "ko" ? "다른 키워드로 다시 검색하거나 왼쪽 탭에서 직접 선택하세요." : "Try a different keyword or choose a tab from the left."}
+            </small>
+          </section>
+        ) : null}
 
         {renderSection(
           "basic",
-          lang === "ko" ? "닉네임처럼 자주 바꾸는 기본 항목만 여기에 둡니다." : "Keep only the profile fields users adjust often.",
+          lang === "ko" ? "닉네임과 현재 진행 상황처럼 자주 확인하는 기본 정보입니다." : "Frequently used profile controls and current progress.",
           <>
-            <label>
-              {lang === "ko" ? "닉네임" : "Nickname"}
-              <input
-                type="text"
-                value={nicknameDraft}
-                onChange={(event) => setNicknameDraft(event.target.value)}
-                onBlur={() => {
-                  const next = nicknameDraft.trim();
-                  if (next === String(profile.nickname || "")) return;
-                  void applyBasicPatch(
-                    { profile: { nickname: next } as Partial<Settings["profile"]> },
-                    lang === "ko" ? "닉네임 저장 완료" : "Nickname saved"
-                  );
-                }}
-              />
-            </label>
+            <div className="settings-split-grid">
+              <label>
+                {lang === "ko" ? "닉네임" : "Nickname"}
+                <input
+                  type="text"
+                  value={nicknameDraft}
+                  onChange={(event) => setNicknameDraft(event.target.value)}
+                  onBlur={() => {
+                    const next = nicknameDraft.trim();
+                    if (next === String(profile.nickname || "")) return;
+                    void applyBasicPatch(
+                      { profile: { nickname: next } as Partial<Settings["profile"]> },
+                      lang === "ko" ? "닉네임 저장 완료" : "Nickname saved"
+                    );
+                  }}
+                />
+                <small className="muted">{lang === "ko" ? "상단 표시 이름과 공유 카드에 함께 사용됩니다." : "Used for the top bar and share card."}</small>
+              </label>
+              <div className="settings-mini-summary-grid">
+                <div className="settings-mini-summary-card">
+                  <span>{lang === "ko" ? "현재 레벨" : "Current Level"}</span>
+                  <strong>
+                    Lv.{hud.level} · {hud.rank}
+                  </strong>
+                </div>
+                <div className="settings-mini-summary-card">
+                  <span>{lang === "ko" ? "주간 목표" : "Weekly Goal"}</span>
+                  <strong>
+                    {Number(profile.weekly_goal_sessions ?? 3)}회 / {Number(profile.weekly_goal_minutes ?? 90)}분
+                  </strong>
+                </div>
+                <div className="settings-mini-summary-card">
+                  <span>{lang === "ko" ? "다음 해금" : "Next Unlock"}</span>
+                  <strong>{hud.next_unlock?.name || (lang === "ko" ? "표시 없음" : "None")}</strong>
+                </div>
+                <div className="settings-mini-summary-card">
+                  <span>{lang === "ko" ? "빠른 이동" : "Quick Jump"}</span>
+                  <div className="settings-inline-actions">
+                    <button type="button" className="ghost-btn compact-add-btn" onClick={() => openSection("appearance")}>
+                      {lang === "ko" ? "테마" : "Theme"}
+                    </button>
+                    <button type="button" className="ghost-btn compact-add-btn" onClick={() => openSection("goals")}>
+                      {lang === "ko" ? "목표" : "Goals"}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
           </>
         )}
 
         {renderSection(
           "appearance",
-          lang === "ko" ? "테마 미리보기와 선택" : "Theme gallery and selection",
+          lang === "ko" ? "테마와 대시보드 외형을 정리합니다." : "Theme and dashboard appearance controls.",
           <>
             <div className="settings-theme-grid">
               {THEME_PRESETS.map((theme) => {
@@ -1616,6 +1796,67 @@ export function SettingsPage({ lang, settings, hud, unlockables, onSettingsChang
                 );
               })}
             </div>
+            <div className="settings-split-grid">
+              <div className="quest-setting-box">
+                <strong>{lang === "ko" ? "대시보드 스타일" : "Dashboard Style"}</strong>
+                <div className="settings-choice-grid">
+                  {DASHBOARD_VERSION_OPTIONS.map((item) => (
+                    <button
+                      key={`dashboard-version-${item.id}`}
+                      type="button"
+                      className={`settings-choice-card ${dashboardVersion === item.id ? "active" : ""}`}
+                      onClick={() =>
+                        void applyBasicPatch(
+                          { ui: { dashboard_version: item.id } as Partial<Settings["ui"]> },
+                          lang === "ko" ? `${item.title.ko} 대시보드 적용` : `Applied ${item.title.en} dashboard`
+                        )
+                      }
+                    >
+                      <strong>{item.title[lang]}</strong>
+                      <small>{item.description[lang]}</small>
+                    </button>
+                  ))}
+                </div>
+                <label className="inline">
+                  <input
+                    type="checkbox"
+                    checked={ui.dashboard_glass_cards !== false}
+                    onChange={(event) =>
+                      void applyBasicPatch(
+                        { ui: { dashboard_glass_cards: event.target.checked } as Partial<Settings["ui"]> },
+                        lang === "ko" ? "카드 질감 설정 저장 완료" : "Card texture setting saved"
+                      )
+                    }
+                  />
+                  <span>{lang === "ko" ? "카드에 유리 느낌 효과 사용" : "Use glass card effect"}</span>
+                </label>
+              </div>
+              <div className="quest-setting-box">
+                <strong>{lang === "ko" ? "대시보드 사진 위치" : "Dashboard Photo Focus"}</strong>
+                <small className="muted">
+                  {lang === "ko"
+                    ? "대시보드 대표 사진이 어디를 중심으로 보여질지 정합니다."
+                    : "Choose which area of the dashboard photo stays centered."}
+                </small>
+                <div className="settings-chip-row">
+                  {PHOTO_ANCHOR_OPTIONS.map((item) => (
+                    <button
+                      key={`photo-anchor-${item.id}`}
+                      type="button"
+                      className={`settings-chip-button ${dashboardPhotoAnchor === item.id ? "active" : ""}`}
+                      onClick={() =>
+                        void applyBasicPatch(
+                          { profile: { dashboard_photo_anchor: item.id } as Partial<Settings["profile"]> },
+                          lang === "ko" ? "사진 위치 설정 저장 완료" : "Photo focus setting saved"
+                        )
+                      }
+                    >
+                      {item.label[lang]}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
             <div className="row">
               <button
                 className="ghost-btn"
@@ -1638,92 +1879,116 @@ export function SettingsPage({ lang, settings, hud, unlockables, onSettingsChang
 
         {renderSection(
           "soundMotion",
-          lang === "ko" ? "사운드/모션" : "Sound and animation behavior",
+          lang === "ko" ? "사운드, 알림, 효과를 연습 스타일에 맞게 조정합니다." : "Tune sound, alerts, and effects for your practice style.",
           <>
-            <label className="inline">
-              <input
-                type="checkbox"
-                checked={Boolean(audio.enabled)}
-                onChange={(event) => {
-                  void applyBasicPatch(
-                    { audio: { enabled: event.target.checked } as Partial<Settings["audio"]> },
-                    lang === "ko" ? "오디오 설정 저장 완료" : "Audio setting saved"
-                  );
-                }}
-              />
-              <span>{lang === "ko" ? "사운드 사용" : "Sound enabled"}</span>
-            </label>
-            <label>
-              {lang === "ko" ? "마스터 볼륨" : "Master Volume"} ({Number(audio.master_volume ?? 0.6).toFixed(2)})
-              <input
-                type="range"
-                min={0}
-                max={1}
-                step={0.05}
-                value={Number(audio.master_volume ?? 0.6)}
-                onChange={(event) => {
-                  void applyBasicPatch({
-                    audio: { master_volume: Math.max(0, Math.min(1, Number(event.target.value))) } as Partial<Settings["audio"]>,
-                  });
-                }}
-              />
-            </label>
-            <label>
-              {lang === "ko" ? "애니메이션 강도" : "Animation Intensity"}
-              <select
-                value={ui.animation_intensity ?? "adaptive"}
-                onChange={(event) => {
-                  void applyBasicPatch(
-                    { ui: { animation_intensity: event.target.value as "adaptive" | "low" | "high" } as Partial<Settings["ui"]> },
-                    lang === "ko" ? "애니메이션 강도 변경 완료" : "Animation intensity updated"
-                  );
-                }}
-              >
-                <option value="adaptive">{lang === "ko" ? "자동" : "Adaptive"}</option>
-                <option value="low">{lang === "ko" ? "낮음" : "Low"}</option>
-                <option value="high">{lang === "ko" ? "높음" : "High"}</option>
-              </select>
-            </label>
-            <div className="song-form-grid">
-              <label>
-                {lang === "ko" ? "탭 전환 시 영상 재생" : "Playback on tab switch"}
-                <select
-                  value={ui.practice_video_tab_switch_playback ?? "continue"}
-                  onChange={(event) => {
-                    void applyBasicPatch(
-                      {
-                        ui: {
-                          practice_video_tab_switch_playback: event.target.value as "continue" | "pause" | "pip_only",
-                        } as Partial<Settings["ui"]>,
-                      },
-                      lang === "ko" ? "탭 전환 재생 정책 저장 완료" : "Tab switch playback policy saved"
-                    );
-                  }}
-                >
-                  <option value="continue">{lang === "ko" ? "계속 재생" : "Continue"}</option>
-                  <option value="pause">{lang === "ko" ? "일시정지" : "Pause"}</option>
-                  <option value="pip_only">{lang === "ko" ? "PIP 전용" : "PIP only"}</option>
-                </select>
-              </label>
-              <label>
-                {lang === "ko" ? "영상 PIP 기본 모드" : "Video PIP default mode"}
-                <select
-                  value={ui.practice_video_pip_mode ?? "mini"}
-                  onChange={(event) => {
-                    void applyBasicPatch(
-                      {
-                        ui: {
-                          practice_video_pip_mode: event.target.value as "mini" | "none",
-                        } as Partial<Settings["ui"]>,
-                      },
-                      lang === "ko" ? "PIP 기본 모드 저장 완료" : "PIP default mode saved"
-                    );
-                  }}
-                >
-                  <option value="mini">{lang === "ko" ? "미니 플레이어" : "Mini"}</option>
-                  <option value="none">{lang === "ko" ? "사용 안 함" : "Off"}</option>
-                </select>
-              </label>
+            <div className="quest-setting-box">
+              <strong>{lang === "ko" ? "연습 환경 프리셋" : "Practice Environment Presets"}</strong>
+              <div className="settings-choice-grid">
+                {SOUND_PRESETS.map((preset) => (
+                  <button
+                    key={`sound-preset-${preset.id}`}
+                    type="button"
+                    className="settings-choice-card"
+                    onClick={() => void applySoundPreset(preset.id)}
+                  >
+                    <strong>{preset.title[lang]}</strong>
+                    <small>{preset.description[lang]}</small>
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="settings-split-grid">
+              <div className="quest-setting-box">
+                <strong>{lang === "ko" ? "사운드" : "Sound"}</strong>
+                <label className="inline">
+                  <input
+                    type="checkbox"
+                    checked={Boolean(audio.enabled)}
+                    onChange={(event) => {
+                      void applyBasicPatch(
+                        { audio: { enabled: event.target.checked } as Partial<Settings["audio"]> },
+                        lang === "ko" ? "오디오 설정 저장 완료" : "Audio setting saved"
+                      );
+                    }}
+                  />
+                  <span>{lang === "ko" ? "사운드 사용" : "Sound enabled"}</span>
+                </label>
+                <label>
+                  {lang === "ko" ? "마스터 볼륨" : "Master Volume"} ({Number(audio.master_volume ?? 0.6).toFixed(2)})
+                  <input
+                    type="range"
+                    min={0}
+                    max={1}
+                    step={0.05}
+                    value={Number(audio.master_volume ?? 0.6)}
+                    onChange={(event) => {
+                      void applyBasicPatch({
+                        audio: { master_volume: Math.max(0, Math.min(1, Number(event.target.value))) } as Partial<Settings["audio"]>,
+                      });
+                    }}
+                  />
+                </label>
+                <label>
+                  {lang === "ko" ? "애니메이션 강도" : "Animation Intensity"}
+                  <select
+                    value={ui.animation_intensity ?? "adaptive"}
+                    onChange={(event) => {
+                      void applyBasicPatch(
+                        { ui: { animation_intensity: event.target.value as "adaptive" | "low" | "high" } as Partial<Settings["ui"]> },
+                        lang === "ko" ? "애니메이션 강도 변경 완료" : "Animation intensity updated"
+                      );
+                    }}
+                  >
+                    <option value="adaptive">{lang === "ko" ? "자동" : "Adaptive"}</option>
+                    <option value="low">{lang === "ko" ? "낮음" : "Low"}</option>
+                    <option value="high">{lang === "ko" ? "높음" : "High"}</option>
+                  </select>
+                </label>
+              </div>
+              <div className="quest-setting-box">
+                <strong>{lang === "ko" ? "영상 / 탭 전환" : "Video / Tab Switching"}</strong>
+                <div className="song-form-grid">
+                  <label>
+                    {lang === "ko" ? "탭 전환 시 영상 재생" : "Playback on tab switch"}
+                    <select
+                      value={ui.practice_video_tab_switch_playback ?? "continue"}
+                      onChange={(event) => {
+                        void applyBasicPatch(
+                          {
+                            ui: {
+                              practice_video_tab_switch_playback: event.target.value as "continue" | "pause" | "pip_only",
+                            } as Partial<Settings["ui"]>,
+                          },
+                          lang === "ko" ? "탭 전환 재생 정책 저장 완료" : "Tab switch playback policy saved"
+                        );
+                      }}
+                    >
+                      <option value="continue">{lang === "ko" ? "계속 재생" : "Continue"}</option>
+                      <option value="pause">{lang === "ko" ? "일시정지" : "Pause"}</option>
+                      <option value="pip_only">{lang === "ko" ? "PIP 전용" : "PIP only"}</option>
+                    </select>
+                  </label>
+                  <label>
+                    {lang === "ko" ? "영상 PIP 기본 모드" : "Video PIP default mode"}
+                    <select
+                      value={ui.practice_video_pip_mode ?? "mini"}
+                      onChange={(event) => {
+                        void applyBasicPatch(
+                          {
+                            ui: {
+                              practice_video_pip_mode: event.target.value as "mini" | "none",
+                            } as Partial<Settings["ui"]>,
+                          },
+                          lang === "ko" ? "PIP 기본 모드 저장 완료" : "PIP default mode saved"
+                        );
+                      }}
+                    >
+                      <option value="mini">{lang === "ko" ? "미니 플레이어" : "Mini"}</option>
+                      <option value="none">{lang === "ko" ? "사용 안 함" : "Off"}</option>
+                    </select>
+                  </label>
+                </div>
+              </div>
             </div>
             <div className="quest-setting-box">
               <strong>{lang === "ko" ? "알림 토글" : "Notification toggles"}</strong>
@@ -1921,85 +2186,103 @@ export function SettingsPage({ lang, settings, hud, unlockables, onSettingsChang
 
         {renderSection(
           "goals",
-          lang === "ko" ? "목표/성장" : "Weekly/monthly and XP goals",
-          <div className="song-form-grid">
-            <label>
-              {lang === "ko" ? "주간 목표 세션 수" : "Weekly Goal Sessions"}
-              <input
-                type="number"
-                min={1}
-                max={14}
-                value={Number(profile.weekly_goal_sessions ?? 3)}
-                onChange={(event) => {
-                  void applyBasicPatch({
-                    profile: {
-                      weekly_goal_sessions: Math.max(1, Number(event.target.value || 1)),
-                    } as Partial<Settings["profile"]>,
-                  });
-                }}
-              />
-            </label>
-            <label>
-              {lang === "ko" ? "주간 목표 분" : "Weekly Goal Minutes"}
-              <input
-                type="number"
-                min={0}
-                value={Number(profile.weekly_goal_minutes ?? 90)}
-                onChange={(event) => {
-                  void applyBasicPatch({
-                    profile: {
-                      weekly_goal_minutes: Math.max(0, Number(event.target.value || 0)),
-                    } as Partial<Settings["profile"]>,
-                  });
-                }}
-              />
-            </label>
-            <label>
-              {lang === "ko" ? "월간 목표 분" : "Monthly Goal Minutes"}
-              <input
-                type="number"
-                min={0}
-                value={Number(profile.monthly_goal_minutes ?? 420)}
-                onChange={(event) => {
-                  void applyBasicPatch({
-                    profile: {
-                      monthly_goal_minutes: Math.max(0, Number(event.target.value || 0)),
-                    } as Partial<Settings["profile"]>,
-                  });
-                }}
-              />
-            </label>
-            <label>
-              {lang === "ko" ? "주간 XP 목표" : "Weekly XP Goal"}
-              <input
-                type="number"
-                min={0}
-                value={Number(profile.xp_goal_weekly ?? 0)}
-                onChange={(event) => {
-                  void applyBasicPatch({
-                    profile: {
-                      xp_goal_weekly: Math.max(0, Number(event.target.value || 0)),
-                    } as Partial<Settings["profile"]>,
-                  });
-                }}
-              />
-            </label>
-            <label>
-              {lang === "ko" ? "월간 XP 목표" : "Monthly XP Goal"}
-              <input
-                type="number"
-                min={0}
-                value={Number(profile.xp_goal_monthly ?? 0)}
-                onChange={(event) => {
-                  void applyBasicPatch({
-                    profile: {
-                      xp_goal_monthly: Math.max(0, Number(event.target.value || 0)),
-                    } as Partial<Settings["profile"]>,
-                  });
-                }}
-              />
-            </label>
-          </div>
+          lang === "ko" ? "주간/월간 목표를 프리셋이나 직접 입력으로 맞춥니다." : "Choose a preset or fine-tune weekly and monthly goals.",
+          <>
+            <div className="quest-setting-box">
+              <strong>{lang === "ko" ? "추천 목표 프리셋" : "Recommended Goal Presets"}</strong>
+              <div className="settings-choice-grid">
+                {GOAL_PRESETS.map((preset) => (
+                  <button
+                    key={`goal-preset-${preset.id}`}
+                    type="button"
+                    className="settings-choice-card"
+                    onClick={() => void applyGoalPreset(preset.id)}
+                  >
+                    <strong>{preset.title[lang]}</strong>
+                    <small>{preset.summary[lang]}</small>
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="song-form-grid">
+              <label>
+                {lang === "ko" ? "주간 목표 세션 수" : "Weekly Goal Sessions"}
+                <input
+                  type="number"
+                  min={1}
+                  max={14}
+                  value={Number(profile.weekly_goal_sessions ?? 3)}
+                  onChange={(event) => {
+                    void applyBasicPatch({
+                      profile: {
+                        weekly_goal_sessions: Math.max(1, Number(event.target.value || 1)),
+                      } as Partial<Settings["profile"]>,
+                    });
+                  }}
+                />
+              </label>
+              <label>
+                {lang === "ko" ? "주간 목표 분" : "Weekly Goal Minutes"}
+                <input
+                  type="number"
+                  min={0}
+                  value={Number(profile.weekly_goal_minutes ?? 90)}
+                  onChange={(event) => {
+                    void applyBasicPatch({
+                      profile: {
+                        weekly_goal_minutes: Math.max(0, Number(event.target.value || 0)),
+                      } as Partial<Settings["profile"]>,
+                    });
+                  }}
+                />
+              </label>
+              <label>
+                {lang === "ko" ? "월간 목표 분" : "Monthly Goal Minutes"}
+                <input
+                  type="number"
+                  min={0}
+                  value={Number(profile.monthly_goal_minutes ?? 420)}
+                  onChange={(event) => {
+                    void applyBasicPatch({
+                      profile: {
+                        monthly_goal_minutes: Math.max(0, Number(event.target.value || 0)),
+                      } as Partial<Settings["profile"]>,
+                    });
+                  }}
+                />
+              </label>
+              <label>
+                {lang === "ko" ? "주간 XP 목표" : "Weekly XP Goal"}
+                <input
+                  type="number"
+                  min={0}
+                  value={Number(profile.xp_goal_weekly ?? 0)}
+                  onChange={(event) => {
+                    void applyBasicPatch({
+                      profile: {
+                        xp_goal_weekly: Math.max(0, Number(event.target.value || 0)),
+                      } as Partial<Settings["profile"]>,
+                    });
+                  }}
+                />
+              </label>
+              <label>
+                {lang === "ko" ? "월간 XP 목표" : "Monthly XP Goal"}
+                <input
+                  type="number"
+                  min={0}
+                  value={Number(profile.xp_goal_monthly ?? 0)}
+                  onChange={(event) => {
+                    void applyBasicPatch({
+                      profile: {
+                        xp_goal_monthly: Math.max(0, Number(event.target.value || 0)),
+                      } as Partial<Settings["profile"]>,
+                    });
+                  }}
+                />
+              </label>
+            </div>
+          </>
         )}
 
         {renderSection(
@@ -2106,7 +2389,7 @@ export function SettingsPage({ lang, settings, hud, unlockables, onSettingsChang
               <strong>{lang === "ko" ? "초기화" : "Reset"}</strong>
               <p className="muted">
                 {lang === "ko"
-                  ? "비밀번호 없이 진행할 수 있지만, 여러 번 확인하고 마지막 문구를 입력해야 합니다."
+                  ? "실수로 누르지 않도록 여러 번 확인한 뒤에만 초기화됩니다."
                   : "No password is required, but multiple confirmations and a final phrase are required."}
               </p>
             </div>
@@ -2124,8 +2407,8 @@ export function SettingsPage({ lang, settings, hud, unlockables, onSettingsChang
               <strong>{lang === "ko" ? "관리자 도구" : "Admin Tools"}</strong>
               <p className="muted">
                 {lang === "ko"
-                  ? "테스트, 모의 데이터, 운영용 백업/성능, 업적/퀘스트/디자인 관리 도구는 여기서만 엽니다."
-                  : "Testing, mock data, operational backup/performance, and admin editors live here only."}
+                  ? "일반 설정에서 숨긴 테스트, 모의 데이터, 운영용 세부값만 비밀번호 뒤에 둡니다."
+                  : "Testing, mock data, and operational details stay behind the password gate."}
               </p>
             </div>
             <button
@@ -2276,7 +2559,7 @@ export function SettingsPage({ lang, settings, hud, unlockables, onSettingsChang
                 <h2>{lang === "ko" ? "관리자 도구" : "Admin Tools"}</h2>
                 <small className="muted">
                   {lang === "ko"
-                    ? "공개 설정에서 숨긴 운영/테스트 항목만 여기서 조정합니다."
+                    ? "일반 사용자용 화면에서 숨긴 테스트/운영 항목만 여기서 조정합니다."
                     : "Only operational and testing controls hidden from the public settings are shown here."}
                 </small>
               </div>
@@ -2492,315 +2775,6 @@ export function SettingsPage({ lang, settings, hud, unlockables, onSettingsChang
                   ? "일반 사용자 화면에서는 자동 백업 on/off만 노출하고, 보관 개수와 간격 같은 운영값은 여기서만 조정합니다."
                   : "The public settings expose only auto backup on/off; retention and timing stay here."}
               </small>
-            </section>
-
-            <section className="settings-admin-panel">
-              <h3>{lang === "ko" ? "퀘스트 자동 생성 규칙" : "Quest Automation"}</h3>
-              <div className="song-form-grid">
-                {periodKeys.map((period) => (
-                  <div key={`admin-quest-setting-${period}`} className="quest-setting-box">
-                    <strong>
-                      {period === "short"
-                        ? lang === "ko"
-                          ? "단기"
-                          : "Short"
-                        : period === "mid"
-                          ? lang === "ko"
-                            ? "중기"
-                            : "Mid"
-                          : lang === "ko"
-                            ? "장기"
-                            : "Long"}
-                    </strong>
-                    <label>
-                      {lang === "ko" ? "기간(일)" : "Period Days"}
-                      <input
-                        type="number"
-                        min={1}
-                        value={questForm.period_days[period]}
-                        onChange={(event) =>
-                          updateQuestForm((prev) => ({
-                            ...prev,
-                            period_days: { ...prev.period_days, [period]: Number(event.target.value || 1) },
-                          }))
-                        }
-                      />
-                    </label>
-                    <label className="inline">
-                      <input
-                        type="checkbox"
-                        checked={questForm.auto_enabled_by_period[period]}
-                        onChange={(event) =>
-                          updateQuestForm((prev) => ({
-                            ...prev,
-                            auto_enabled_by_period: { ...prev.auto_enabled_by_period, [period]: event.target.checked },
-                          }))
-                        }
-                      />
-                      <span>{lang === "ko" ? "자동 생성 사용" : "Enable auto quest"}</span>
-                    </label>
-                    <label>
-                      {lang === "ko" ? "자동 목표(분)" : "Auto Target Minutes"}
-                      <input
-                        type="number"
-                        min={1}
-                        value={questForm.auto_target_minutes_by_period[period]}
-                        onChange={(event) =>
-                          updateQuestForm((prev) => ({
-                            ...prev,
-                            auto_target_minutes_by_period: {
-                              ...prev.auto_target_minutes_by_period,
-                              [period]: Number(event.target.value || 1),
-                            },
-                          }))
-                        }
-                      />
-                    </label>
-                    <label>
-                      {lang === "ko" ? "자동 중요도" : "Auto Priority"}
-                      <select
-                        value={questForm.auto_priority_by_period[period]}
-                        onChange={(event) =>
-                          updateQuestForm((prev) => ({
-                            ...prev,
-                            auto_priority_by_period: {
-                              ...prev.auto_priority_by_period,
-                              [period]: event.target.value as "low" | "normal" | "urgent",
-                            },
-                          }))
-                        }
-                      >
-                        <option value="urgent">{questPriorityLabel("urgent")}</option>
-                        <option value="normal">{questPriorityLabel("normal")}</option>
-                        <option value="low">{questPriorityLabel("low")}</option>
-                      </select>
-                    </label>
-                    <label>
-                      {lang === "ko" ? "자동 난이도" : "Auto Difficulty"}
-                      <select
-                        value={questForm.auto_difficulty_by_period[period]}
-                        onChange={(event) =>
-                          updateQuestForm((prev) => ({
-                            ...prev,
-                            auto_difficulty_by_period: {
-                              ...prev.auto_difficulty_by_period,
-                              [period]: event.target.value as "low" | "mid" | "high",
-                            },
-                          }))
-                        }
-                      >
-                        <option value="high">{questDifficultyLabel("high")}</option>
-                        <option value="mid">{questDifficultyLabel("mid")}</option>
-                        <option value="low">{questDifficultyLabel("low")}</option>
-                      </select>
-                    </label>
-                  </div>
-                ))}
-              </div>
-              <div className="row">
-                <small className="muted">{questSaving ? (lang === "ko" ? "퀘스트 설정 저장 중..." : "Saving quest settings...") : ""}</small>
-                <button className="ghost-btn" onClick={() => void saveQuestSettings(false)}>
-                  {lang === "ko" ? "지금 저장" : "Save now"}
-                </button>
-              </div>
-            </section>
-
-            <section className="settings-admin-panel">
-              <h3>{lang === "ko" ? "디자인 / 팔레트" : "Design / Palette"}</h3>
-              <div className="song-form-grid">
-                <div className="quest-setting-box">
-                  <strong>{lang === "ko" ? "퀘스트 기간 레인 색상" : "Quest period lane colors"}</strong>
-                  {periodKeys.map((period) => (
-                    <div key={`admin-period-color-${period}`} className="row">
-                      <span>
-                        {period === "short" ? (lang === "ko" ? "단기" : "Short") : period === "mid" ? (lang === "ko" ? "중기" : "Mid") : lang === "ko" ? "장기" : "Long"}
-                      </span>
-                      {renderColorInput(lang === "ko" ? "테두리" : "Border", questForm.ui_style.period_border[period], (value) =>
-                        updateQuestForm((prev) => ({
-                          ...prev,
-                          ui_style: {
-                            ...prev.ui_style,
-                            period_border: { ...prev.ui_style.period_border, [period]: value },
-                          },
-                        }))
-                      )}
-                      {renderColorInput(lang === "ko" ? "배경" : "Fill", questForm.ui_style.period_fill[period], (value) =>
-                        updateQuestForm((prev) => ({
-                          ...prev,
-                          ui_style: {
-                            ...prev.ui_style,
-                            period_fill: { ...prev.ui_style.period_fill, [period]: value },
-                          },
-                        }))
-                      )}
-                    </div>
-                  ))}
-                </div>
-
-                <div className="quest-setting-box">
-                  <strong>{lang === "ko" ? "중요도/난이도 색상" : "Priority / Difficulty colors"}</strong>
-                  {(["urgent", "normal", "low"] as const).map((key) => (
-                    <div key={`admin-priority-color-${key}`}>
-                      {renderColorInput(lang === "ko" ? `중요도 (${questPriorityLabel(key)})` : `Priority (${questPriorityLabel(key)})`, questForm.ui_style.priority_border[key], (value) =>
-                        updateQuestForm((prev) => ({
-                          ...prev,
-                          ui_style: {
-                            ...prev.ui_style,
-                            priority_border: { ...prev.ui_style.priority_border, [key]: value },
-                          },
-                        }))
-                      )}
-                    </div>
-                  ))}
-                  {(["low", "mid", "high"] as const).map((key) => (
-                    <div key={`admin-difficulty-color-${key}`}>
-                      {renderColorInput(lang === "ko" ? `난이도 (${questDifficultyLabel(key)})` : `Difficulty (${questDifficultyLabel(key)})`, questForm.ui_style.difficulty_fill[key], (value) =>
-                        updateQuestForm((prev) => ({
-                          ...prev,
-                          ui_style: {
-                            ...prev.ui_style,
-                            difficulty_fill: { ...prev.ui_style.difficulty_fill, [key]: value },
-                          },
-                        }))
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <div className="quest-setting-box">
-                <div className="row">
-                  <strong>{lang === "ko" ? "업적 카드 색상" : "Achievement card palette"}</strong>
-                  <button className="ghost-btn compact-add-btn" onClick={resetAchievementCardStyles}>
-                    {lang === "ko" ? "기본값 복원" : "Reset defaults"}
-                  </button>
-                </div>
-                <div className="settings-achievement-style-grid">
-                  {ACHIEVEMENT_STYLE_EDITOR_KEYS.map((key) => (
-                    <div key={key} className="settings-achievement-style-item">
-                      <strong>{ACHIEVEMENT_STYLE_LABELS[key][lang]}</strong>
-                      {renderColorInput(lang === "ko" ? "테두리" : "Border", achievementStyleMap[key].border, (value) =>
-                        updateAchievementCardStyle(key, "border", value)
-                      )}
-                      {renderColorInput(lang === "ko" ? "배경" : "Fill", achievementStyleMap[key].fill, (value) =>
-                        updateAchievementCardStyle(key, "fill", value)
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </section>
-
-            <section className="settings-admin-panel">
-              <h3>{lang === "ko" ? "장르 / 그룹 관리" : "Genre / Group Management"}</h3>
-              <div className="tag-help">
-                <strong>{lang === "ko" ? "추천곡/곡 라이브러리 공통 장르 카탈로그" : "Shared genre catalog for songs and recommendations"}</strong>
-                <small className="muted">
-                  {lang === "ko"
-                    ? "장르 추가/삭제, 상위유형(그룹) 이동/추가/수정, 장르명 일괄 변경이 가능합니다."
-                    : "Add/remove genres, edit parent groups, and rename genres globally."}
-                </small>
-              </div>
-
-              <div className="song-form-grid settings-genre-manage-grid">
-                <label>
-                  {lang === "ko" ? "새 그룹 이름" : "New group name"}
-                  <input
-                    value={newGenreGroupName}
-                    onChange={(event) => setNewGenreGroupName(event.target.value)}
-                    placeholder={lang === "ko" ? "예: 팝/가요" : "e.g. Pop / K-pop"}
-                  />
-                </label>
-                <div className="row">
-                  <button className="ghost-btn" onClick={() => void addGenreGroup()}>
-                    {lang === "ko" ? "그룹 추가" : "Add group"}
-                  </button>
-                  <button className="ghost-btn" onClick={() => void resetGenreCatalog()}>
-                    {lang === "ko" ? "기본값 복원" : "Reset defaults"}
-                  </button>
-                </div>
-              </div>
-
-              <div className="song-form-grid settings-genre-manage-grid">
-                <label>
-                  {lang === "ko" ? "새 장르" : "New genre"}
-                  <input
-                    value={newGenre}
-                    onChange={(event) => setNewGenre(event.target.value)}
-                    placeholder={lang === "ko" ? "예: Ballad" : "e.g. Ballad"}
-                  />
-                </label>
-                <label>
-                  {lang === "ko" ? "추가할 그룹" : "Target group"}
-                  <select value={newGenreTargetGroup} onChange={(event) => setNewGenreTargetGroup(event.target.value)}>
-                    {genreGroupNames.map((name) => (
-                      <option key={`admin-genre-target-${name}`} value={name}>
-                        {name}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <div className="row">
-                  <button className="ghost-btn" onClick={() => void addGenreToGroup()}>
-                    {lang === "ko" ? "장르 추가" : "Add genre"}
-                  </button>
-                </div>
-              </div>
-
-              <div className="settings-genre-group-admin-list">
-                {currentGenreGroups.map((group) => (
-                  <section key={`admin-genre-group-${group.name}`} className="settings-genre-group-admin">
-                    <div className="settings-genre-group-admin-head">
-                      <div>
-                        <strong>{group.name}</strong>
-                        <small className="muted">
-                          {lang === "ko" ? `${group.values.length}개 장르` : `${group.values.length} genres`}
-                        </small>
-                      </div>
-                      <div className="row">
-                        <button className="ghost-btn compact-add-btn" onClick={() => void renameGenreGroup(group.name)}>
-                          {lang === "ko" ? "이름 변경" : "Rename"}
-                        </button>
-                        <button
-                          className="ghost-btn compact-add-btn danger-border"
-                          disabled={currentGenreGroups.length <= 1}
-                          onClick={() => void deleteGenreGroup(group.name)}
-                        >
-                          {lang === "ko" ? "그룹 삭제" : "Delete group"}
-                        </button>
-                      </div>
-                    </div>
-
-                    {group.values.length ? (
-                      <div className="settings-genre-chip-grid settings-genre-chip-grid-admin">
-                        {group.values.map((genre) => (
-                          <div key={`${group.name}-${genre}`} className="settings-genre-chip settings-genre-chip-edit">
-                            <span>{genre}</span>
-                            <select
-                              value={genreToGroupMap.get(genre.toLowerCase()) ?? group.name}
-                              onChange={(event) => void moveGenreToGroup(genre, event.target.value)}
-                            >
-                              {genreGroupNames.map((name) => (
-                                <option key={`admin-genre-move-${genre}-${name}`} value={name}>
-                                  {name}
-                                </option>
-                              ))}
-                            </select>
-                            <button className="ghost-btn compact-add-btn" onClick={() => void renameGenreEverywhere(genre)}>
-                              {lang === "ko" ? "이름변경" : "Rename"}
-                            </button>
-                            <button className="ghost-btn compact-add-btn danger-border" onClick={() => void removeGenreFromPool(genre)}>
-                              {lang === "ko" ? "제거" : "Remove"}
-                            </button>
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <small className="muted">{lang === "ko" ? "아직 장르가 없습니다." : "No genres in this group yet."}</small>
-                    )}
-                  </section>
-                ))}
-              </div>
             </section>
 
             <section className="settings-admin-panel">

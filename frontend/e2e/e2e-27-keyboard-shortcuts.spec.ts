@@ -15,8 +15,8 @@ test("E2E-27 keyboard shortcuts remap persists and PiP shortcuts work", async ({
   await openApp(page, 1366, 820);
 
   await gotoSettings(page);
+  await page.locator("[data-testid='settings-toc-keyboard']").click();
   const keyboardSection = page.locator("[data-testid='settings-section-keyboard']");
-  await keyboardSection.scrollIntoViewIfNeeded();
   await expect(keyboardSection).toBeVisible();
 
   await page.locator("[data-testid='keyboard-shortcut-change-metronome_toggle']").click();
