@@ -61,7 +61,8 @@ type SectionId =
   | "soundMotion"
   | "keyboard"
   | "goals"
-  | "dataBackup";
+  | "dataBackup"
+  | "misc";
 
 type QuestSettingsForm = {
   period_days: { short: number; mid: number; long: number };
@@ -102,6 +103,7 @@ const SECTION_ORDER: SectionId[] = [
   "keyboard",
   "goals",
   "dataBackup",
+  "misc",
 ];
 
 const ADMIN_PIN_HASH = "40c0bb054bf07d5c614c8aa3c827ce5da20eaf4c04a338f344b9bf91505c6cce";
@@ -495,6 +497,7 @@ function makeSectionRefMap(): Record<SectionId, HTMLElement | null> {
     keyboard: null,
     goals: null,
     dataBackup: null,
+    misc: null,
   };
 }
 
@@ -660,10 +663,6 @@ export function SettingsPage({ lang, settings, hud, unlockables, onSettingsChang
     }
     return out;
   }, [settings.ui?.achievement_card_styles]);
-  const activeThemePreset = useMemo(
-    () => THEME_PRESETS.find((item) => item.id === settings.ui.default_theme) ?? THEME_PRESETS[0],
-    [settings.ui.default_theme]
-  );
   const dashboardPhotoAnchor =
     (profile.dashboard_photo_anchor as "center" | "top" | "bottom" | "left" | "right" | undefined) ?? "center";
 
@@ -678,7 +677,7 @@ export function SettingsPage({ lang, settings, hud, unlockables, onSettingsChang
       {
         id: "appearance" as const,
         title: lang === "ko" ? "테마" : "Theme",
-        keywords: ["theme", "appearance", "preview", "dashboard", "glass", "photo"],
+        keywords: ["theme", "appearance", "preview"],
       },
       {
         id: "soundMotion" as const,
@@ -700,6 +699,11 @@ export function SettingsPage({ lang, settings, hud, unlockables, onSettingsChang
         title: lang === "ko" ? "데이터/백업" : "Data / Backup",
         keywords: ["backup", "restore", "export", "snapshot", "data"],
       },
+      {
+        id: "misc" as const,
+        title: lang === "ko" ? "기타 설정" : "Misc Settings",
+        keywords: ["misc", "dashboard", "glass", "photo", "share", "reset", "admin"],
+      },
     ],
     [lang]
   );
@@ -719,11 +723,6 @@ export function SettingsPage({ lang, settings, hud, unlockables, onSettingsChang
 
   const filteredCount = useMemo(() => sections.filter((item) => sectionMatch[item.id]).length, [sections, sectionMatch]);
   const visibleSections = useMemo(() => sections.filter((item) => sectionMatch[item.id]), [sections, sectionMatch]);
-  const activeSectionMeta = useMemo(
-    () => sections.find((item) => item.id === activeSection) ?? sections[0],
-    [activeSection, sections]
-  );
-
   const getErrorMessage = (error: unknown, fallback: string) => (error instanceof Error ? error.message : fallback);
 
   const applyBasicPatch = async (patch: Record<string, unknown>, doneMessage?: string) => {
@@ -1619,78 +1618,28 @@ export function SettingsPage({ lang, settings, hud, unlockables, onSettingsChang
             <div>
               <h2>{lang === "ko" ? "설정" : "Settings"}</h2>
               <small className="muted">
-                {lang === "ko" ? "탭을 열듯 눌러서 바꾸고, 자주 쓰는 항목부터 먼저 보이게 정리했습니다." : "Open each group like a tab and keep the common controls first."}
+                {lang === "ko" ? "왼쪽 탭에서 항목을 고르면 바로 해당 설정이 열립니다." : "Choose a tab on the left to open that settings group."}
               </small>
             </div>
             <button type="button" className="ghost-btn compact-add-btn settings-mobile-toc-btn" onClick={() => setTocOpen((prev) => !prev)}>
               {tocOpen ? (lang === "ko" ? "탭 닫기" : "Hide Tabs") : lang === "ko" ? "탭 열기" : "Show Tabs"}
             </button>
           </div>
-          <div className="settings-tab-strip" role="tablist" aria-label={lang === "ko" ? "설정 탭" : "Settings tabs"}>
-            {visibleSections.map((item) => (
-              <button
-                key={`settings-strip-${item.id}`}
-                type="button"
-                className={`settings-tab-pill ${activeSection === item.id ? "active" : ""}`}
-                onClick={() => openSection(item.id)}
-              >
-                {item.title}
-              </button>
-            ))}
-          </div>
           <div className="settings-tab-status">
             <div>
-              <strong>{activeSectionMeta.title}</strong>
+              <strong>{sectionsTitleMap[activeSection]}</strong>
               <small className="muted">
                 {lang === "ko"
                   ? query
                     ? `검색어 "${searchQuery.trim()}" 기준으로 맞는 탭만 표시 중입니다.`
-                    : "왼쪽 탭이나 위 탭을 누르면 바로 해당 설정이 열립니다."
+                    : "사이드 탭 하나만 남기고, 관련 설정을 묶어서 정리했습니다."
                   : query
                     ? `Showing tabs that match "${searchQuery.trim()}".`
-                    : "Click a tab on the left or above to open that settings group."}
+                    : "Use the sidebar tabs to open each settings group."}
               </small>
             </div>
             <small className="muted">{lang === "ko" ? `${filteredCount}개 탭` : `${filteredCount} tabs`}</small>
           </div>
-          {!query ? (
-            <div className="settings-home-grid">
-              <article
-                className={`settings-home-card ${activeSection === "basic" ? "active" : ""}`}
-                data-testid="settings-home-profile-card"
-              >
-                <div className="settings-home-card-copy">
-                  <span className="settings-home-label">{lang === "ko" ? "프로필 빠른 설정" : "Profile Quick Settings"}</span>
-                  <strong>{profile.nickname || "Bassist"}</strong>
-                  <small className="muted">
-                    {lang === "ko"
-                      ? `현재 Lv.${hud.level} · 주간 목표 ${Number(profile.weekly_goal_sessions ?? 3)}회`
-                      : `Lv.${hud.level} · Weekly goal ${Number(profile.weekly_goal_sessions ?? 3)} sessions`}
-                  </small>
-                </div>
-                <button type="button" className="ghost-btn compact-add-btn" onClick={() => openSection("basic")}>
-                  {lang === "ko" ? "프로필 열기" : "Open Profile"}
-                </button>
-              </article>
-              <article
-                className={`settings-home-card ${activeSection === "appearance" ? "active" : ""}`}
-                data-testid="settings-home-theme-card"
-              >
-                <div className="settings-home-card-copy">
-                  <span className="settings-home-label">{lang === "ko" ? "테마 빠른 설정" : "Theme Quick Settings"}</span>
-                  <strong>{activeThemePreset.name}</strong>
-                  <small className="muted">
-                    {lang === "ko"
-                      ? `${dashboardVersion === "focus" ? "포커스" : "클래식"} 대시보드 · 사진 ${PHOTO_ANCHOR_OPTIONS.find((item) => item.id === dashboardPhotoAnchor)?.label.ko ?? "가운데"}`
-                      : `${dashboardVersion === "focus" ? "Focus" : "Classic"} dashboard · photo ${PHOTO_ANCHOR_OPTIONS.find((item) => item.id === dashboardPhotoAnchor)?.label.en ?? "Center"}`}
-                  </small>
-                </div>
-                <button type="button" className="ghost-btn compact-add-btn" onClick={() => openSection("appearance")}>
-                  {lang === "ko" ? "테마 열기" : "Open Theme"}
-                </button>
-              </article>
-            </div>
-          ) : null}
         </section>
 
         {visibleSections.length === 0 ? (
@@ -1742,15 +1691,8 @@ export function SettingsPage({ lang, settings, hud, unlockables, onSettingsChang
                   <strong>{hud.next_unlock?.name || (lang === "ko" ? "표시 없음" : "None")}</strong>
                 </div>
                 <div className="settings-mini-summary-card">
-                  <span>{lang === "ko" ? "빠른 이동" : "Quick Jump"}</span>
-                  <div className="settings-inline-actions">
-                    <button type="button" className="ghost-btn compact-add-btn" onClick={() => openSection("appearance")}>
-                      {lang === "ko" ? "테마" : "Theme"}
-                    </button>
-                    <button type="button" className="ghost-btn compact-add-btn" onClick={() => openSection("goals")}>
-                      {lang === "ko" ? "목표" : "Goals"}
-                    </button>
-                  </div>
+                  <span>{lang === "ko" ? "표시 이름 미리보기" : "Display Name Preview"}</span>
+                  <strong>{nicknameDraft.trim() || "Bassist"}</strong>
                 </div>
               </div>
             </div>
@@ -1759,7 +1701,7 @@ export function SettingsPage({ lang, settings, hud, unlockables, onSettingsChang
 
         {renderSection(
           "appearance",
-          lang === "ko" ? "테마와 대시보드 외형을 정리합니다." : "Theme and dashboard appearance controls.",
+          lang === "ko" ? "앱 테마만 빠르게 바꿉니다." : "Switch the app theme.",
           <>
             <div className="settings-theme-grid">
               {THEME_PRESETS.map((theme) => {
@@ -1795,84 +1737,6 @@ export function SettingsPage({ lang, settings, hud, unlockables, onSettingsChang
                   </button>
                 );
               })}
-            </div>
-            <div className="settings-split-grid">
-              <div className="quest-setting-box">
-                <strong>{lang === "ko" ? "대시보드 스타일" : "Dashboard Style"}</strong>
-                <div className="settings-choice-grid">
-                  {DASHBOARD_VERSION_OPTIONS.map((item) => (
-                    <button
-                      key={`dashboard-version-${item.id}`}
-                      type="button"
-                      className={`settings-choice-card ${dashboardVersion === item.id ? "active" : ""}`}
-                      onClick={() =>
-                        void applyBasicPatch(
-                          { ui: { dashboard_version: item.id } as Partial<Settings["ui"]> },
-                          lang === "ko" ? `${item.title.ko} 대시보드 적용` : `Applied ${item.title.en} dashboard`
-                        )
-                      }
-                    >
-                      <strong>{item.title[lang]}</strong>
-                      <small>{item.description[lang]}</small>
-                    </button>
-                  ))}
-                </div>
-                <label className="inline">
-                  <input
-                    type="checkbox"
-                    checked={ui.dashboard_glass_cards !== false}
-                    onChange={(event) =>
-                      void applyBasicPatch(
-                        { ui: { dashboard_glass_cards: event.target.checked } as Partial<Settings["ui"]> },
-                        lang === "ko" ? "카드 질감 설정 저장 완료" : "Card texture setting saved"
-                      )
-                    }
-                  />
-                  <span>{lang === "ko" ? "카드에 유리 느낌 효과 사용" : "Use glass card effect"}</span>
-                </label>
-              </div>
-              <div className="quest-setting-box">
-                <strong>{lang === "ko" ? "대시보드 사진 위치" : "Dashboard Photo Focus"}</strong>
-                <small className="muted">
-                  {lang === "ko"
-                    ? "대시보드 대표 사진이 어디를 중심으로 보여질지 정합니다."
-                    : "Choose which area of the dashboard photo stays centered."}
-                </small>
-                <div className="settings-chip-row">
-                  {PHOTO_ANCHOR_OPTIONS.map((item) => (
-                    <button
-                      key={`photo-anchor-${item.id}`}
-                      type="button"
-                      className={`settings-chip-button ${dashboardPhotoAnchor === item.id ? "active" : ""}`}
-                      onClick={() =>
-                        void applyBasicPatch(
-                          { profile: { dashboard_photo_anchor: item.id } as Partial<Settings["profile"]> },
-                          lang === "ko" ? "사진 위치 설정 저장 완료" : "Photo focus setting saved"
-                        )
-                      }
-                    >
-                      {item.label[lang]}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </div>
-            <div className="row">
-              <button
-                className="ghost-btn"
-                disabled={!canShareCard}
-                onClick={() => {
-                  exportShareCard({
-                    nickname: settings.profile.nickname,
-                    level: hud.level,
-                    rank: hud.rank,
-                    totalXp: hud.total_xp,
-                  });
-                  setMessage(lang === "ko" ? "공유 카드 이미지를 저장했습니다." : "Share card image saved.");
-                }}
-              >
-                {lang === "ko" ? "공유 카드 생성" : "Generate Share Card"} {canShareCard ? "" : lang === "ko" ? "(잠김)" : "(Locked)"}
-              </button>
             </div>
           </>
         )}
@@ -2383,44 +2247,198 @@ export function SettingsPage({ lang, settings, hud, unlockables, onSettingsChang
           </>
         )}
 
-        <section className="settings-action-grid">
-          <article className="card settings-action-card">
-            <div className="settings-action-copy">
-              <strong>{lang === "ko" ? "초기화" : "Reset"}</strong>
-              <p className="muted">
-                {lang === "ko"
-                  ? "실수로 누르지 않도록 여러 번 확인한 뒤에만 초기화됩니다."
-                  : "No password is required, but multiple confirmations and a final phrase are required."}
-              </p>
+        {renderSection(
+          "misc",
+          lang === "ko" ? "대시보드 자잘한 옵션과 관리 메뉴를 한곳에서 다룹니다." : "Manage dashboard extras and utility actions in one place.",
+          <>
+            <div className="settings-split-grid">
+              <div className="quest-setting-box">
+                <strong>{lang === "ko" ? "대시보드 스타일" : "Dashboard Style"}</strong>
+                <div className="settings-choice-grid">
+                  {DASHBOARD_VERSION_OPTIONS.map((item) => (
+                    <button
+                      key={`dashboard-version-${item.id}`}
+                      type="button"
+                      className={`settings-choice-card ${dashboardVersion === item.id ? "active" : ""}`}
+                      onClick={() =>
+                        void applyBasicPatch(
+                          { ui: { dashboard_version: item.id } as Partial<Settings["ui"]> },
+                          lang === "ko" ? `${item.title.ko} 대시보드 적용` : `Applied ${item.title.en} dashboard`
+                        )
+                      }
+                    >
+                      <strong>{item.title[lang]}</strong>
+                      <small>{item.description[lang]}</small>
+                    </button>
+                  ))}
+                </div>
+                <label className="inline">
+                  <input
+                    type="checkbox"
+                    checked={ui.dashboard_glass_cards !== false}
+                    onChange={(event) =>
+                      void applyBasicPatch(
+                        { ui: { dashboard_glass_cards: event.target.checked } as Partial<Settings["ui"]> },
+                        lang === "ko" ? "카드 질감 설정 저장 완료" : "Card texture setting saved"
+                      )
+                    }
+                  />
+                  <span>{lang === "ko" ? "카드에 유리 느낌 효과 사용" : "Use glass card effect"}</span>
+                </label>
+              </div>
+              <div className="quest-setting-box">
+                <strong>{lang === "ko" ? "대시보드 사진 위치" : "Dashboard Photo Focus"}</strong>
+                <small className="muted">
+                  {lang === "ko" ? "대표 이미지가 어느 쪽을 중심으로 보일지 정합니다." : "Choose which area of the dashboard photo stays centered."}
+                </small>
+                <div className="settings-chip-row">
+                  {PHOTO_ANCHOR_OPTIONS.map((item) => (
+                    <button
+                      key={`photo-anchor-${item.id}`}
+                      type="button"
+                      className={`settings-chip-button ${dashboardPhotoAnchor === item.id ? "active" : ""}`}
+                      onClick={() =>
+                        void applyBasicPatch(
+                          { profile: { dashboard_photo_anchor: item.id } as Partial<Settings["profile"]> },
+                          lang === "ko" ? "사진 위치 설정 저장 완료" : "Photo focus setting saved"
+                        )
+                      }
+                    >
+                      {item.label[lang]}
+                    </button>
+                  ))}
+                </div>
+              </div>
             </div>
-            <button
-              type="button"
-              className="ghost-btn danger-border"
-              data-testid="reset-tools-open-btn"
-              onClick={() => setResetOverlayOpen(true)}
-            >
-              {lang === "ko" ? "초기화 열기" : "Open Reset"}
-            </button>
-          </article>
-          <article className="card settings-action-card">
-            <div className="settings-action-copy">
-              <strong>{lang === "ko" ? "관리자 도구" : "Admin Tools"}</strong>
-              <p className="muted">
-                {lang === "ko"
-                  ? "일반 설정에서 숨긴 테스트, 모의 데이터, 운영용 세부값만 비밀번호 뒤에 둡니다."
-                  : "Testing, mock data, and operational details stay behind the password gate."}
-              </p>
+            <div className="settings-split-grid">
+              <div className="quest-setting-box">
+                <strong>{lang === "ko" ? "대시보드 위젯 보이기" : "Dashboard Widgets"}</strong>
+                <div className="song-form-grid">
+                  {DASHBOARD_WIDGET_KEYS.map((key) => {
+                    const locked = key === "hud" || key === "timer";
+                    return (
+                      <label key={`misc-widget-${key}`} className="inline">
+                        <input
+                          type="checkbox"
+                          checked={dashboardLayoutDraft[key]?.visible !== false}
+                          disabled={locked}
+                          onChange={(event) => updateDashboardLayoutDraft(key, { visible: event.target.checked })}
+                        />
+                        <span>
+                          {dashboardWidgetLabel(key, lang)}
+                          {locked ? (lang === "ko" ? " (항상 표시)" : " (always on)") : ""}
+                        </span>
+                      </label>
+                    );
+                  })}
+                </div>
+                <div className="settings-inline-actions">
+                  <button className="ghost-btn compact-add-btn" type="button" onClick={() => void saveDashboardLayout()}>
+                    {lang === "ko" ? "위젯 배치 저장" : "Save Widget Layout"}
+                  </button>
+                  <button className="ghost-btn compact-add-btn" type="button" onClick={resetDashboardLayoutDraft}>
+                    {lang === "ko" ? "기본 배치로 되돌리기" : "Reset Layout"}
+                  </button>
+                </div>
+                {layoutDirty ? (
+                  <small className="muted">{lang === "ko" ? "위젯 표시 변경 사항이 자동 저장 대기 중입니다." : "Widget changes are waiting to autosave."}</small>
+                ) : null}
+                <button
+                  className="ghost-btn"
+                  disabled={!canShareCard}
+                  onClick={() => {
+                    exportShareCard({
+                      nickname: settings.profile.nickname,
+                      level: hud.level,
+                      rank: hud.rank,
+                      totalXp: hud.total_xp,
+                    });
+                    setMessage(lang === "ko" ? "공유 카드 이미지를 저장했습니다." : "Share card image saved.");
+                  }}
+                >
+                  {lang === "ko" ? "공유 카드 생성" : "Generate Share Card"} {canShareCard ? "" : lang === "ko" ? "(잠김)" : "(Locked)"}
+                </button>
+              </div>
+              <div className="quest-setting-box">
+                <strong>{lang === "ko" ? "작은 편의 설정" : "Convenience"}</strong>
+                <label className="inline">
+                  <input
+                    type="checkbox"
+                    checked={ui.notify_level_up !== false}
+                    onChange={(event) =>
+                      void applyBasicPatch({
+                        ui: { notify_level_up: event.target.checked } as Partial<Settings["ui"]>,
+                      })
+                    }
+                  />
+                  <span>{lang === "ko" ? "레벨업 알림 유지" : "Keep level-up notification"}</span>
+                </label>
+                <label className="inline">
+                  <input
+                    type="checkbox"
+                    checked={ui.notify_achievement_unlock !== false}
+                    onChange={(event) =>
+                      void applyBasicPatch({
+                        ui: { notify_achievement_unlock: event.target.checked } as Partial<Settings["ui"]>,
+                      })
+                    }
+                  />
+                  <span>{lang === "ko" ? "업적 알림 유지" : "Keep achievement notifications"}</span>
+                </label>
+                <label>
+                  {lang === "ko" ? "세션 타이머 PiP 위치" : "Session Timer PiP Corner"}
+                  <select
+                    value={ui.session_timer_pip_corner ?? "top-right"}
+                    onChange={(event) =>
+                      void applyBasicPatch({
+                        ui: {
+                          session_timer_pip_corner: event.target.value as
+                            | "top-right"
+                            | "top-left"
+                            | "bottom-right"
+                            | "bottom-left",
+                        } as Partial<Settings["ui"]>,
+                      })
+                    }
+                  >
+                    <option value="top-right">{lang === "ko" ? "오른쪽 위" : "Top Right"}</option>
+                    <option value="top-left">{lang === "ko" ? "왼쪽 위" : "Top Left"}</option>
+                    <option value="bottom-right">{lang === "ko" ? "오른쪽 아래" : "Bottom Right"}</option>
+                    <option value="bottom-left">{lang === "ko" ? "왼쪽 아래" : "Bottom Left"}</option>
+                  </select>
+                </label>
+              </div>
             </div>
-            <button
-              type="button"
-              className="ghost-btn"
-              data-testid="admin-tools-open-btn"
-              onClick={openAdminAuth}
-            >
-              {lang === "ko" ? "관리자 도구 열기" : "Open Admin Tools"}
-            </button>
-          </article>
-        </section>
+            <div className="settings-action-grid">
+              <article className="card settings-action-card">
+                <div className="settings-action-copy">
+                  <strong>{lang === "ko" ? "초기화" : "Reset"}</strong>
+                </div>
+                <button
+                  type="button"
+                  className="ghost-btn danger-border"
+                  data-testid="reset-tools-open-btn"
+                  onClick={() => setResetOverlayOpen(true)}
+                >
+                  {lang === "ko" ? "초기화 열기" : "Open Reset"}
+                </button>
+              </article>
+              <article className="card settings-action-card">
+                <div className="settings-action-copy">
+                  <strong>{lang === "ko" ? "관리자 도구" : "Admin Tools"}</strong>
+                </div>
+                <button
+                  type="button"
+                  className="ghost-btn"
+                  data-testid="admin-tools-open-btn"
+                  onClick={openAdminAuth}
+                >
+                  {lang === "ko" ? "관리자 도구 열기" : "Open Admin Tools"}
+                </button>
+              </article>
+            </div>
+          </>
+        )}
       </div>
 
       {resetOverlayOpen ? (

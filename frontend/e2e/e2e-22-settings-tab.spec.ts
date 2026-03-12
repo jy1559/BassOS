@@ -24,8 +24,6 @@ test("E2E-22 settings search + toc navigation", async ({ page, request }) => {
 
   const search = page.locator("[data-testid='settings-search-input']");
   await expect(search).toBeVisible();
-  await expect(page.locator("[data-testid='settings-home-profile-card']")).toBeVisible();
-  await expect(page.locator("[data-testid='settings-home-theme-card']")).toBeVisible();
   await expect(page.locator("[data-testid='settings-section-basic']")).toBeVisible();
   await search.fill("backup");
 
@@ -36,10 +34,10 @@ test("E2E-22 settings search + toc navigation", async ({ page, request }) => {
   await expect(page.locator("[data-testid='settings-section-basic']")).toHaveCount(0);
   await expect(page.locator("[data-testid='settings-toc-developer']")).toHaveCount(0);
   await expect(page.locator("[data-testid='settings-toc-mock']")).toHaveCount(0);
-  await expect(page.locator("[data-testid='settings-toc-misc']")).toHaveCount(0);
+  await expect(page.locator("[data-testid='settings-toc-misc']")).toBeVisible();
   await expect(page.locator("option[value='en']")).toHaveCount(0);
-  await expect(page.locator("[data-testid='reset-tools-open-btn']")).toBeVisible();
-  await expect(page.locator("[data-testid='admin-tools-open-btn']")).toBeVisible();
+  await expect(page.locator("[data-testid='reset-tools-open-btn']")).toHaveCount(0);
+  await expect(page.locator("[data-testid='admin-tools-open-btn']")).toHaveCount(0);
 });
 
 test("E2E-22 settings locked theme should be preview-only", async ({ page, request }) => {
@@ -61,6 +59,7 @@ test("E2E-22 settings reset flow requires multi-step confirmation", async ({ pag
   await resetRuntime(request);
   await openApp(page);
   await gotoSettings(page);
+  await page.locator("[data-testid='settings-toc-misc']").click();
 
   const resetOpen = page.locator("[data-testid='reset-tools-open-btn']");
   await expect(resetOpen).toBeVisible();
@@ -91,6 +90,7 @@ test("E2E-22 settings admin auth and backup restore flow", async ({ page, reques
 
   await openApp(page);
   await gotoSettings(page);
+  await page.locator("[data-testid='settings-toc-misc']").click();
 
   const overlayOpen = page.locator("[data-testid='admin-tools-open-btn']");
   await expect(overlayOpen).toBeVisible();

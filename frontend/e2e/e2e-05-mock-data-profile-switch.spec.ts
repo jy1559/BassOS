@@ -2,6 +2,7 @@ import { expect, test, type Page } from "@playwright/test";
 import { gotoSettings, openApp, resetRuntime } from "./helpers";
 
 async function unlockAdminTools(page: Page): Promise<void> {
+  await page.locator("[data-testid='settings-toc-misc']").click();
   await page.locator("[data-testid='admin-tools-open-btn']").click();
   await expect(page.locator("[data-testid='admin-auth-modal']")).toBeVisible();
   await page.locator("[data-testid='admin-auth-input']").fill("q1w2e3r4!");
