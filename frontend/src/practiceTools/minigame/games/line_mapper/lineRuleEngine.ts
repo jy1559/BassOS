@@ -2,6 +2,7 @@
 import { cellToMidi, cellToPc, midiToName, pcToName, sameCell } from "../common/music";
 import type { SeededRng } from "../common/seed";
 import { MAX_FRET, cellsInRange, manhattanL1 } from "../fretboard/fretboardMath";
+import { formatLineMapperRuleName } from "./ruleDisplay";
 
 export type LineMapperStage = "POSITION" | "FIX" | "COMPLETE";
 export type RuleType = "CHORD" | "SCALE";
@@ -13,6 +14,7 @@ type LineMotion = "UP" | "DOWN" | "ARC" | "APPROACH";
 export type RuleDef = {
   key: string;
   label: string;
+  nameEn?: string;
   ruleType: RuleType;
   intervals: number[];
   degreeLabels: string[];
@@ -136,6 +138,7 @@ export type LineMapperEvaluation = {
 
 type RawRuleInput = {
   name_ko?: string;
+  name_en?: string;
   intervals?: number[];
   degree_labels?: string[];
   stable_degrees?: string[];
@@ -255,6 +258,7 @@ function buildRuleDef(key: string, item: RawRuleInput | undefined, ruleType: Rul
   return {
     key,
     label: item?.name_ko || fallbackLabel,
+    nameEn: item?.name_en,
     ruleType,
     intervals,
     degreeLabels,
@@ -265,6 +269,10 @@ function buildRuleDef(key: string, item: RawRuleInput | undefined, ruleType: Rul
     mood: item?.mood_ko,
     usage: item?.usage_ko,
   };
+}
+
+function ruleDisplayName(context: Pick<PocketContext, "rootName" | "rule">): string {
+  return formatLineMapperRuleName(context.rootName, context.rule);
 }
 
 function pickExistingRules(keys: string[], source: Record<string, RawRuleInput>, ruleType: RuleType, fallbackLabel: string): RuleDef[] {
@@ -851,7 +859,7 @@ function lineSignature(cells: Cell[]): string {
 function buildExplanation(context: PocketContext, targetDegree: string, targetCell: Cell, reason: string, next: string): ExplanationBlock {
   const targetNote = noteName(targetCell);
   return {
-    pocket: `${context.rootName} ${context.rule.label} / ${context.pocketRange.label}`,
+    pocket: `${ruleDisplayName(context)} / ${context.pocketRange.label}`,
     target: `${targetDegree} (${targetNote})`,
     reason,
     next,
@@ -1215,8 +1223,8 @@ function buildFixQuestion(rng: SeededRng, context: PocketContext, difficulty: st
     targetCell,
     prompt: "찍힌 음들 중 규칙 밖 음이 섞인 보기 하나를 고르세요.",
     explanation: {
-      pocket: `${context.rootName} ${context.rule.label}`,
-      target: `${context.rule.label} 안에 없는 음 1개`,
+      pocket: ruleDisplayName(context),
+      target: `${ruleDisplayName(context)} 안에 없는 음 1개`,
       reason: "한 보기에는 이 코드/스케일에 없는 음이 1개 섞여 있습니다.",
       next: "루트보다 음 집합 자체가 규칙 안에 들어오는지 먼저 보세요.",
     },
@@ -1278,7 +1286,7 @@ function buildCompleteQuestion(rng: SeededRng, context: PocketContext, difficult
     direction: chosenDirection,
     prompt: `시작음과 끝음 사이를 ${chosenDirection === "UP" ? "올라가며" : "내려가며"} 순서대로 누르세요.`,
     explanation: {
-      pocket: `${context.rootName} ${context.rule.label}`,
+      pocket: ruleDisplayName(context),
       target: `${lineCells[0] ? noteName(lineCells[0]) : "-"} -> ${noteName(targetCell)} ${chosenDirection === "UP" ? "상행" : "하행"}`,
       reason: "중간 음들을 규칙 안에서 순서대로 눌러야 라인이 매끈하게 이어집니다.",
       next: "시작음과 끝음 사이에 들어가는 음을 한 칸씩 차례대로 보세요.",
@@ -1342,8 +1350,8 @@ function buildFixQuestionV2(rng: SeededRng, context: PocketContext, difficulty: 
     targetCell,
     prompt: "스케일/코드에 맞지 않는 보기 하나를 고르세요.",
     explanation: {
-      pocket: `${context.rootName} ${context.rule.label}`,
-      target: `${context.rule.label}에 없는 음 1개`,
+      pocket: ruleDisplayName(context),
+      target: `${ruleDisplayName(context)}에 없는 음 1개`,
       reason: "한 보기에는 이 코드/스케일에 없는 음이 1개 섞여 있습니다.",
       next: "루트보다 음 묶음 전체가 규칙 안인지 먼저 보세요.",
     },
@@ -1431,8 +1439,8 @@ function buildFallbackFixQuestion(rng: SeededRng, context: PocketContext, diffic
     targetCell: validSets[0][0],
     prompt: "스케일/코드에 맞지 않는 보기 하나를 고르세요.",
     explanation: {
-      pocket: `${context.rootName} ${context.rule.label}`,
-      target: `${context.rule.label}에 없는 음 1개`,
+      pocket: ruleDisplayName(context),
+      target: `${ruleDisplayName(context)}에 없는 음 1개`,
       reason: "한 보기에는 이 코드/스케일에 없는 음이 1개 섞여 있습니다.",
       next: "루트를 먼저 보고 나머지 음이 같은 묶음 안에 있는지 확인하세요.",
     },
@@ -1493,7 +1501,7 @@ function buildCompleteQuestionV2(rng: SeededRng, context: PocketContext, difficu
     direction: picked.direction,
     prompt: `시작음에서 끝음까지 ${picked.direction === "UP" ? "상행" : "하행"}으로 빈칸을 순서대로 채우세요.`,
     explanation: {
-      pocket: `${context.rootName} ${context.rule.label}`,
+      pocket: ruleDisplayName(context),
       target: `${noteName(startCell)}(${startDegree}) -> ${noteName(targetCell)}(${targetDegree})`,
       reason: `중간 음은 ${picked.direction === "UP" ? "낮은 음에서 높은 음으로" : "높은 음에서 낮은 음으로"} 한 칸씩 이어집니다.`,
       next: "시작음과 끝음을 먼저 보고 사이 음을 순서대로 채우세요.",
@@ -1694,7 +1702,5 @@ export function questionPocketLabel(question: LineMapperQuestion): string {
 }
 
 export { pickWeightedStage };
-
-
 
 

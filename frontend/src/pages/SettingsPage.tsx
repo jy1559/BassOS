@@ -60,15 +60,8 @@ type SectionId =
   | "appearance"
   | "soundMotion"
   | "keyboard"
-  | "dashboard"
   | "goals"
-  | "quests"
-  | "design"
-  | "library"
-  | "dataBackup"
-  | "mock"
-  | "misc"
-  | "developer";
+  | "dataBackup";
 
 type QuestSettingsForm = {
   period_days: { short: number; mid: number; long: number };
@@ -107,16 +100,13 @@ const SECTION_ORDER: SectionId[] = [
   "appearance",
   "soundMotion",
   "keyboard",
-  "dashboard",
   "goals",
-  "quests",
-  "design",
-  "library",
   "dataBackup",
-  "mock",
-  "misc",
-  "developer",
 ];
+
+const ADMIN_PIN_HASH = "40c0bb054bf07d5c614c8aa3c827ce5da20eaf4c04a338f344b9bf91505c6cce";
+const RESET_PROGRESS_CONFIRM_TEXT = "진행도 초기화";
+const RESET_ALL_CONFIRM_TEXT = "RESET ALL";
 
 const SHORTCUT_GROUP_ORDER: ShortcutGroupId[] = ["tabs", "video", "metronome", "pin", "pip", "popup"];
 
@@ -396,16 +386,17 @@ function makeSectionRefMap(): Record<SectionId, HTMLElement | null> {
     appearance: null,
     soundMotion: null,
     keyboard: null,
-    dashboard: null,
     goals: null,
-    quests: null,
-    design: null,
-    library: null,
     dataBackup: null,
-    mock: null,
-    misc: null,
-    developer: null,
   };
+}
+
+async function sha256Text(value: string): Promise<string> {
+  const data = new TextEncoder().encode(value);
+  const digest = await window.crypto.subtle.digest("SHA-256", data);
+  return Array.from(new Uint8Array(digest))
+    .map((byte) => byte.toString(16).padStart(2, "0"))
+    .join("");
 }
 
 export function SettingsPage({ lang, settings, hud, unlockables, onSettingsChange, setMessage, onRefresh }: Props) {
@@ -437,15 +428,8 @@ export function SettingsPage({ lang, settings, hud, unlockables, onSettingsChang
     appearance: false,
     soundMotion: false,
     keyboard: false,
-    dashboard: false,
     goals: false,
-    quests: false,
-    design: false,
-    library: false,
     dataBackup: false,
-    mock: true,
-    misc: true,
-    developer: true,
   });
   const normalizedShortcutSettings = useMemo(() => normalizeKeyboardShortcutSettings(ui.keyboard_shortcuts), [ui.keyboard_shortcuts]);
   const [capturingShortcutId, setCapturingShortcutId] = useState<ShortcutActionId | null>(null);
@@ -456,6 +440,11 @@ export function SettingsPage({ lang, settings, hud, unlockables, onSettingsChang
   const [newGenreGroupName, setNewGenreGroupName] = useState("");
   const [newGenreTargetGroup, setNewGenreTargetGroup] = useState("");
   const [adminOverlayOpen, setAdminOverlayOpen] = useState(false);
+  const [adminAuthOpen, setAdminAuthOpen] = useState(false);
+  const [adminPasswordDraft, setAdminPasswordDraft] = useState("");
+  const [adminAuthError, setAdminAuthError] = useState("");
+  const [adminAuthBusy, setAdminAuthBusy] = useState(false);
+  const [resetOverlayOpen, setResetOverlayOpen] = useState(false);
   const [achievementManagerOpen, setAchievementManagerOpen] = useState(false);
 
   const [criticalForm, setCriticalForm] = useState({
@@ -522,8 +511,8 @@ export function SettingsPage({ lang, settings, hud, unlockables, onSettingsChang
     target_dashboard_ms: Math.max(100, Number(performance.target_dashboard_ms ?? 1000)),
   };
   const adminConfig = {
-    gate_enabled: Boolean(admin.gate_enabled ?? false),
-    pin_hash: String(admin.pin_hash ?? ""),
+    gate_enabled: Boolean(admin.gate_enabled ?? true),
+    pin_hash: String(admin.pin_hash ?? ADMIN_PIN_HASH),
   };
 
   const currentGenres = useMemo(() => {
@@ -580,18 +569,18 @@ export function SettingsPage({ lang, settings, hud, unlockables, onSettingsChang
     () => [
       {
         id: "basic" as const,
-        title: lang === "ko" ? "기본" : "Basic",
-        keywords: ["basic", "nickname", "language", "name", "profile"],
+        title: lang === "ko" ? "프로필" : "Profile",
+        keywords: ["basic", "nickname", "name", "profile"],
       },
       {
         id: "appearance" as const,
-        title: lang === "ko" ? "외형/테마" : "Appearance / Themes",
-        keywords: ["theme", "appearance", "unlock", "preview"],
+        title: lang === "ko" ? "테마" : "Theme",
+        keywords: ["theme", "appearance", "preview"],
       },
       {
         id: "soundMotion" as const,
-        title: lang === "ko" ? "사운드/모션" : "Sound / Motion",
-        keywords: ["audio", "sound", "motion", "animation", "volume"],
+        title: lang === "ko" ? "사운드/알림/효과" : "Sound / Notifications / Effects",
+        keywords: ["audio", "sound", "motion", "animation", "volume", "notification", "effect"],
       },
       {
         id: "keyboard" as const,
@@ -599,49 +588,14 @@ export function SettingsPage({ lang, settings, hud, unlockables, onSettingsChang
         keywords: ["keyboard", "shortcut", "hotkey", "video", "pip", "metronome", "tab"],
       },
       {
-        id: "dashboard" as const,
-        title: lang === "ko" ? "대시보드" : "Dashboard",
-        keywords: ["dashboard", "layout", "glass", "hud"],
-      },
-      {
         id: "goals" as const,
-        title: lang === "ko" ? "목표/성장" : "Goals / Growth",
+        title: lang === "ko" ? "목표" : "Goals",
         keywords: ["goal", "xp", "weekly", "monthly", "growth"],
-      },
-      {
-        id: "quests" as const,
-        title: lang === "ko" ? "퀘스트 자동화" : "Quest Automation",
-        keywords: ["quest", "period", "difficulty", "priority", "automation"],
-      },
-      {
-        id: "design" as const,
-        title: lang === "ko" ? "색상/디자인" : "Color / Design",
-        keywords: ["design", "color", "style", "palette", "glass", "achievement"],
-      },
-      {
-        id: "library" as const,
-        title: lang === "ko" ? "라이브러리/추천" : "Library / Recommendation",
-        keywords: ["genre", "group", "library", "recommend", "alias", "rename"],
       },
       {
         id: "dataBackup" as const,
         title: lang === "ko" ? "데이터/백업" : "Data / Backup",
         keywords: ["backup", "restore", "export", "snapshot", "data"],
-      },
-      {
-        id: "mock" as const,
-        title: lang === "ko" ? "테스트 데이터(Mock)" : "Test Data (Mock)",
-        keywords: ["mock", "dataset", "sandbox", "test"],
-      },
-      {
-        id: "misc" as const,
-        title: lang === "ko" ? "기타 정보" : "Misc",
-        keywords: ["unlock", "unlockables", "info"],
-      },
-      {
-        id: "developer" as const,
-        title: lang === "ko" ? "개발자" : "Developer",
-        keywords: ["developer", "admin", "performance", "pin", "experimental"],
       },
     ],
     [lang]
@@ -1169,6 +1123,92 @@ export function SettingsPage({ lang, settings, hud, unlockables, onSettingsChang
     }
   };
 
+  const openAdminAuth = () => {
+    setAdminPasswordDraft("");
+    setAdminAuthError("");
+    setAdminAuthOpen(true);
+  };
+
+  const submitAdminAuth = async () => {
+    try {
+      setAdminAuthBusy(true);
+      const hash = await sha256Text(adminPasswordDraft);
+      if (hash !== adminConfig.pin_hash) {
+        setAdminAuthError(lang === "ko" ? "비밀번호가 올바르지 않습니다." : "Incorrect password.");
+        return;
+      }
+      setAdminAuthBusy(false);
+      setAdminAuthOpen(false);
+      setAdminPasswordDraft("");
+      setAdminAuthError("");
+      setAdminOverlayOpen(true);
+    } finally {
+      setAdminAuthBusy(false);
+    }
+  };
+
+  const resetProgressWithConfirm = async () => {
+    const first = window.confirm(
+      lang === "ko"
+        ? "진행도만 초기화합니다. 세션 기록, 라이브러리, 미디어 파일은 유지됩니다. 계속할까요?"
+        : "This resets progress only. Sessions, library data, and media files stay intact. Continue?"
+    );
+    if (!first) return;
+    const second = window.confirm(
+      lang === "ko" ? "레벨, XP, 퀘스트, 업적 진행도를 초기화합니다." : "Level, XP, quest, and achievement progress will be reset."
+    );
+    if (!second) return;
+    const token = window.prompt(
+      lang === "ko"
+        ? `계속하려면 "${RESET_PROGRESS_CONFIRM_TEXT}"를 입력하세요.`
+        : `Type "${RESET_PROGRESS_CONFIRM_TEXT}" to continue.`
+    );
+    if ((token || "").trim() !== RESET_PROGRESS_CONFIRM_TEXT) {
+      setMessage(lang === "ko" ? "진행도 초기화를 취소했습니다." : "Progress reset cancelled.");
+      return;
+    }
+    try {
+      await adminResetProgress();
+      setMessage(lang === "ko" ? "진행도 초기화 완료" : "Progress reset complete");
+      await onRefresh();
+      setResetOverlayOpen(false);
+    } catch (error) {
+      setMessage(getErrorMessage(error, lang === "ko" ? "진행도 초기화 실패" : "Failed to reset progress"));
+    }
+  };
+
+  const resetAllWithConfirm = async () => {
+    const first = window.confirm(
+      lang === "ko"
+        ? "전체 초기화는 세션, 설정, 미디어, 진행도를 모두 되돌립니다. 계속할까요?"
+        : "Full reset removes sessions, settings, media, and progress. Continue?"
+    );
+    if (!first) return;
+    const second = window.confirm(
+      lang === "ko"
+        ? "한 번 더 확인합니다. 전체 초기화 후에는 현재 런타임 데이터를 되돌리기 어렵습니다."
+        : "Confirm again. Current runtime data will be difficult to recover after full reset."
+    );
+    if (!second) return;
+    const token = window.prompt(
+      lang === "ko"
+        ? `계속하려면 "${RESET_ALL_CONFIRM_TEXT}"를 입력하세요.`
+        : `Type "${RESET_ALL_CONFIRM_TEXT}" to continue.`
+    );
+    if ((token || "").trim().toUpperCase() !== RESET_ALL_CONFIRM_TEXT) {
+      setMessage(lang === "ko" ? "전체 초기화를 취소했습니다." : "Full reset cancelled.");
+      return;
+    }
+    try {
+      await adminResetAll();
+      setMessage(lang === "ko" ? "전체 초기화 완료" : "Full reset complete");
+      await onRefresh();
+      setResetOverlayOpen(false);
+    } catch (error) {
+      setMessage(getErrorMessage(error, lang === "ko" ? "전체 초기화 실패" : "Full reset failed"));
+    }
+  };
+
   const sectionsTitleMap = useMemo(() => {
     const map = {} as Record<SectionId, string>;
     for (const item of sections) map[item.id] = item.title;
@@ -1344,9 +1384,13 @@ export function SettingsPage({ lang, settings, hud, unlockables, onSettingsChang
   }, [layoutDirty, dashboardLayoutDraft, dashboardVersion]);
 
   useEffect(() => {
-    void loadMockDatasets();
     void loadBackups();
   }, []);
+
+  useEffect(() => {
+    if (!adminOverlayOpen) return;
+    void loadMockDatasets();
+  }, [adminOverlayOpen]);
 
   useEffect(() => {
     const container = getScrollContainer();
@@ -1378,13 +1422,29 @@ export function SettingsPage({ lang, settings, hud, unlockables, onSettingsChang
   }, []);
 
   useEffect(() => {
-    if (!adminOverlayOpen) return undefined;
+    if (!adminOverlayOpen && !adminAuthOpen && !resetOverlayOpen && !achievementManagerOpen) return undefined;
     const onKey = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setAdminOverlayOpen(false);
+      if (event.key !== "Escape") return;
+      if (achievementManagerOpen) {
+        setAchievementManagerOpen(false);
+        return;
+      }
+      if (adminOverlayOpen) {
+        setAdminOverlayOpen(false);
+        return;
+      }
+      if (adminAuthOpen) {
+        setAdminAuthOpen(false);
+        setAdminAuthError("");
+        return;
+      }
+      if (resetOverlayOpen) {
+        setResetOverlayOpen(false);
+      }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [adminOverlayOpen]);
+  }, [achievementManagerOpen, adminAuthOpen, adminOverlayOpen, resetOverlayOpen]);
 
   const xpToMax = useMemo(() => {
     const maxLevel = Math.max(2, Math.round(criticalForm.max_level));
@@ -1439,7 +1499,7 @@ export function SettingsPage({ lang, settings, hud, unlockables, onSettingsChang
         max_level: criticalForm.max_level,
       },
     };
-    await applyCriticalPatch(updated, lang === "ko" ? "Critical settings saved" : "Critical settings saved");
+    await applyCriticalPatch(updated, lang === "ko" ? "Critical 설정 저장 완료" : "Critical settings saved");
     await onRefresh();
   };
 
@@ -1496,10 +1556,10 @@ export function SettingsPage({ lang, settings, hud, unlockables, onSettingsChang
 
         {renderSection(
           "basic",
-          lang === "ko" ? "프로필/언어 기본값" : "Profile and base locale",
+          lang === "ko" ? "닉네임처럼 자주 바꾸는 기본 항목만 여기에 둡니다." : "Keep only the profile fields users adjust often.",
           <>
             <label>
-              Nickname
+              {lang === "ko" ? "닉네임" : "Nickname"}
               <input
                 type="text"
                 value={nicknameDraft}
@@ -1513,21 +1573,6 @@ export function SettingsPage({ lang, settings, hud, unlockables, onSettingsChang
                   );
                 }}
               />
-            </label>
-            <label>
-              {lang === "ko" ? "언어" : "Language"}
-              <select
-                value={ui.language}
-                onChange={(event) => {
-                  void applyBasicPatch(
-                    { ui: { language: event.target.value as "ko" | "en" } as Partial<Settings["ui"]> },
-                    lang === "ko" ? "언어 변경 완료" : "Language updated"
-                  );
-                }}
-              >
-                <option value="ko">Korean</option>
-                <option value="en">English</option>
-              </select>
             </label>
           </>
         )}
@@ -1551,7 +1596,7 @@ export function SettingsPage({ lang, settings, hud, unlockables, onSettingsChang
                       if (locked) return;
                       void applyBasicPatch(
                         { ui: { default_theme: theme.id } as Partial<Settings["ui"]> },
-                        `Theme changed: ${theme.name}`
+                        lang === "ko" ? `테마 변경 완료: ${theme.name}` : `Theme changed: ${theme.name}`
                       );
                     }}
                   >
@@ -1585,7 +1630,7 @@ export function SettingsPage({ lang, settings, hud, unlockables, onSettingsChang
                   setMessage(lang === "ko" ? "공유 카드 이미지를 저장했습니다." : "Share card image saved.");
                 }}
               >
-                {lang === "ko" ? "공유 카드 생성" : "Generate Share Card"} {canShareCard ? "" : "(Locked)"}
+                {lang === "ko" ? "공유 카드 생성" : "Generate Share Card"} {canShareCard ? "" : lang === "ko" ? "(잠김)" : "(Locked)"}
               </button>
             </div>
           </>
@@ -1634,9 +1679,9 @@ export function SettingsPage({ lang, settings, hud, unlockables, onSettingsChang
                   );
                 }}
               >
-                <option value="adaptive">Adaptive</option>
-                <option value="low">Low</option>
-                <option value="high">High</option>
+                <option value="adaptive">{lang === "ko" ? "자동" : "Adaptive"}</option>
+                <option value="low">{lang === "ko" ? "낮음" : "Low"}</option>
+                <option value="high">{lang === "ko" ? "높음" : "High"}</option>
               </select>
             </label>
             <div className="song-form-grid">
@@ -1675,7 +1720,7 @@ export function SettingsPage({ lang, settings, hud, unlockables, onSettingsChang
                     );
                   }}
                 >
-                  <option value="mini">Mini</option>
+                  <option value="mini">{lang === "ko" ? "미니 플레이어" : "Mini"}</option>
                   <option value="none">{lang === "ko" ? "사용 안 함" : "Off"}</option>
                 </select>
               </label>
@@ -1875,16 +1920,6 @@ export function SettingsPage({ lang, settings, hud, unlockables, onSettingsChang
         )}
 
         {renderSection(
-          "dashboard",
-          lang === "ko" ? "대시보드" : "Dashboard visual options",
-          <small className="muted">
-            {lang === "ko"
-              ? "대시보드 구성 전환/배치는 대시보드 화면에서 직접 변경하세요."
-              : "Use the Dashboard page for layout/version switching."}
-          </small>
-        )}
-
-        {renderSection(
           "goals",
           lang === "ko" ? "목표/성장" : "Weekly/monthly and XP goals",
           <div className="song-form-grid">
@@ -1968,359 +2003,8 @@ export function SettingsPage({ lang, settings, hud, unlockables, onSettingsChang
         )}
 
         {renderSection(
-          "quests",
-          lang === "ko" ? "퀘스트 자동 생성 규칙" : "Quest auto-generation rules",
-          <>
-            <div className="song-form-grid">
-              {periodKeys.map((period) => (
-                <div key={`quest-setting-${period}`} className="quest-setting-box">
-                  <strong>
-                    {period === "short"
-                      ? lang === "ko"
-                        ? "단기"
-                        : "Short"
-                      : period === "mid"
-                        ? lang === "ko"
-                          ? "중기"
-                          : "Mid"
-                        : lang === "ko"
-                          ? "장기"
-                          : "Long"}
-                  </strong>
-                  <label>
-                    {lang === "ko" ? "기간(일)" : "Period Days"}
-                    <input
-                      type="number"
-                      min={1}
-                      value={questForm.period_days[period]}
-                      onChange={(event) =>
-                        updateQuestForm((prev) => ({
-                          ...prev,
-                          period_days: { ...prev.period_days, [period]: Number(event.target.value || 1) },
-                        }))
-                      }
-                    />
-                  </label>
-                  <label className="inline">
-                    <input
-                      type="checkbox"
-                      checked={questForm.auto_enabled_by_period[period]}
-                      onChange={(event) =>
-                        updateQuestForm((prev) => ({
-                          ...prev,
-                          auto_enabled_by_period: { ...prev.auto_enabled_by_period, [period]: event.target.checked },
-                        }))
-                      }
-                    />
-                    <span>{lang === "ko" ? "자동 생성 사용" : "Enable auto quest"}</span>
-                  </label>
-                  <label>
-                    {lang === "ko" ? "자동 목표(분)" : "Auto Target Minutes"}
-                    <input
-                      type="number"
-                      min={1}
-                      value={questForm.auto_target_minutes_by_period[period]}
-                      onChange={(event) =>
-                        updateQuestForm((prev) => ({
-                          ...prev,
-                          auto_target_minutes_by_period: {
-                            ...prev.auto_target_minutes_by_period,
-                            [period]: Number(event.target.value || 1),
-                          },
-                        }))
-                      }
-                    />
-                  </label>
-                  <label>
-                    {lang === "ko" ? "자동 중요도" : "Auto Priority"}
-                    <select
-                      value={questForm.auto_priority_by_period[period]}
-                      onChange={(event) =>
-                        updateQuestForm((prev) => ({
-                          ...prev,
-                          auto_priority_by_period: {
-                            ...prev.auto_priority_by_period,
-                            [period]: event.target.value as "low" | "normal" | "urgent",
-                          },
-                        }))
-                      }
-                    >
-                      <option value="urgent">{questPriorityLabel("urgent")}</option>
-                      <option value="normal">{questPriorityLabel("normal")}</option>
-                      <option value="low">{questPriorityLabel("low")}</option>
-                    </select>
-                  </label>
-                  <label>
-                    {lang === "ko" ? "자동 난이도" : "Auto Difficulty"}
-                    <select
-                      value={questForm.auto_difficulty_by_period[period]}
-                      onChange={(event) =>
-                        updateQuestForm((prev) => ({
-                          ...prev,
-                          auto_difficulty_by_period: {
-                            ...prev.auto_difficulty_by_period,
-                            [period]: event.target.value as "low" | "mid" | "high",
-                          },
-                        }))
-                      }
-                    >
-                      <option value="high">{questDifficultyLabel("high")}</option>
-                      <option value="mid">{questDifficultyLabel("mid")}</option>
-                      <option value="low">{questDifficultyLabel("low")}</option>
-                    </select>
-                  </label>
-                </div>
-              ))}
-            </div>
-            <div className="row">
-              <small className="muted">{questSaving ? (lang === "ko" ? "퀘스트 설정 저장 중..." : "Saving quest settings...") : ""}</small>
-              <button className="ghost-btn" onClick={() => void saveQuestSettings(false)}>
-                {lang === "ko" ? "지금 저장" : "Save now"}
-              </button>
-            </div>
-          </>
-        )}
-
-        {renderSection(
-          "design",
-          lang === "ko" ? "색상/디자인 커스터마이즈" : "Color and design customization",
-          <>
-            <div className="song-form-grid">
-              <div className="quest-setting-box">
-                <strong>{lang === "ko" ? "퀘스트 기간 레인 색상" : "Quest period lane colors"}</strong>
-                {periodKeys.map((period) => (
-                  <div key={`period-color-${period}`} className="row">
-                    <span>
-                      {period === "short" ? (lang === "ko" ? "단기" : "Short") : period === "mid" ? (lang === "ko" ? "중기" : "Mid") : lang === "ko" ? "장기" : "Long"}
-                    </span>
-                    {renderColorInput(lang === "ko" ? "테두리" : "Border", questForm.ui_style.period_border[period], (value) =>
-                      updateQuestForm((prev) => ({
-                        ...prev,
-                        ui_style: {
-                          ...prev.ui_style,
-                          period_border: { ...prev.ui_style.period_border, [period]: value },
-                        },
-                      }))
-                    )}
-                    {renderColorInput(lang === "ko" ? "배경" : "Fill", questForm.ui_style.period_fill[period], (value) =>
-                      updateQuestForm((prev) => ({
-                        ...prev,
-                        ui_style: {
-                          ...prev.ui_style,
-                          period_fill: { ...prev.ui_style.period_fill, [period]: value },
-                        },
-                      }))
-                    )}
-                  </div>
-                ))}
-              </div>
-
-              <div className="quest-setting-box">
-                <strong>{lang === "ko" ? "중요도/난이도 색상" : "Priority / Difficulty colors"}</strong>
-                {(["urgent", "normal", "low"] as const).map((key) => (
-                  <div key={`priority-color-${key}`}>
-                    {renderColorInput(lang === "ko" ? `중요도 (${questPriorityLabel(key)})` : `Priority (${questPriorityLabel(key)})`, questForm.ui_style.priority_border[key], (value) =>
-                      updateQuestForm((prev) => ({
-                        ...prev,
-                        ui_style: {
-                          ...prev.ui_style,
-                          priority_border: { ...prev.ui_style.priority_border, [key]: value },
-                        },
-                      }))
-                    )}
-                  </div>
-                ))}
-                {(["low", "mid", "high"] as const).map((key) => (
-                  <div key={`difficulty-color-${key}`}>
-                    {renderColorInput(lang === "ko" ? `난이도 (${questDifficultyLabel(key)})` : `Difficulty (${questDifficultyLabel(key)})`, questForm.ui_style.difficulty_fill[key], (value) =>
-                      updateQuestForm((prev) => ({
-                        ...prev,
-                        ui_style: {
-                          ...prev.ui_style,
-                          difficulty_fill: { ...prev.ui_style.difficulty_fill, [key]: value },
-                        },
-                      }))
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div className="quest-setting-box">
-              <strong>{lang === "ko" ? "일반 UI 옵션" : "General UI options"}</strong>
-              <div className="song-form-grid">
-                <label className="inline">
-                  <input
-                    type="checkbox"
-                    checked={Boolean(settings.ui.dashboard_glass_cards ?? true)}
-                    onChange={(event) => {
-                      void applyBasicPatch({
-                        ui: { dashboard_glass_cards: event.target.checked } as Partial<Settings["ui"]>,
-                      });
-                    }}
-                  />
-                  <span>{lang === "ko" ? "대시보드 글래스 카드" : "Dashboard glass cards"}</span>
-                </label>
-                <label className="inline">
-                  <input
-                    type="checkbox"
-                    checked={Boolean(ui.fx_level_up_overlay ?? ui.enable_confetti ?? true)}
-                    onChange={(event) => {
-                      void applyBasicPatch({
-                        ui: {
-                          enable_confetti: event.target.checked,
-                          fx_level_up_overlay: event.target.checked,
-                        } as Partial<Settings["ui"]>,
-                      });
-                    }}
-                  />
-                  <span>{lang === "ko" ? "레벨업 컨페티 효과" : "Level-up confetti"}</span>
-                </label>
-              </div>
-            </div>
-
-            <div className="quest-setting-box">
-              <div className="row">
-                <strong>{lang === "ko" ? "업적 카드 색상" : "Achievement card palette"}</strong>
-                <button className="ghost-btn compact-add-btn" onClick={resetAchievementCardStyles}>
-                  {lang === "ko" ? "기본값 복원" : "Reset defaults"}
-                </button>
-              </div>
-              <div className="settings-achievement-style-grid">
-                {ACHIEVEMENT_STYLE_EDITOR_KEYS.map((key) => (
-                  <div key={key} className="settings-achievement-style-item">
-                    <strong>{ACHIEVEMENT_STYLE_LABELS[key][lang]}</strong>
-                    {renderColorInput(lang === "ko" ? "테두리" : "Border", achievementStyleMap[key].border, (value) =>
-                      updateAchievementCardStyle(key, "border", value)
-                    )}
-                    {renderColorInput(lang === "ko" ? "배경" : "Fill", achievementStyleMap[key].fill, (value) =>
-                      updateAchievementCardStyle(key, "fill", value)
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
-          </>
-        )}
-
-        {renderSection(
-          "library",
-          lang === "ko" ? "장르/상위 유형 관리" : "Genre and parent-group management",
-          <>
-            <div className="tag-help">
-              <strong>{lang === "ko" ? "추천곡/곡 라이브러리 공통 장르 카탈로그" : "Shared genre catalog for songs and recommendations"}</strong>
-              <small className="muted">
-                {lang === "ko"
-                  ? "장르 추가/삭제, 상위유형(그룹) 이동/추가/수정, 장르명 일괄 변경이 가능합니다."
-                  : "Add/remove genres, edit parent groups, and rename genres globally."}
-              </small>
-            </div>
-
-            <div className="song-form-grid settings-genre-manage-grid">
-              <label>
-                {lang === "ko" ? "새 그룹 이름" : "New group name"}
-                <input
-                  value={newGenreGroupName}
-                  onChange={(event) => setNewGenreGroupName(event.target.value)}
-                  placeholder={lang === "ko" ? "예: 팝/가요" : "e.g. Pop / K-pop"}
-                />
-              </label>
-              <div className="row">
-                <button className="ghost-btn" onClick={() => void addGenreGroup()}>
-                  {lang === "ko" ? "그룹 추가" : "Add group"}
-                </button>
-                <button className="ghost-btn" onClick={() => void resetGenreCatalog()}>
-                  {lang === "ko" ? "기본값 복원" : "Reset defaults"}
-                </button>
-              </div>
-            </div>
-
-            <div className="song-form-grid settings-genre-manage-grid">
-              <label>
-                {lang === "ko" ? "새 장르" : "New genre"}
-                <input
-                  value={newGenre}
-                  onChange={(event) => setNewGenre(event.target.value)}
-                  placeholder={lang === "ko" ? "예: Ballad" : "e.g. Ballad"}
-                />
-              </label>
-              <label>
-                {lang === "ko" ? "추가할 그룹" : "Target group"}
-                <select value={newGenreTargetGroup} onChange={(event) => setNewGenreTargetGroup(event.target.value)}>
-                  {genreGroupNames.map((name) => (
-                    <option key={`genre-target-${name}`} value={name}>
-                      {name}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <div className="row">
-                <button className="ghost-btn" onClick={() => void addGenreToGroup()}>
-                  {lang === "ko" ? "장르 추가" : "Add genre"}
-                </button>
-              </div>
-            </div>
-
-            <div className="settings-genre-group-admin-list">
-              {currentGenreGroups.map((group) => (
-                <section key={`genre-group-${group.name}`} className="settings-genre-group-admin">
-                  <div className="settings-genre-group-admin-head">
-                    <div>
-                      <strong>{group.name}</strong>
-                      <small className="muted">
-                        {lang === "ko" ? `${group.values.length}개 장르` : `${group.values.length} genres`}
-                      </small>
-                    </div>
-                    <div className="row">
-                      <button className="ghost-btn compact-add-btn" onClick={() => void renameGenreGroup(group.name)}>
-                        {lang === "ko" ? "이름 변경" : "Rename"}
-                      </button>
-                      <button
-                        className="ghost-btn compact-add-btn danger-border"
-                        disabled={currentGenreGroups.length <= 1}
-                        onClick={() => void deleteGenreGroup(group.name)}
-                      >
-                        {lang === "ko" ? "그룹 삭제" : "Delete group"}
-                      </button>
-                    </div>
-                  </div>
-
-                  {group.values.length ? (
-                    <div className="settings-genre-chip-grid settings-genre-chip-grid-admin">
-                      {group.values.map((genre) => (
-                        <div key={`${group.name}-${genre}`} className="settings-genre-chip settings-genre-chip-edit">
-                          <span>{genre}</span>
-                          <select
-                            value={genreToGroupMap.get(genre.toLowerCase()) ?? group.name}
-                            onChange={(event) => void moveGenreToGroup(genre, event.target.value)}
-                          >
-                            {genreGroupNames.map((name) => (
-                              <option key={`genre-move-${genre}-${name}`} value={name}>
-                                {name}
-                              </option>
-                            ))}
-                          </select>
-                          <button className="ghost-btn compact-add-btn" onClick={() => void renameGenreEverywhere(genre)}>
-                            {lang === "ko" ? "이름변경" : "Rename"}
-                          </button>
-                          <button className="ghost-btn compact-add-btn danger-border" onClick={() => void removeGenreFromPool(genre)}>
-                            {lang === "ko" ? "제거" : "Remove"}
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <small className="muted">{lang === "ko" ? "아직 장르가 없습니다." : "No genres in this group yet."}</small>
-                  )}
-                </section>
-              ))}
-            </div>
-          </>
-        )}
-
-        {renderSection(
           "dataBackup",
-          lang === "ko" ? "내보내기/백업 정책/복원" : "Export, backup policy and restore",
+          lang === "ko" ? "내보내기, 즉시 백업, 자동 백업, 백업 복원만 노출합니다." : "Expose export, snapshot, auto backup, and restore only.",
           <>
             <div className="row">
               <button
@@ -2378,34 +2062,6 @@ export function SettingsPage({ lang, settings, hud, unlockables, onSettingsChang
                 />
                 <span>{lang === "ko" ? "자동 백업 사용" : "Automatic backup enabled"}</span>
               </label>
-              <label>
-                {lang === "ko" ? "최대 백업 파일 수" : "Max backup files"}
-                <input
-                  type="number"
-                  min={1}
-                  max={30}
-                  value={backupConfig.max_files}
-                  onChange={(event) => {
-                    void applyCriticalPatch({
-                      backup: { ...backupConfig, max_files: Math.max(1, Number(event.target.value || 1)) },
-                    });
-                  }}
-                />
-              </label>
-              <label>
-                {lang === "ko" ? "백업 최소 간격(시간)" : "Min interval between backups (hours)"}
-                <input
-                  type="number"
-                  min={1}
-                  max={168}
-                  value={backupConfig.min_hours_between}
-                  onChange={(event) => {
-                    void applyCriticalPatch({
-                      backup: { ...backupConfig, min_hours_between: Math.max(1, Number(event.target.value || 1)) },
-                    });
-                  }}
-                />
-              </label>
             </div>
             <div className="settings-backup-list-wrap">
               <div className="row">
@@ -2444,271 +2100,184 @@ export function SettingsPage({ lang, settings, hud, unlockables, onSettingsChang
           </>
         )}
 
-        {renderSection(
-          "mock",
-          lang === "ko" ? "테스트용 모의 데이터셋 (저강조)" : "Sandbox datasets for testing (low priority)",
-          <>
-            <small className="muted" data-testid="mock-profile-status">
-              {lang === "ko"
-                ? `현재 프로필: ${mockStatus.profile}${mockStatus.dataset_id ? ` (${mockStatus.dataset_id})` : ""}`
-                : `Current profile: ${mockStatus.profile}${mockStatus.dataset_id ? ` (${mockStatus.dataset_id})` : ""}`}
-            </small>
-            <small className="muted">
-              {lang === "ko"
-                ? `실데이터 경로: ${mockStatus.real_data_path ?? "app/data"}`
-                : `Real data path: ${mockStatus.real_data_path ?? "app/data"}`}
-            </small>
-            <small className="muted">
-              {lang === "ko"
-                ? `모의 데이터셋 루트: ${mockStatus.datasets_root ?? "designPack/mock_datasets"}`
-                : `Mock datasets root: ${mockStatus.datasets_root ?? "designPack/mock_datasets"}`}
-            </small>
-            <div className="song-form-grid">
-              <label>
-                {lang === "ko" ? "데이터셋" : "Dataset"}
-                <select
-                  data-testid="mock-dataset-select"
-                  value={selectedMockDataset}
-                  onChange={(event) => setSelectedMockDataset(event.target.value)}
-                >
-                  <option value="">{lang === "ko" ? "(선택)" : "(Select)"}</option>
-                  {mockDatasets.map((dataset) => (
-                    <option key={dataset.id} value={dataset.id}>
-                      {dataset.name} ({dataset.file_count})
-                    </option>
-                  ))}
-                </select>
-              </label>
+        <section className="settings-action-grid">
+          <article className="card settings-action-card">
+            <div className="settings-action-copy">
+              <strong>{lang === "ko" ? "초기화" : "Reset"}</strong>
+              <p className="muted">
+                {lang === "ko"
+                  ? "비밀번호 없이 진행할 수 있지만, 여러 번 확인하고 마지막 문구를 입력해야 합니다."
+                  : "No password is required, but multiple confirmations and a final phrase are required."}
+              </p>
             </div>
-            <div className="row">
-              <button
-                className="ghost-btn"
-                data-testid="mock-activate-btn"
-                disabled={mockBusy || !selectedMockDataset}
-                onClick={async () => {
-                  try {
-                    setMockBusy(true);
-                    const status = await activateMockData(selectedMockDataset, false);
-                    setMockStatus(status);
-                    setMessage(lang === "ko" ? "모의 데이터셋 적용 완료" : "Mock dataset activated");
-                    await onRefresh();
-                  } finally {
-                    setMockBusy(false);
-                  }
-                }}
-              >
-                {lang === "ko" ? "모의데이터 적용" : "Activate Mock"}
-              </button>
-              <button
-                className="ghost-btn"
-                data-testid="mock-reload-btn"
-                disabled={mockBusy || !selectedMockDataset}
-                onClick={async () => {
-                  try {
-                    setMockBusy(true);
-                    const status = await activateMockData(selectedMockDataset, true);
-                    setMockStatus(status);
-                    setMessage(lang === "ko" ? "모의 데이터셋 리로드 완료" : "Mock dataset reloaded");
-                    await onRefresh();
-                  } finally {
-                    setMockBusy(false);
-                  }
-                }}
-              >
-                {lang === "ko" ? "모의데이터 리로드" : "Reload Mock"}
-              </button>
-              <button
-                className="ghost-btn danger-border"
-                data-testid="mock-deactivate-btn"
-                disabled={mockBusy}
-                onClick={async () => {
-                  try {
-                    setMockBusy(true);
-                    const status = await deactivateMockData();
-                    setMockStatus(status);
-                    setMessage(lang === "ko" ? "실데이터 프로필로 복귀" : "Returned to real data profile");
-                    await onRefresh();
-                  } finally {
-                    setMockBusy(false);
-                  }
-                }}
-              >
-                {lang === "ko" ? "실데이터 복귀" : "Back to Real Data"}
-              </button>
+            <button
+              type="button"
+              className="ghost-btn danger-border"
+              data-testid="reset-tools-open-btn"
+              onClick={() => setResetOverlayOpen(true)}
+            >
+              {lang === "ko" ? "초기화 열기" : "Open Reset"}
+            </button>
+          </article>
+          <article className="card settings-action-card">
+            <div className="settings-action-copy">
+              <strong>{lang === "ko" ? "관리자 도구" : "Admin Tools"}</strong>
+              <p className="muted">
+                {lang === "ko"
+                  ? "테스트, 모의 데이터, 운영용 백업/성능, 업적/퀘스트/디자인 관리 도구는 여기서만 엽니다."
+                  : "Testing, mock data, operational backup/performance, and admin editors live here only."}
+              </p>
             </div>
-            <div className="song-form-grid">
-              <label>
-                {lang === "ko" ? "현재 상태 저장 ID" : "Snapshot Dataset ID"}
-                <input
-                  data-testid="mock-export-dataset-id"
-                  value={mockExportDatasetId}
-                  onChange={(event) => setMockExportDatasetId(event.target.value)}
-                  placeholder={lang === "ko" ? "예: my_practice_snapshot" : "e.g. my_practice_snapshot"}
-                />
-              </label>
-            </div>
-            <div className="row">
-              <button
-                className="ghost-btn"
-                data-testid="mock-export-current-btn"
-                disabled={mockBusy || mockExportBusy || !mockExportDatasetId.trim()}
-                onClick={async () => {
-                  try {
-                    setMockExportBusy(true);
-                    const result = await exportCurrentToMockDataset({
-                      dataset_id: mockExportDatasetId.trim(),
-                      generate_sessions_60d: true,
-                      session_days: 60,
-                    });
-                    await loadMockDatasets();
-                    setSelectedMockDataset(result.dataset_id);
-                    setMessage(
-                      lang === "ko"
-                        ? `샌드박스 데이터셋 저장 완료: ${result.dataset_id} (${result.generated_sessions}개 세션 / 미디어 ${result.media_file_count}개 / 업적 정의·상태 포함)`
-                        : `Sandbox dataset exported: ${result.dataset_id} (${result.generated_sessions} sessions / ${result.media_file_count} media files / achievements included)`
-                    );
-                  } finally {
-                    setMockExportBusy(false);
-                  }
-                }}
-              >
-                {lang === "ko" ? "현재 상태를 샌드박스로 저장 (+60일 세션 + 미디어)" : "Export current state (+60d sessions + media)"}
-              </button>
-            </div>
-            <small className="muted">
-              {lang === "ko"
-                ? "내보내기 결과는 dataset 폴더 전체(data + media)를 같이 써야 합니다."
-                : "Use the entire exported dataset folder together (data + media)."}
-            </small>
-            <small className="muted">
-              {lang === "ko"
-                ? "업적 관리자 수정 내용은 data/achievements_master.csv 로 같이 저장됩니다. 이름/설명/조건/아이콘 수정이 모두 포함됩니다."
-                : "Achievement admin edits are exported together in data/achievements_master.csv, including names, descriptions, rules, and icons."}
-            </small>
-            <small className="muted">
-              {lang === "ko"
-                ? "업적 달성/수령 상태는 data/events.csv 에 같이 저장됩니다. 같은 dataset을 다시 켜면 그 상태도 따라옵니다."
-                : "Achievement unlocked/claimed state is stored in data/events.csv and comes back when you activate the same dataset again."}
-            </small>
-            <small className="muted">
-              {lang === "ko"
-                ? "소스 실행 저장 위치: designPack/mock_datasets/<dataset_id>/"
-                : "Source run export path: designPack/mock_datasets/<dataset_id>/"}
-            </small>
-            <small className="muted">
-              {lang === "ko"
-                ? "EXE 저장 위치: dist/BASSOS/bassos/_internal/designPack/mock_datasets/<dataset_id>/"
-                : "EXE export path: dist/BASSOS/bassos/_internal/designPack/mock_datasets/<dataset_id>/"}
-            </small>
-            <small className="muted">
-              {lang === "ko"
-                ? "기본 shipped mock로 올릴 때는 designPack/mock_datasets/realistic_mix_8w/ 폴더 내용을 교체하세요. app/profiles/mock 는 런타임 결과물입니다."
-                : "To promote it as the shipped default mock, replace designPack/mock_datasets/realistic_mix_8w/. app/profiles/mock is runtime output only."}
-            </small>
-            <small className="muted">
-              {lang === "ko"
-                ? "업적 정의만 기본값으로 반영하고 싶으면 exported dataset의 data/achievements_master.csv 를 designPack/data/achievements_master.csv 로 복사하세요."
-                : "If you only want to promote achievement definitions, copy exported data/achievements_master.csv into designPack/data/achievements_master.csv."}
-            </small>
-          </>,
-          { lowEmphasis: true }
-        )}
-
-        {renderSection(
-          "misc",
-          lang === "ko" ? "해금 정보" : "Unlock information",
-          <div className="unlock-list">
-            {unlockables.map((item) => (
-              <div key={String(item.unlock_id)} className={`unlock-item ${item.unlocked ? "on" : "off"}`}>
-                <div>
-                  <strong>{normalizeGoalText(String(item.name))}</strong>
-                  <small>
-                    Lv.{String(item.level_required)} · {String(item.type)}
-                  </small>
-                </div>
-                <span>{item.unlocked ? "Unlocked" : "Locked"}</span>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {renderSection(
-          "developer",
-          lang === "ko" ? "실험/개발자 설정" : "Experimental / developer settings",
-          <>
-            <small className="muted">
-              {lang === "ko"
-                ? "아래 항목은 향후 실험 기능용입니다. 현재 동작에 즉시 반영되지 않을 수 있습니다."
-                : "These are experimental/future keys and may not immediately affect runtime behavior."}
-            </small>
-            <div className="song-form-grid">
-              <label>
-                performance.target_dashboard_ms
-                <input
-                  type="number"
-                  min={100}
-                  step={50}
-                  value={perfConfig.target_dashboard_ms}
-                  onChange={(event) => {
-                    void applyCriticalPatch({
-                      performance: { target_dashboard_ms: Math.max(100, Number(event.target.value || 100)) },
-                    });
-                  }}
-                />
-              </label>
-              <label className="inline">
-                <input
-                  type="checkbox"
-                  checked={adminConfig.gate_enabled}
-                  onChange={(event) => {
-                    void applyCriticalPatch({
-                      admin: { ...adminConfig, gate_enabled: event.target.checked },
-                    });
-                  }}
-                />
-                <span>admin.gate_enabled</span>
-              </label>
-              <label>
-                admin.pin_hash
-                <input
-                  value={adminConfig.pin_hash}
-                  onChange={(event) => {
-                    void applyCriticalPatch({
-                      admin: { ...adminConfig, pin_hash: event.target.value },
-                    });
-                  }}
-                />
-              </label>
-            </div>
-            <div className="row">
-              <button className="ghost-btn" onClick={() => setAchievementManagerOpen(true)}>
-                {lang === "ko" ? "업적 관리자 열기" : "Open Achievement Manager"}
-              </button>
-            </div>
-          </>
-        )}
-
-        <section className="settings-admin-launch-card">
-          <button
-            className="ghost-btn danger-border"
-            data-testid="admin-overlay-open-btn"
-            onClick={() => setAdminOverlayOpen(true)}
-          >
-            {lang === "ko" ? "관리자/초기화 열기" : "Open Admin / Reset"}
-          </button>
+            <button
+              type="button"
+              className="ghost-btn"
+              data-testid="admin-tools-open-btn"
+              onClick={openAdminAuth}
+            >
+              {lang === "ko" ? "관리자 도구 열기" : "Open Admin Tools"}
+            </button>
+          </article>
         </section>
       </div>
 
+      {resetOverlayOpen ? (
+        <div
+          className="modal-backdrop settings-admin-backdrop"
+          data-testid="settings-reset-modal"
+          onClick={() => setResetOverlayOpen(false)}
+        >
+          <div className="modal settings-admin-modal settings-reset-modal" onClick={(event) => event.stopPropagation()}>
+            <div className="settings-admin-head">
+              <div>
+                <h2>{lang === "ko" ? "초기화" : "Reset"}</h2>
+                <small className="muted">
+                  {lang === "ko"
+                    ? "비밀번호는 필요 없지만, 실수 방지를 위해 여러 번 확인하고 마지막 문구를 입력해야 합니다."
+                    : "No password is required, but multiple confirmations and a final phrase are required."}
+                </small>
+              </div>
+              <button className="ghost-btn compact-add-btn" onClick={() => setResetOverlayOpen(false)}>
+                {lang === "ko" ? "닫기" : "Close"}
+              </button>
+            </div>
+
+            <section className="settings-admin-panel">
+              <h3>{lang === "ko" ? "진행도 초기화" : "Progress Reset"}</h3>
+              <p className="muted">
+                {lang === "ko"
+                  ? "레벨, XP, 퀘스트, 업적 진행도만 초기화합니다. 세션 기록, 라이브러리, 미디어는 유지됩니다."
+                  : "Resets only level, XP, quests, and achievement progress. Sessions, library data, and media stay intact."}
+              </p>
+              <button
+                type="button"
+                className="ghost-btn danger-border"
+                data-testid="reset-progress-btn"
+                onClick={() => void resetProgressWithConfirm()}
+              >
+                {lang === "ko" ? "진행도 초기화 시작" : "Start Progress Reset"}
+              </button>
+            </section>
+
+            <section className="settings-admin-panel danger-panel">
+              <h3>{lang === "ko" ? "전체 초기화" : "Full Reset"}</h3>
+              <p className="muted">
+                {lang === "ko"
+                  ? "현재 런타임의 세션, 설정, 미디어, 진행도를 모두 초기 상태로 되돌립니다."
+                  : "Resets the current runtime sessions, settings, media, and progress back to the initial state."}
+              </p>
+              <button
+                type="button"
+                className="ghost-btn danger-border"
+                data-testid="reset-all-btn"
+                onClick={() => void resetAllWithConfirm()}
+              >
+                {lang === "ko" ? "전체 초기화 시작" : "Start Full Reset"}
+              </button>
+            </section>
+          </div>
+        </div>
+      ) : null}
+
+      {adminAuthOpen ? (
+        <div
+          className="modal-backdrop settings-admin-backdrop"
+          data-testid="admin-auth-modal"
+          onClick={() => {
+            setAdminAuthOpen(false);
+            setAdminAuthError("");
+          }}
+        >
+          <div className="modal settings-admin-modal settings-auth-modal" onClick={(event) => event.stopPropagation()}>
+            <form
+              className="settings-auth-form"
+              onSubmit={(event) => {
+                event.preventDefault();
+                void submitAdminAuth();
+              }}
+            >
+              <div className="settings-admin-head">
+                <div>
+                  <h2>{lang === "ko" ? "관리자 도구 잠금 해제" : "Unlock Admin Tools"}</h2>
+                  <small className="muted">
+                    {lang === "ko"
+                      ? "운영용 설정은 일반 사용자 화면에서 숨겨져 있습니다."
+                      : "Operational settings stay hidden from the normal user view."}
+                  </small>
+                </div>
+                <button
+                  type="button"
+                  className="ghost-btn compact-add-btn"
+                  onClick={() => {
+                    setAdminAuthOpen(false);
+                    setAdminAuthError("");
+                  }}
+                >
+                  {lang === "ko" ? "닫기" : "Close"}
+                </button>
+              </div>
+
+              <section className="settings-admin-panel">
+                <label>
+                  {lang === "ko" ? "관리자 비밀번호" : "Admin Password"}
+                  <input
+                    type="password"
+                    data-testid="admin-auth-input"
+                    value={adminPasswordDraft}
+                    onChange={(event) => {
+                      setAdminPasswordDraft(event.target.value);
+                      if (adminAuthError) setAdminAuthError("");
+                    }}
+                    placeholder={lang === "ko" ? "비밀번호 입력" : "Enter password"}
+                    autoFocus
+                  />
+                </label>
+                {adminAuthError ? <div className="settings-inline-error">{adminAuthError}</div> : null}
+                <div className="row">
+                  <button
+                    type="submit"
+                    className="primary-btn"
+                    data-testid="admin-auth-submit"
+                    disabled={adminAuthBusy || !adminPasswordDraft.trim()}
+                  >
+                    {lang === "ko" ? "들어가기" : "Unlock"}
+                  </button>
+                </div>
+              </section>
+            </form>
+          </div>
+        </div>
+      ) : null}
+
       {adminOverlayOpen ? (
-        <div className="modal-backdrop settings-admin-backdrop" data-testid="admin-overlay">
+        <div className="modal-backdrop settings-admin-backdrop" data-testid="admin-overlay" onClick={() => setAdminOverlayOpen(false)}>
           <div className="modal settings-admin-modal" onClick={(event) => event.stopPropagation()}>
             <div className="settings-admin-head">
               <div>
-                <h2>{lang === "ko" ? "Critical / 초기화" : "Critical / Reset"}</h2>
+                <h2>{lang === "ko" ? "관리자 도구" : "Admin Tools"}</h2>
                 <small className="muted">
                   {lang === "ko"
-                    ? "각 파라미터 의미를 확인한 뒤 저장하세요."
-                    : "Review each parameter meaning before saving."}
+                    ? "공개 설정에서 숨긴 운영/테스트 항목만 여기서 조정합니다."
+                    : "Only operational and testing controls hidden from the public settings are shown here."}
                 </small>
               </div>
               <button className="ghost-btn compact-add-btn" onClick={() => setAdminOverlayOpen(false)}>
@@ -2717,7 +2286,7 @@ export function SettingsPage({ lang, settings, hud, unlockables, onSettingsChang
             </div>
 
             <section className="settings-admin-panel">
-              <h3>{lang === "ko" ? "Critical Balance" : "Critical Balance"}</h3>
+              <h3>{lang === "ko" ? "Critical Balance / 테스트" : "Critical Balance / Testing"}</h3>
               <div className="critical-grid">
                 <div className="tag-help">
                   <small className="muted">
@@ -2840,16 +2409,13 @@ export function SettingsPage({ lang, settings, hud, unlockables, onSettingsChang
                   </small>
                 </div>
               </div>
-              <button className="primary-btn" onClick={() => void saveCriticalBalance()}>
-                {lang === "ko" ? "Critical 저장" : "Save Critical Settings"}
-              </button>
-            </section>
-
-            <section className="settings-admin-panel">
-              <h3>{lang === "ko" ? "테스트 / 초기화" : "Testing / Reset"}</h3>
               <div className="row">
+                <button className="primary-btn" onClick={() => void saveCriticalBalance()}>
+                  {lang === "ko" ? "Critical 저장" : "Save Critical Settings"}
+                </button>
                 <button
                   className="ghost-btn"
+                  data-testid="admin-grant-xp-btn"
                   onClick={async () => {
                     try {
                       const grant = Math.max(1, grantToNext);
@@ -2869,55 +2435,501 @@ export function SettingsPage({ lang, settings, hud, unlockables, onSettingsChang
                     ? `테스트 레벨업 (+${formatDisplayXp(Math.max(1, grantToNext), xpDisplayScale)} XP)`
                     : `Test Level Up (+${formatDisplayXp(Math.max(1, grantToNext), xpDisplayScale)} XP)`}
                 </button>
+                <button className="ghost-btn" onClick={() => setAchievementManagerOpen(true)}>
+                  {lang === "ko" ? "업적 관리자 열기" : "Open Achievement Manager"}
+                </button>
+              </div>
+            </section>
+
+            <section className="settings-admin-panel">
+              <h3>{lang === "ko" ? "운영 / 백업 세부값" : "Operations / Backup Details"}</h3>
+              <div className="song-form-grid">
+                <label>
+                  backup.max_files
+                  <input
+                    type="number"
+                    min={1}
+                    max={30}
+                    value={backupConfig.max_files}
+                    onChange={(event) => {
+                      void applyCriticalPatch({
+                        backup: { ...backupConfig, max_files: Math.max(1, Number(event.target.value || 1)) },
+                      });
+                    }}
+                  />
+                </label>
+                <label>
+                  backup.min_hours_between
+                  <input
+                    type="number"
+                    min={1}
+                    max={168}
+                    value={backupConfig.min_hours_between}
+                    onChange={(event) => {
+                      void applyCriticalPatch({
+                        backup: { ...backupConfig, min_hours_between: Math.max(1, Number(event.target.value || 1)) },
+                      });
+                    }}
+                  />
+                </label>
+                <label>
+                  performance.target_dashboard_ms
+                  <input
+                    type="number"
+                    min={100}
+                    step={50}
+                    value={perfConfig.target_dashboard_ms}
+                    onChange={(event) => {
+                      void applyCriticalPatch({
+                        performance: { target_dashboard_ms: Math.max(100, Number(event.target.value || 100)) },
+                      });
+                    }}
+                  />
+                </label>
+              </div>
+              <small className="muted">
+                {lang === "ko"
+                  ? "일반 사용자 화면에서는 자동 백업 on/off만 노출하고, 보관 개수와 간격 같은 운영값은 여기서만 조정합니다."
+                  : "The public settings expose only auto backup on/off; retention and timing stay here."}
+              </small>
+            </section>
+
+            <section className="settings-admin-panel">
+              <h3>{lang === "ko" ? "퀘스트 자동 생성 규칙" : "Quest Automation"}</h3>
+              <div className="song-form-grid">
+                {periodKeys.map((period) => (
+                  <div key={`admin-quest-setting-${period}`} className="quest-setting-box">
+                    <strong>
+                      {period === "short"
+                        ? lang === "ko"
+                          ? "단기"
+                          : "Short"
+                        : period === "mid"
+                          ? lang === "ko"
+                            ? "중기"
+                            : "Mid"
+                          : lang === "ko"
+                            ? "장기"
+                            : "Long"}
+                    </strong>
+                    <label>
+                      {lang === "ko" ? "기간(일)" : "Period Days"}
+                      <input
+                        type="number"
+                        min={1}
+                        value={questForm.period_days[period]}
+                        onChange={(event) =>
+                          updateQuestForm((prev) => ({
+                            ...prev,
+                            period_days: { ...prev.period_days, [period]: Number(event.target.value || 1) },
+                          }))
+                        }
+                      />
+                    </label>
+                    <label className="inline">
+                      <input
+                        type="checkbox"
+                        checked={questForm.auto_enabled_by_period[period]}
+                        onChange={(event) =>
+                          updateQuestForm((prev) => ({
+                            ...prev,
+                            auto_enabled_by_period: { ...prev.auto_enabled_by_period, [period]: event.target.checked },
+                          }))
+                        }
+                      />
+                      <span>{lang === "ko" ? "자동 생성 사용" : "Enable auto quest"}</span>
+                    </label>
+                    <label>
+                      {lang === "ko" ? "자동 목표(분)" : "Auto Target Minutes"}
+                      <input
+                        type="number"
+                        min={1}
+                        value={questForm.auto_target_minutes_by_period[period]}
+                        onChange={(event) =>
+                          updateQuestForm((prev) => ({
+                            ...prev,
+                            auto_target_minutes_by_period: {
+                              ...prev.auto_target_minutes_by_period,
+                              [period]: Number(event.target.value || 1),
+                            },
+                          }))
+                        }
+                      />
+                    </label>
+                    <label>
+                      {lang === "ko" ? "자동 중요도" : "Auto Priority"}
+                      <select
+                        value={questForm.auto_priority_by_period[period]}
+                        onChange={(event) =>
+                          updateQuestForm((prev) => ({
+                            ...prev,
+                            auto_priority_by_period: {
+                              ...prev.auto_priority_by_period,
+                              [period]: event.target.value as "low" | "normal" | "urgent",
+                            },
+                          }))
+                        }
+                      >
+                        <option value="urgent">{questPriorityLabel("urgent")}</option>
+                        <option value="normal">{questPriorityLabel("normal")}</option>
+                        <option value="low">{questPriorityLabel("low")}</option>
+                      </select>
+                    </label>
+                    <label>
+                      {lang === "ko" ? "자동 난이도" : "Auto Difficulty"}
+                      <select
+                        value={questForm.auto_difficulty_by_period[period]}
+                        onChange={(event) =>
+                          updateQuestForm((prev) => ({
+                            ...prev,
+                            auto_difficulty_by_period: {
+                              ...prev.auto_difficulty_by_period,
+                              [period]: event.target.value as "low" | "mid" | "high",
+                            },
+                          }))
+                        }
+                      >
+                        <option value="high">{questDifficultyLabel("high")}</option>
+                        <option value="mid">{questDifficultyLabel("mid")}</option>
+                        <option value="low">{questDifficultyLabel("low")}</option>
+                      </select>
+                    </label>
+                  </div>
+                ))}
+              </div>
+              <div className="row">
+                <small className="muted">{questSaving ? (lang === "ko" ? "퀘스트 설정 저장 중..." : "Saving quest settings...") : ""}</small>
+                <button className="ghost-btn" onClick={() => void saveQuestSettings(false)}>
+                  {lang === "ko" ? "지금 저장" : "Save now"}
+                </button>
+              </div>
+            </section>
+
+            <section className="settings-admin-panel">
+              <h3>{lang === "ko" ? "디자인 / 팔레트" : "Design / Palette"}</h3>
+              <div className="song-form-grid">
+                <div className="quest-setting-box">
+                  <strong>{lang === "ko" ? "퀘스트 기간 레인 색상" : "Quest period lane colors"}</strong>
+                  {periodKeys.map((period) => (
+                    <div key={`admin-period-color-${period}`} className="row">
+                      <span>
+                        {period === "short" ? (lang === "ko" ? "단기" : "Short") : period === "mid" ? (lang === "ko" ? "중기" : "Mid") : lang === "ko" ? "장기" : "Long"}
+                      </span>
+                      {renderColorInput(lang === "ko" ? "테두리" : "Border", questForm.ui_style.period_border[period], (value) =>
+                        updateQuestForm((prev) => ({
+                          ...prev,
+                          ui_style: {
+                            ...prev.ui_style,
+                            period_border: { ...prev.ui_style.period_border, [period]: value },
+                          },
+                        }))
+                      )}
+                      {renderColorInput(lang === "ko" ? "배경" : "Fill", questForm.ui_style.period_fill[period], (value) =>
+                        updateQuestForm((prev) => ({
+                          ...prev,
+                          ui_style: {
+                            ...prev.ui_style,
+                            period_fill: { ...prev.ui_style.period_fill, [period]: value },
+                          },
+                        }))
+                      )}
+                    </div>
+                  ))}
+                </div>
+
+                <div className="quest-setting-box">
+                  <strong>{lang === "ko" ? "중요도/난이도 색상" : "Priority / Difficulty colors"}</strong>
+                  {(["urgent", "normal", "low"] as const).map((key) => (
+                    <div key={`admin-priority-color-${key}`}>
+                      {renderColorInput(lang === "ko" ? `중요도 (${questPriorityLabel(key)})` : `Priority (${questPriorityLabel(key)})`, questForm.ui_style.priority_border[key], (value) =>
+                        updateQuestForm((prev) => ({
+                          ...prev,
+                          ui_style: {
+                            ...prev.ui_style,
+                            priority_border: { ...prev.ui_style.priority_border, [key]: value },
+                          },
+                        }))
+                      )}
+                    </div>
+                  ))}
+                  {(["low", "mid", "high"] as const).map((key) => (
+                    <div key={`admin-difficulty-color-${key}`}>
+                      {renderColorInput(lang === "ko" ? `난이도 (${questDifficultyLabel(key)})` : `Difficulty (${questDifficultyLabel(key)})`, questForm.ui_style.difficulty_fill[key], (value) =>
+                        updateQuestForm((prev) => ({
+                          ...prev,
+                          ui_style: {
+                            ...prev.ui_style,
+                            difficulty_fill: { ...prev.ui_style.difficulty_fill, [key]: value },
+                          },
+                        }))
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="quest-setting-box">
+                <div className="row">
+                  <strong>{lang === "ko" ? "업적 카드 색상" : "Achievement card palette"}</strong>
+                  <button className="ghost-btn compact-add-btn" onClick={resetAchievementCardStyles}>
+                    {lang === "ko" ? "기본값 복원" : "Reset defaults"}
+                  </button>
+                </div>
+                <div className="settings-achievement-style-grid">
+                  {ACHIEVEMENT_STYLE_EDITOR_KEYS.map((key) => (
+                    <div key={key} className="settings-achievement-style-item">
+                      <strong>{ACHIEVEMENT_STYLE_LABELS[key][lang]}</strong>
+                      {renderColorInput(lang === "ko" ? "테두리" : "Border", achievementStyleMap[key].border, (value) =>
+                        updateAchievementCardStyle(key, "border", value)
+                      )}
+                      {renderColorInput(lang === "ko" ? "배경" : "Fill", achievementStyleMap[key].fill, (value) =>
+                        updateAchievementCardStyle(key, "fill", value)
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </section>
+
+            <section className="settings-admin-panel">
+              <h3>{lang === "ko" ? "장르 / 그룹 관리" : "Genre / Group Management"}</h3>
+              <div className="tag-help">
+                <strong>{lang === "ko" ? "추천곡/곡 라이브러리 공통 장르 카탈로그" : "Shared genre catalog for songs and recommendations"}</strong>
+                <small className="muted">
+                  {lang === "ko"
+                    ? "장르 추가/삭제, 상위유형(그룹) 이동/추가/수정, 장르명 일괄 변경이 가능합니다."
+                    : "Add/remove genres, edit parent groups, and rename genres globally."}
+                </small>
+              </div>
+
+              <div className="song-form-grid settings-genre-manage-grid">
+                <label>
+                  {lang === "ko" ? "새 그룹 이름" : "New group name"}
+                  <input
+                    value={newGenreGroupName}
+                    onChange={(event) => setNewGenreGroupName(event.target.value)}
+                    placeholder={lang === "ko" ? "예: 팝/가요" : "e.g. Pop / K-pop"}
+                  />
+                </label>
+                <div className="row">
+                  <button className="ghost-btn" onClick={() => void addGenreGroup()}>
+                    {lang === "ko" ? "그룹 추가" : "Add group"}
+                  </button>
+                  <button className="ghost-btn" onClick={() => void resetGenreCatalog()}>
+                    {lang === "ko" ? "기본값 복원" : "Reset defaults"}
+                  </button>
+                </div>
+              </div>
+
+              <div className="song-form-grid settings-genre-manage-grid">
+                <label>
+                  {lang === "ko" ? "새 장르" : "New genre"}
+                  <input
+                    value={newGenre}
+                    onChange={(event) => setNewGenre(event.target.value)}
+                    placeholder={lang === "ko" ? "예: Ballad" : "e.g. Ballad"}
+                  />
+                </label>
+                <label>
+                  {lang === "ko" ? "추가할 그룹" : "Target group"}
+                  <select value={newGenreTargetGroup} onChange={(event) => setNewGenreTargetGroup(event.target.value)}>
+                    {genreGroupNames.map((name) => (
+                      <option key={`admin-genre-target-${name}`} value={name}>
+                        {name}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <div className="row">
+                  <button className="ghost-btn" onClick={() => void addGenreToGroup()}>
+                    {lang === "ko" ? "장르 추가" : "Add genre"}
+                  </button>
+                </div>
+              </div>
+
+              <div className="settings-genre-group-admin-list">
+                {currentGenreGroups.map((group) => (
+                  <section key={`admin-genre-group-${group.name}`} className="settings-genre-group-admin">
+                    <div className="settings-genre-group-admin-head">
+                      <div>
+                        <strong>{group.name}</strong>
+                        <small className="muted">
+                          {lang === "ko" ? `${group.values.length}개 장르` : `${group.values.length} genres`}
+                        </small>
+                      </div>
+                      <div className="row">
+                        <button className="ghost-btn compact-add-btn" onClick={() => void renameGenreGroup(group.name)}>
+                          {lang === "ko" ? "이름 변경" : "Rename"}
+                        </button>
+                        <button
+                          className="ghost-btn compact-add-btn danger-border"
+                          disabled={currentGenreGroups.length <= 1}
+                          onClick={() => void deleteGenreGroup(group.name)}
+                        >
+                          {lang === "ko" ? "그룹 삭제" : "Delete group"}
+                        </button>
+                      </div>
+                    </div>
+
+                    {group.values.length ? (
+                      <div className="settings-genre-chip-grid settings-genre-chip-grid-admin">
+                        {group.values.map((genre) => (
+                          <div key={`${group.name}-${genre}`} className="settings-genre-chip settings-genre-chip-edit">
+                            <span>{genre}</span>
+                            <select
+                              value={genreToGroupMap.get(genre.toLowerCase()) ?? group.name}
+                              onChange={(event) => void moveGenreToGroup(genre, event.target.value)}
+                            >
+                              {genreGroupNames.map((name) => (
+                                <option key={`admin-genre-move-${genre}-${name}`} value={name}>
+                                  {name}
+                                </option>
+                              ))}
+                            </select>
+                            <button className="ghost-btn compact-add-btn" onClick={() => void renameGenreEverywhere(genre)}>
+                              {lang === "ko" ? "이름변경" : "Rename"}
+                            </button>
+                            <button className="ghost-btn compact-add-btn danger-border" onClick={() => void removeGenreFromPool(genre)}>
+                              {lang === "ko" ? "제거" : "Remove"}
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <small className="muted">{lang === "ko" ? "아직 장르가 없습니다." : "No genres in this group yet."}</small>
+                    )}
+                  </section>
+                ))}
+              </div>
+            </section>
+
+            <section className="settings-admin-panel">
+              <h3>{lang === "ko" ? "모의 데이터셋" : "Mock Datasets"}</h3>
+              <small className="muted" data-testid="mock-profile-status">
+                {lang === "ko"
+                  ? `현재 프로필: ${mockStatus.profile}${mockStatus.dataset_id ? ` (${mockStatus.dataset_id})` : ""}`
+                  : `Current profile: ${mockStatus.profile}${mockStatus.dataset_id ? ` (${mockStatus.dataset_id})` : ""}`}
+              </small>
+              <small className="muted">
+                {lang === "ko"
+                  ? `실데이터 경로: ${mockStatus.real_data_path ?? "app/data"}`
+                  : `Real data path: ${mockStatus.real_data_path ?? "app/data"}`}
+              </small>
+              <small className="muted">
+                {lang === "ko"
+                  ? `모의 데이터셋 루트: ${mockStatus.datasets_root ?? "designPack/mock_datasets"}`
+                  : `Mock datasets root: ${mockStatus.datasets_root ?? "designPack/mock_datasets"}`}
+              </small>
+              <div className="song-form-grid">
+                <label>
+                  {lang === "ko" ? "데이터셋" : "Dataset"}
+                  <select
+                    data-testid="mock-dataset-select"
+                    value={selectedMockDataset}
+                    onChange={(event) => setSelectedMockDataset(event.target.value)}
+                  >
+                    <option value="">{lang === "ko" ? "(선택)" : "(Select)"}</option>
+                    {mockDatasets.map((dataset) => (
+                      <option key={dataset.id} value={dataset.id}>
+                        {dataset.name} ({dataset.file_count})
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              </div>
+              <div className="row">
                 <button
-                  className="ghost-btn danger-border"
+                  className="ghost-btn"
+                  data-testid="mock-activate-btn"
+                  disabled={mockBusy || !selectedMockDataset}
                   onClick={async () => {
-                    const ok = window.confirm(
-                      lang === "ko" ? "XP/레벨 기록을 초기화할까요?" : "Reset XP/level progress?"
-                    );
-                    if (!ok) return;
                     try {
-                      await adminResetProgress();
-                      setMessage(lang === "ko" ? "진행도 초기화 완료" : "Progress reset complete");
+                      setMockBusy(true);
+                      const status = await activateMockData(selectedMockDataset, false);
+                      setMockStatus(status);
+                      setMessage(lang === "ko" ? "모의 데이터셋 적용 완료" : "Mock dataset activated");
                       await onRefresh();
-                    } catch (error) {
-                      setMessage(
-                        getErrorMessage(error, lang === "ko" ? "진행도 초기화 실패" : "Failed to reset progress")
-                      );
+                    } finally {
+                      setMockBusy(false);
                     }
                   }}
                 >
-                  {lang === "ko" ? "레벨/XP 초기화" : "Reset XP/Level"}
+                  {lang === "ko" ? "모의데이터 적용" : "Activate Mock"}
+                </button>
+                <button
+                  className="ghost-btn"
+                  data-testid="mock-reload-btn"
+                  disabled={mockBusy || !selectedMockDataset}
+                  onClick={async () => {
+                    try {
+                      setMockBusy(true);
+                      const status = await activateMockData(selectedMockDataset, true);
+                      setMockStatus(status);
+                      setMessage(lang === "ko" ? "모의 데이터셋 리로드 완료" : "Mock dataset reloaded");
+                      await onRefresh();
+                    } finally {
+                      setMockBusy(false);
+                    }
+                  }}
+                >
+                  {lang === "ko" ? "모의데이터 리로드" : "Reload Mock"}
                 </button>
                 <button
                   className="ghost-btn danger-border"
+                  data-testid="mock-deactivate-btn"
+                  disabled={mockBusy}
                   onClick={async () => {
-                    const first = window.confirm(
-                      lang === "ko"
-                        ? "정말 전체 초기화할까요? (세션/미디어/설정)"
-                        : "Reset everything? (sessions/media/settings)"
-                    );
-                    if (!first) return;
-                    const token = window.prompt(
-                      lang === "ko"
-                        ? "전체 초기화를 계속하려면 RESET ALL 을 입력하세요."
-                        : "Type RESET ALL to continue full reset."
-                    );
-                    if ((token || "").trim().toUpperCase() !== "RESET ALL") {
-                      setMessage(lang === "ko" ? "전체 초기화 취소됨" : "Full reset cancelled");
-                      return;
-                    }
                     try {
-                      await adminResetAll();
-                      setMessage(lang === "ko" ? "전체 초기화 완료" : "Full reset complete");
+                      setMockBusy(true);
+                      const status = await deactivateMockData();
+                      setMockStatus(status);
+                      setMessage(lang === "ko" ? "실데이터 프로필로 복귀" : "Returned to real data profile");
                       await onRefresh();
-                      setAdminOverlayOpen(false);
-                    } catch (error) {
-                      setMessage(getErrorMessage(error, lang === "ko" ? "전체 초기화 실패" : "Full reset failed"));
+                    } finally {
+                      setMockBusy(false);
                     }
                   }}
                 >
-                  {lang === "ko" ? "전체 초기화" : "Full Reset"}
+                  {lang === "ko" ? "실데이터 복귀" : "Back to Real Data"}
+                </button>
+              </div>
+              <div className="song-form-grid">
+                <label>
+                  {lang === "ko" ? "현재 상태 저장 ID" : "Snapshot Dataset ID"}
+                  <input
+                    data-testid="mock-export-dataset-id"
+                    value={mockExportDatasetId}
+                    onChange={(event) => setMockExportDatasetId(event.target.value)}
+                    placeholder={lang === "ko" ? "예: my_practice_snapshot" : "e.g. my_practice_snapshot"}
+                  />
+                </label>
+              </div>
+              <div className="row">
+                <button
+                  className="ghost-btn"
+                  data-testid="mock-export-current-btn"
+                  disabled={mockBusy || mockExportBusy || !mockExportDatasetId.trim()}
+                  onClick={async () => {
+                    try {
+                      setMockExportBusy(true);
+                      const result = await exportCurrentToMockDataset({
+                        dataset_id: mockExportDatasetId.trim(),
+                        generate_sessions_60d: true,
+                        session_days: 60,
+                      });
+                      await loadMockDatasets();
+                      setSelectedMockDataset(result.dataset_id);
+                      setMessage(
+                        lang === "ko"
+                          ? `샌드박스 데이터셋 저장 완료: ${result.dataset_id} (${result.generated_sessions}개 세션 / 미디어 ${result.media_file_count}개 / 업적 정의·상태 포함)`
+                          : `Sandbox dataset exported: ${result.dataset_id} (${result.generated_sessions} sessions / ${result.media_file_count} media files / achievements included)`
+                      );
+                    } finally {
+                      setMockExportBusy(false);
+                    }
+                  }}
+                >
+                  {lang === "ko" ? "현재 상태를 샌드박스로 저장 (+60일 세션 + 미디어)" : "Export current state (+60d sessions + media)"}
                 </button>
               </div>
             </section>

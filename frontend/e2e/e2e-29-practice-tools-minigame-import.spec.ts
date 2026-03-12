@@ -11,6 +11,14 @@ async function openToolsView(page: Page, label: RegExp): Promise<void> {
   await toolsGroup.getByRole("button", { name: label }).click();
 }
 
+function isLineMapperScaleTitle(title: string): boolean {
+  return /^[A-G](?:#|b)? [A-Z][A-Za-z-]*(?: [A-Z][A-Za-z-]*)*$/.test(title) && !title.includes("(");
+}
+
+function isLineMapperChordTitle(title: string): boolean {
+  return /^[A-G](?:#|b)?[^()]* \([A-G](?:#|b)? [^)]+\)$/.test(title);
+}
+
 test("E2E-29 practice tools keeps minigame, theory, and popup settings aligned", async ({ page, request }) => {
   await resetRuntime(request);
   await request.post("/api/minigame/records", {
@@ -71,11 +79,11 @@ test("E2E-29 practice tools keeps minigame, theory, and popup settings aligned",
   expect((modalAfterOpen?.y ?? 0) + (modalAfterOpen?.height ?? 0)).toBeLessThanOrEqual((modalViewport?.height ?? 0) - 8);
   const scaleSpreadInput = page.locator("[data-testid='mg-theory-scale-spread-number']").first();
   await scaleSpreadInput.fill("180");
-  await page.getByRole("button", { name: "설정 저장" }).click();
+  await page.getByRole("button", { name: "저장" }).click();
   await page.locator(".practice-tools-modal-head .ghost-btn").click();
 
   await page.setViewportSize({ width: 1366, height: 768 });
-  await openToolsView(page, /이론·코드·스케일|Theory/i);
+  await openToolsView(page, /이론|Theory/i);
   await expect(page.locator("[data-testid='mg-theory-page']")).toBeVisible();
   const contentOverflow = await page.locator(".content").evaluate((node) => node.scrollHeight - node.clientHeight);
   expect(contentOverflow).toBeLessThanOrEqual(20);
@@ -90,4 +98,44 @@ test("E2E-29 practice tools keeps minigame, theory, and popup settings aligned",
   await page.getByRole("button", { name: "연습 도구 설정" }).first().click();
   await expect(page.locator("[data-testid='mg-settings-page']")).toBeVisible();
   await expect(page.locator("[data-testid='mg-theory-scale-spread-number']").first()).toHaveValue("180");
+});
+
+test("E2E-29 line mapper rule title uses English score-style names", async ({ page, request }) => {
+  await resetRuntime(request);
+  await openApp(page, 1366, 768);
+  await openToolsView(page, /미니게임|Mini Game/i);
+  await page.locator("[data-testid='mg-enter-game-LM']").click();
+  await expect(page.locator("[data-testid='mg-page']")).toBeVisible();
+
+  await page.locator("[data-testid='mg-difficulty-panel'] .mg-difficulty-item", { hasText: "VERY HARD" }).click();
+  await page.locator("[data-testid='mg-start-practice']").click();
+  await expect(page.locator("[data-testid='mg-lm-game']")).toBeVisible();
+
+  const title = page.locator("[data-testid='mg-lm-question-title']");
+  const nextButton = page.locator("[data-testid='mg-lm-next']");
+  let sawScaleTitle = false;
+  let sawChordTitle = false;
+  let sawSymbolicChord = false;
+
+  for (let index = 0; index < 40; index += 1) {
+    const currentTitle = (await title.textContent())?.trim() || "";
+    if (isLineMapperScaleTitle(currentTitle)) {
+      sawScaleTitle = true;
+    }
+    if (isLineMapperChordTitle(currentTitle)) {
+      sawChordTitle = true;
+      if (/[△ø°]/.test(currentTitle)) {
+        sawSymbolicChord = true;
+      }
+    }
+    if (sawScaleTitle && sawChordTitle && sawSymbolicChord) {
+      break;
+    }
+    await nextButton.click();
+    await page.waitForTimeout(120);
+  }
+
+  expect(sawScaleTitle).toBeTruthy();
+  expect(sawChordTitle).toBeTruthy();
+  expect(sawSymbolicChord).toBeTruthy();
 });

@@ -191,7 +191,7 @@ def test_settings_endpoints_tolerate_partial_settings_json(tmp_path):
     settings_res = client.get("/api/settings")
     assert settings_res.status_code == 200
     settings_payload = settings_res.get_json()["settings"]
-    assert settings_payload["ui"]["language"] in {"ko", "en"}
+    assert settings_payload["ui"]["language"] == "ko"
 
     hud_res = client.get("/api/hud/summary")
     assert hud_res.status_code == 200

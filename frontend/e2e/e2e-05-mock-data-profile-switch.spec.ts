@@ -1,20 +1,25 @@
-import { expect, test } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
 import { gotoSettings, openApp, resetRuntime } from "./helpers";
+
+async function unlockAdminTools(page: Page): Promise<void> {
+  await page.locator("[data-testid='admin-tools-open-btn']").click();
+  await expect(page.locator("[data-testid='admin-auth-modal']")).toBeVisible();
+  await page.locator("[data-testid='admin-auth-input']").fill("q1w2e3r4!");
+  await page.locator("[data-testid='admin-auth-submit']").click();
+  await expect(page.locator("[data-testid='admin-overlay']")).toBeVisible();
+}
 
 test("E2E-05 모의데이터 샌드박스 전환 + 실데이터 복귀", async ({ page, request }) => {
   await resetRuntime(request);
   await openApp(page);
   await gotoSettings(page);
-  const mockSection = page.locator("[data-testid='settings-section-mock']");
-  await expect(mockSection).toBeVisible();
-  const datasetSelect = page.locator("[data-testid='mock-dataset-select']");
-  if (!(await datasetSelect.isVisible())) {
-    await page.locator("[data-testid='settings-section-toggle-mock']").click();
-  }
+  await unlockAdminTools(page);
 
+  const datasetSelect = page.locator("[data-testid='mock-dataset-select']");
   await expect(datasetSelect).toBeVisible();
   let options = datasetSelect.locator("option");
   let optionCount = await options.count();
+
   if (optionCount <= 1) {
     const datasetId = `e2e_snapshot_${Date.now()}`;
     const exportRes = await request.post("/api/admin/mock-data/export-current", {
@@ -28,10 +33,12 @@ test("E2E-05 모의데이터 샌드박스 전환 + 실데이터 복귀", async (
     expect(exportPayload.ok).toBeTruthy();
     await page.reload();
     await gotoSettings(page);
-    await page.waitForTimeout(200);
+    await unlockAdminTools(page);
+    await expect(datasetSelect).toBeVisible();
     options = datasetSelect.locator("option");
     optionCount = await options.count();
   }
+
   expect(optionCount).toBeGreaterThan(1);
 
   const datasetValue = await options.nth(1).getAttribute("value");
@@ -71,10 +78,8 @@ test("E2E-05 모의데이터 샌드박스 전환 + 실데이터 복귀", async (
   });
   await page.reload();
   await gotoSettings(page);
-  await expect(mockSection).toBeVisible();
-  if (!(await datasetSelect.isVisible())) {
-    await page.locator("[data-testid='settings-section-toggle-mock']").click();
-  }
+  await unlockAdminTools(page);
+  await expect(datasetSelect).toBeVisible();
 
   const deactivateResponsePromise = page.waitForResponse((res) => res.url().includes("/api/admin/mock-data/deactivate"));
   await expect(page.locator("[data-testid='mock-deactivate-btn']")).toBeEnabled();

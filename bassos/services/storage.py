@@ -1048,6 +1048,7 @@ class Storage:
         if not isinstance(raw_ui, dict):
             raw_ui = {}
         ui_defaults = SETTINGS_DEFAULTS["ui"]
+        ui["language"] = "ko"
         for key in (
             "practice_video_pip_mode",
             "practice_video_tab_switch_playback",
@@ -1129,6 +1130,14 @@ class Storage:
             practice_tools.get("minigame_user_settings")
         )
         merged["practice_tools"] = practice_tools
+
+        admin_settings = merged.get("admin")
+        if not isinstance(admin_settings, dict):
+            admin_settings = {}
+        admin_defaults = SETTINGS_DEFAULTS["admin"]
+        admin_settings["gate_enabled"] = bool(admin_defaults["gate_enabled"])
+        admin_settings["pin_hash"] = str(admin_defaults["pin_hash"])
+        merged["admin"] = admin_settings
 
         return merged
 
@@ -1395,6 +1404,9 @@ class Storage:
                 merged["critical"] = critical
             critical["minigame_xp_multiplier"] = SETTINGS_DEFAULTS["critical"]["minigame_xp_multiplier"]
             merged["policy_version"] = 19
+
+        if current_version < 20:
+            merged["policy_version"] = 20
 
         merged = self.normalize_settings(merged, source_settings=source_settings)
 

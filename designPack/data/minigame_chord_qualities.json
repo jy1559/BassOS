@@ -1,6 +1,7 @@
 ﻿{
   "maj": {
     "name_ko": "메이저 트라이어드",
+    "name_en": "major",
     "group": "Triad",
     "description_ko": "장3도+완전5도",
     "mood_ko": "밝고 안정적",
@@ -10,6 +11,7 @@
   },
   "min": {
     "name_ko": "마이너 트라이어드",
+    "name_en": "minor",
     "group": "Triad",
     "description_ko": "단3도+완전5도",
     "mood_ko": "차분하고 감성적",
@@ -19,6 +21,7 @@
   },
   "dim": {
     "name_ko": "디미니시드 트라이어드",
+    "name_en": "diminished",
     "group": "Triad",
     "description_ko": "단3도+감5도",
     "mood_ko": "불안정, 긴장",
@@ -28,6 +31,7 @@
   },
   "aug": {
     "name_ko": "어그먼트 트라이어드",
+    "name_en": "augmented",
     "group": "Triad",
     "description_ko": "장3도+증5도",
     "mood_ko": "부유감, 긴장",
@@ -37,6 +41,7 @@
   },
   "sus2": {
     "name_ko": "서스2",
+    "name_en": "suspended 2",
     "group": "Suspended",
     "description_ko": "3도 대신 2도",
     "mood_ko": "열린 느낌",
@@ -46,6 +51,7 @@
   },
   "sus4": {
     "name_ko": "서스4",
+    "name_en": "suspended 4",
     "group": "Suspended",
     "description_ko": "3도 대신 4도",
     "mood_ko": "해결 대기감",
@@ -55,6 +61,7 @@
   },
   "7": {
     "name_ko": "도미넌트7",
+    "name_en": "dominant 7",
     "group": "Seventh",
     "description_ko": "메이저 트라이어드+b7",
     "mood_ko": "긴장과 추진력",
@@ -64,6 +71,7 @@
   },
   "maj7": {
     "name_ko": "메이저7",
+    "name_en": "major 7",
     "group": "Seventh",
     "description_ko": "메이저 트라이어드+7",
     "mood_ko": "세련되고 부드러움",
@@ -73,6 +81,7 @@
   },
   "m7": {
     "name_ko": "마이너7",
+    "name_en": "minor 7",
     "group": "Seventh",
     "description_ko": "마이너 트라이어드+b7",
     "mood_ko": "따뜻하고 안정적인 마이너",
@@ -82,6 +91,7 @@
   },
   "mMaj7": {
     "name_ko": "마이너 메이저7",
+    "name_en": "minor-major 7",
     "group": "Seventh",
     "description_ko": "마이너 트라이어드+7",
     "mood_ko": "어둡지만 영화적",
@@ -91,6 +101,7 @@
   },
   "m7b5": {
     "name_ko": "하프디미니시드",
+    "name_en": "half-diminished 7",
     "group": "Seventh",
     "description_ko": "dim triad + b7",
     "mood_ko": "불안정한 중간 긴장",
@@ -100,6 +111,7 @@
   },
   "dim7": {
     "name_ko": "디미니시드7",
+    "name_en": "diminished 7",
     "group": "Seventh",
     "description_ko": "완전 대칭 3도 구조",
     "mood_ko": "강한 긴장/전환",
@@ -109,6 +121,7 @@
   },
   "add9": {
     "name_ko": "애드9",
+    "name_en": "add9",
     "group": "Added Tone",
     "description_ko": "트라이어드에 9도 추가",
     "mood_ko": "맑고 넓은 공간감",
@@ -118,6 +131,7 @@
   },
   "9": {
     "name_ko": "도미넌트9",
+    "name_en": "dominant 9",
     "group": "Extended",
     "description_ko": "7 코드에 9도 추가",
     "mood_ko": "재즈/펑크 그루브",
@@ -127,6 +141,7 @@
   },
   "m9": {
     "name_ko": "마이너9",
+    "name_en": "minor 9",
     "group": "Extended",
     "description_ko": "m7에 9도 추가",
     "mood_ko": "부드럽고 서정적",
@@ -136,6 +151,7 @@
   },
   "11": {
     "name_ko": "11 코드",
+    "name_en": "11",
     "group": "Extended",
     "description_ko": "도미넌트 계열 확장",
     "mood_ko": "두터운 텐션",
@@ -145,6 +161,7 @@
   },
   "13": {
     "name_ko": "13 코드",
+    "name_en": "13",
     "group": "Extended",
     "description_ko": "도미넌트 계열 완성형 확장",
     "mood_ko": "풍성하고 세련됨",
@@ -154,6 +171,7 @@
   },
   "7b9": {
     "name_ko": "7(b9)",
+    "name_en": "7 flat 9",
     "group": "Altered",
     "description_ko": "도미넌트에 b9 긴장",
     "mood_ko": "강한 해결 욕구",
@@ -163,6 +181,7 @@
   },
   "7#9": {
     "name_ko": "7(#9)",
+    "name_en": "7 sharp 9",
     "group": "Altered",
     "description_ko": "도미넌트에 #9 긴장",
     "mood_ko": "블루지/공격적",
@@ -172,6 +191,7 @@
   },
   "7sus4": {
     "name_ko": "7sus4",
+    "name_en": "dominant 7 suspended 4",
     "group": "Suspended",
     "description_ko": "3도 대신 4도 + b7",
     "mood_ko": "열린 긴장",

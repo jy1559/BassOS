@@ -1,5 +1,5 @@
 {
-  "policy_version": 10,
+  "policy_version": 20,
   "app": {
     "name": "Bass Practice Game",
     "version": "1.0",
@@ -183,8 +183,8 @@
     "minigame_xp_multiplier": 1.0
   },
   "admin": {
-    "gate_enabled": false,
-    "pin_hash": ""
+    "gate_enabled": true,
+    "pin_hash": "40c0bb054bf07d5c614c8aa3c827ce5da20eaf4c04a338f344b9bf91505c6cce"
   },
   "backup": {
     "enabled": true,

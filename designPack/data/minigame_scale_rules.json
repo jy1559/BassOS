@@ -1,6 +1,7 @@
 ﻿{
   "major_pentatonic": {
     "name_ko": "메이저 펜타토닉",
+    "name_en": "Major Pentatonic",
     "group": "Pentatonic",
     "description_ko": "가장 기본적인 밝은 5음 스케일",
     "mood_ko": "밝고 안정적",
@@ -10,6 +11,7 @@
   },
   "minor_pentatonic": {
     "name_ko": "마이너 펜타토닉",
+    "name_en": "Minor Pentatonic",
     "group": "Pentatonic",
     "description_ko": "블루스/록에서 가장 자주 쓰는 5음 스케일",
     "mood_ko": "거칠고 단단함",
@@ -19,6 +21,7 @@
   },
   "blues": {
     "name_ko": "블루스 스케일",
+    "name_en": "Blues",
     "group": "Pentatonic",
     "description_ko": "마이너 펜타토닉에 블루노트(b5)를 더한 형태",
     "mood_ko": "블루지하고 긴장감 있음",
@@ -28,6 +31,7 @@
   },
   "ionian": {
     "name_ko": "아이오니안(메이저)",
+    "name_en": "Ionian",
     "group": "Diatonic Modes",
     "description_ko": "메이저 스케일의 기준 모드",
     "mood_ko": "가장 밝고 정통적인 메이저",
@@ -37,6 +41,7 @@
   },
   "dorian": {
     "name_ko": "도리안",
+    "name_en": "Dorian",
     "group": "Diatonic Modes",
     "description_ko": "마이너 성격에 6도가 자연음",
     "mood_ko": "펑키하고 모던한 마이너",
@@ -46,6 +51,7 @@
   },
   "phrygian": {
     "name_ko": "프리지안",
+    "name_en": "Phrygian",
     "group": "Diatonic Modes",
     "description_ko": "b2가 강한 다크한 모드",
     "mood_ko": "어둡고 이국적",
@@ -55,6 +61,7 @@
   },
   "lydian": {
     "name_ko": "리디안",
+    "name_en": "Lydian",
     "group": "Diatonic Modes",
     "description_ko": "#4가 특징인 메이저 모드",
     "mood_ko": "몽환적이고 떠있는 느낌",
@@ -64,6 +71,7 @@
   },
   "mixolydian": {
     "name_ko": "믹솔리디안",
+    "name_en": "Mixolydian",
     "group": "Diatonic Modes",
     "description_ko": "메이저 성격에 b7",
     "mood_ko": "블루지한 메이저",
@@ -73,6 +81,7 @@
   },
   "aeolian": {
     "name_ko": "에올리안(내추럴 마이너)",
+    "name_en": "Aeolian",
     "group": "Diatonic Modes",
     "description_ko": "자연단음계",
     "mood_ko": "감성적이고 안정적인 마이너",
@@ -82,6 +91,7 @@
   },
   "locrian": {
     "name_ko": "로크리안",
+    "name_en": "Locrian",
     "group": "Diatonic Modes",
     "description_ko": "b2와 b5를 가진 불안정 모드",
     "mood_ko": "불안정하고 긴장된 사운드",
@@ -91,6 +101,7 @@
   },
   "harmonic_minor": {
     "name_ko": "하모닉 마이너",
+    "name_en": "Harmonic Minor",
     "group": "Minor Variants",
     "description_ko": "7도를 올린 단음계",
     "mood_ko": "드라마틱하고 클래식한 긴장",
@@ -100,6 +111,7 @@
   },
   "phrygian_dominant": {
     "name_ko": "프리지안 도미넌트",
+    "name_en": "Phrygian Dominant",
     "group": "Minor Variants",
     "description_ko": "하모닉 마이너 5모드",
     "mood_ko": "중동/스패니시 색채",
@@ -109,6 +121,7 @@
   },
   "melodic_minor": {
     "name_ko": "멜로딕 마이너",
+    "name_en": "Melodic Minor",
     "group": "Minor Variants",
     "description_ko": "상행 기준 6,7도를 올린 단음계",
     "mood_ko": "재즈 지향의 세련된 마이너",
@@ -118,6 +131,7 @@
   },
   "lydian_dominant": {
     "name_ko": "리디안 도미넌트",
+    "name_en": "Lydian Dominant",
     "group": "Minor Variants",
     "description_ko": "멜로딕 마이너 4모드",
     "mood_ko": "밝지만 강한 도미넌트 텐션",
@@ -127,6 +141,7 @@
   },
   "altered": {
     "name_ko": "알터드 스케일",
+    "name_en": "Altered",
     "group": "Minor Variants",
     "description_ko": "멜로딕 마이너 7모드",
     "mood_ko": "강한 불협/해결 긴장",
@@ -136,6 +151,7 @@
   },
   "whole_tone": {
     "name_ko": "홀톤",
+    "name_en": "Whole Tone",
     "group": "Symmetric/Exotic",
     "description_ko": "전음만으로 구성된 대칭 스케일",
     "mood_ko": "몽환적, 부유감",
@@ -145,6 +161,7 @@
   },
   "diminished_half_whole": {
     "name_ko": "디미니시드(하프-홀)",
+    "name_en": "Diminished Half-Whole",
     "group": "Symmetric/Exotic",
     "description_ko": "반음-전음 반복 대칭",
     "mood_ko": "강한 긴장과 대칭감",
@@ -154,6 +171,7 @@
   },
   "diminished_whole_half": {
     "name_ko": "디미니시드(홀-하프)",
+    "name_en": "Diminished Whole-Half",
     "group": "Symmetric/Exotic",
     "description_ko": "전음-반음 반복 대칭",
     "mood_ko": "불안정하고 기계적인 긴장",

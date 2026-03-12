@@ -2620,10 +2620,10 @@ def onboarding_complete() -> Response:
     ui = settings.setdefault("ui", {})
     if payload.get("theme"):
         ui["default_theme"] = payload.get("theme")
-    if payload.get("language"):
-        ui["language"] = payload.get("language")
+    ui["language"] = "ko"
     audio = settings.setdefault("audio", {})
     if payload.get("audio_enabled") is not None:
         audio["enabled"] = bool(payload.get("audio_enabled"))
-    storage.write_json("settings.json", settings)
-    return jsonify({"ok": True, "settings": settings})
+    normalized = storage.normalize_settings(settings, source_settings=settings)
+    storage.write_json("settings.json", normalized)
+    return jsonify({"ok": True, "settings": normalized})

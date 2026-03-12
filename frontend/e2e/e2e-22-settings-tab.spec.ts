@@ -1,5 +1,21 @@
-import { expect, test } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
 import { gotoSettings, openApp, resetRuntime } from "./helpers";
+
+async function queueDialogs(page: Page, steps: Array<{ action: "accept" | "dismiss"; promptText?: string }>) {
+  const remaining = [...steps];
+  page.on("dialog", async (dialog) => {
+    const next = remaining.shift();
+    if (!next) {
+      await dialog.dismiss();
+      return;
+    }
+    if (next.action === "dismiss") {
+      await dialog.dismiss();
+      return;
+    }
+    await dialog.accept(next.promptText);
+  });
+}
 
 test("E2E-22 settings search + toc navigation", async ({ page, request }) => {
   await resetRuntime(request);
@@ -14,6 +30,12 @@ test("E2E-22 settings search + toc navigation", async ({ page, request }) => {
   await tocItem.click();
   await expect(tocItem).toHaveClass(/active/);
   await expect(page.locator("[data-testid='settings-section-dataBackup']")).toBeVisible();
+  await expect(page.locator("[data-testid='settings-toc-developer']")).toHaveCount(0);
+  await expect(page.locator("[data-testid='settings-toc-mock']")).toHaveCount(0);
+  await expect(page.locator("[data-testid='settings-toc-misc']")).toHaveCount(0);
+  await expect(page.locator("option[value='en']")).toHaveCount(0);
+  await expect(page.locator("[data-testid='reset-tools-open-btn']")).toBeVisible();
+  await expect(page.locator("[data-testid='admin-tools-open-btn']")).toBeVisible();
 });
 
 test("E2E-22 settings locked theme should be preview-only", async ({ page, request }) => {
@@ -30,16 +52,50 @@ test("E2E-22 settings locked theme should be preview-only", async ({ page, reque
   await expect(activeTheme).not.toHaveAttribute("data-testid", "theme-card-midnight");
 });
 
-test("E2E-22 settings admin overlay and backup restore flow", async ({ page, request }) => {
+test("E2E-22 settings reset flow requires multi-step confirmation", async ({ page, request }) => {
+  await resetRuntime(request);
+  await openApp(page);
+  await gotoSettings(page);
+
+  const resetOpen = page.locator("[data-testid='reset-tools-open-btn']");
+  await expect(resetOpen).toBeVisible();
+  await resetOpen.click();
+  await expect(page.locator("[data-testid='settings-reset-modal']")).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(page.locator("[data-testid='settings-reset-modal']")).toBeHidden();
+
+  await resetOpen.click();
+  await expect(page.locator("[data-testid='settings-reset-modal']")).toBeVisible();
+
+  await queueDialogs(page, [
+    { action: "accept" },
+    { action: "accept" },
+    { action: "accept", promptText: "진행도 초기화" },
+  ]);
+
+  const resetResponse = page.waitForResponse((res) => res.url().includes("/api/admin/reset-progress"));
+  await page.locator("[data-testid='reset-progress-btn']").click();
+  const response = await resetResponse;
+  const payload = await response.json();
+  expect(payload.ok).toBeTruthy();
+});
+
+test("E2E-22 settings admin auth and backup restore flow", async ({ page, request }) => {
   await resetRuntime(request);
   await request.post("/api/system/pre-exit", { data: {} });
 
   await openApp(page);
   await gotoSettings(page);
 
-  const overlayOpen = page.locator("[data-testid='admin-overlay-open-btn']");
+  const overlayOpen = page.locator("[data-testid='admin-tools-open-btn']");
   await expect(overlayOpen).toBeVisible();
   await overlayOpen.click();
+  await expect(page.locator("[data-testid='admin-auth-modal']")).toBeVisible();
+  await page.locator("[data-testid='admin-auth-input']").fill("wrong-password");
+  await page.locator("[data-testid='admin-auth-submit']").click();
+  await expect(page.locator(".settings-inline-error")).toContainText("비밀번호");
+  await page.locator("[data-testid='admin-auth-input']").fill("q1w2e3r4!");
+  await page.locator("[data-testid='admin-auth-submit']").click();
   await expect(page.locator("[data-testid='admin-overlay']")).toBeVisible();
   await page.keyboard.press("Escape");
   await expect(page.locator("[data-testid='admin-overlay']")).toBeHidden();
@@ -50,13 +106,10 @@ test("E2E-22 settings admin overlay and backup restore flow", async ({ page, req
   }
   await expect(restoreButtons.first()).toBeVisible();
 
-  page.on("dialog", async (dialog) => {
-    if (dialog.message().toUpperCase().includes("RESTORE")) {
-      await dialog.accept("RESTORE");
-      return;
-    }
-    await dialog.accept();
-  });
+  await queueDialogs(page, [
+    { action: "accept" },
+    { action: "accept", promptText: "RESTORE" },
+  ]);
 
   const restoreResponse = page.waitForResponse((res) => res.url().includes("/api/backup/restore"));
   await restoreButtons.first().click();

@@ -909,6 +909,31 @@ nav {
   text-overflow: ellipsis;
 }
 
+.settings-action-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.settings-action-card {
+  display: grid;
+  gap: 12px;
+  align-content: space-between;
+}
+
+.settings-action-copy {
+  display: grid;
+  gap: 6px;
+}
+
+.settings-action-copy strong {
+  font-size: 16px;
+}
+
+.settings-action-copy p {
+  margin: 0;
+}
+
 .settings-admin-launch-card {
   display: flex;
   justify-content: flex-end;
@@ -931,6 +956,22 @@ nav {
   max-height: 94vh;
   display: grid;
   gap: 10px;
+  overflow: auto;
+}
+
+.settings-reset-modal,
+.settings-auth-modal {
+  width: min(560px, 96vw);
+}
+
+.settings-auth-form {
+  display: grid;
+  gap: 10px;
+}
+
+.danger-panel {
+  border-color: color-mix(in srgb, var(--danger) 34%, var(--border));
+  background: color-mix(in srgb, var(--panel) 90%, #ffeaea);
 }
 
 .settings-admin-head {
@@ -9911,6 +9952,9 @@ textarea {
   }
   .settings-admin-launch-card .ghost-btn {
     width: 100%;
+  }
+  .settings-action-grid {
+    grid-template-columns: 1fr;
   }
   .app-root {
     grid-template-columns: 230px 1fr;

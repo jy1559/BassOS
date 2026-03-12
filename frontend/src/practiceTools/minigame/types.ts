@@ -44,6 +44,7 @@ export type MinigameConfig = {
     string,
     {
       name_ko?: string;
+      name_en?: string;
       intervals: number[];
       group?: string;
       description_ko?: string;
@@ -60,6 +61,7 @@ export type MinigameConfig = {
     {
       intervals: number[];
       name_ko?: string;
+      name_en?: string;
       group?: string;
       description_ko?: string;
       mood_ko?: string;

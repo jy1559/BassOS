@@ -251,7 +251,7 @@ JOURNAL_TEMPLATE_CATALOG_DEFAULTS = [
 
 
 SETTINGS_DEFAULTS = {
-    "policy_version": 19,
+    "policy_version": 20,
     "ui": {
         "default_theme": "midnight",
         "enable_confetti": True,
@@ -357,8 +357,8 @@ SETTINGS_DEFAULTS = {
         "daily_session_xp_cap": 0,
     },
     "admin": {
-        "gate_enabled": False,
-        "pin_hash": "",
+        "gate_enabled": True,
+        "pin_hash": "40c0bb054bf07d5c614c8aa3c827ce5da20eaf4c04a338f344b9bf91505c6cce",
     },
     "backup": {
         "enabled": True,

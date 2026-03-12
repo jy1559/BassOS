@@ -6,6 +6,7 @@ import { cellToMidi, pcToName, sameCell, type Cell } from "../common/music";
 import { createSeededRng } from "../common/seed";
 import { FretboardCanvas, type FretboardMarker, type MarkerKind } from "../fretboard/FretboardCanvas";
 import { LineOptionBoard } from "./LineOptionBoard";
+import { formatLineMapperRuleName } from "./ruleDisplay";
 import {
   buildLineMapperQuestion,
   evaluateLineMapperQuestion,
@@ -45,6 +46,7 @@ type Props = {
     string,
     {
       name_ko?: string;
+      name_en?: string;
       intervals: number[];
       description_ko?: string;
       mood_ko?: string;
@@ -60,6 +62,7 @@ type Props = {
     {
       intervals: number[];
       name_ko?: string;
+      name_en?: string;
       description_ko?: string;
       mood_ko?: string;
       usage_ko?: string;
@@ -265,6 +268,7 @@ export function LineMapperGame({
   const boardMaxFret = boardMaxFretForQuestion(question, maxVisibleFret);
   const legendText = stageLegend(question);
   const currentGoal = stageGoalText(question);
+  const questionTitle = question ? formatLineMapperRuleName(question.rootName, question.rule) : "-";
   const expandedFixOption = useMemo(() => {
     if (!question || question.stage !== "FIX") return null;
     return question.options[expandedFixIndex] ?? question.options[0] ?? null;
@@ -551,7 +555,7 @@ export function LineMapperGame({
       <header className="mg-lm-header">
         <small className="mg-lm-goal">{currentGoal}</small>
         <div className="mg-lm-title-row">
-          <h2>{question ? `${question.rootName} ${question.rule.label}` : "-"}</h2>
+          <h2 data-testid="mg-lm-question-title">{questionTitle}</h2>
           {question ? (
             <button
               type="button"

@@ -284,7 +284,7 @@ function AppBody() {
   const shortcutRouter = useShortcutRouter();
   const metronome = useMetronome();
 
-  const lang = (settings?.ui?.language ?? "ko") as Lang;
+  const lang: Lang = "ko";
   const xpDisplayScale = getXpDisplayScale(settings);
   const activeSessionId = hud?.active_session?.session_id || "";
   const activeSessionStartMs = hud?.active_session?.start_at ? new Date(hud.active_session.start_at).getTime() : 0;
@@ -416,7 +416,7 @@ function AppBody() {
     nextQuests: Quest[],
     nextAchievements: Achievement[]
   ) => {
-    const uiLang = (settings?.ui?.language ?? "ko") as Lang;
+    const uiLang: Lang = "ko";
     const uiSettings = (settings?.ui ?? {}) as Settings["ui"];
     const levelNotifyOn = uiSettings.notify_level_up !== false;
     const levelFxOn = uiSettings.fx_level_up_overlay ?? uiSettings.enable_confetti ?? true;

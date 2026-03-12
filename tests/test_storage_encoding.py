@@ -132,7 +132,7 @@ def test_read_json_returns_defaults_for_empty_settings_file(tmp_path: Path):
     settings = storage.read_json("settings.json")
 
     assert settings["policy_version"] >= 1
-    assert settings["ui"]["language"] in {"ko", "en"}
+    assert settings["ui"]["language"] == "ko"
     assert "profile" in settings
 
 
@@ -145,7 +145,7 @@ def test_read_json_returns_defaults_for_invalid_settings_file(tmp_path: Path):
     settings = storage.read_json("settings.json")
 
     assert settings["policy_version"] >= 1
-    assert settings["ui"]["language"] in {"ko", "en"}
+    assert settings["ui"]["language"] == "ko"
     assert "profile" in settings
 
 
